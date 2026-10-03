@@ -355,7 +355,7 @@
                   @foreach ($item->images as $image)
                     <div class="gallery-item" data-id="{{ $image->id }}">
                       <input type="checkbox" class="g-check" value="{{ $image->id }}" title="Select">
-                      <a href="{{ route('admin.deleteImage',[$image->id])}}" class="g-del" title="Delete" onclick="return confirm('Delete this image?')">&times;</a>
+                      <a href="#" class="g-del" title="Delete">&times;</a>
                       <img src="{{ getImage('products',$image->image)}}" alt="">
                       <span class="g-pos">{{ $loop->iteration }}</span>
                     </div>
@@ -640,6 +640,24 @@ $(function(){
     $('#gallery_select_all').on('change', function(){
       $(box).find('.g-check').prop('checked', this.checked);
       refreshUI();
+    });
+
+    // Cross icon: delete that one image straight away, no confirm box, no page reload.
+    $(box).on('click', '.g-del', function(e){
+      e.preventDefault();
+      const $item = $(this).closest('.gallery-item');
+      $item.css('opacity', .4);
+      setStatus('Deleting…');
+      $.post(deleteUrl, { _token: token, ids: [$item.data('id')] })
+        .done(function(){
+          $item.remove();
+          setStatus('Deleted ✓');
+          refreshUI();
+        })
+        .fail(function(){
+          $item.css('opacity', 1);
+          setStatus('Delete failed. Please try again.', true);
+        });
     });
 
     $('#gallery_delete_selected').on('click', function(){
