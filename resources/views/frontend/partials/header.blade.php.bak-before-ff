@@ -1,0 +1,970 @@
+@php
+    use App\Models\Category;
+    $information   = getInfo();
+    $categories    = Category::whereNull('parent_id')->where('is_menu', 1)->with('subcats')->get();
+    
+    // Brand Colors (Dynamic from Database)
+    $brandGradient = $information->gradient_code ?? 'linear-gradient(135deg,#0d6efd,#00276C)';
+    $brandText     = $information->primary_color ?? '#ffffff';
+    $brandSolid    = $information->secondary_color ?? '#0d6efd';
+@endphp
+
+<style>
+:root {
+    --brand-gradient: {!! $brandGradient !!};
+    --brand-text: {{ $brandText }};
+    --brand-solid: {{ $brandSolid }};
+    
+    --theme-peach: #fff5f0;
+    --theme-white: #ffffff;
+    --theme-dark: #111111;
+    --theme-text-dark: #333333;
+    --theme-border: rgba(0, 0, 0, 0.08);
+}
+
+body { font-family: 'Hind Siliguri', sans-serif; }
+
+/* =====================================================
+   ANIMATIONS
+   ===================================================== */
+@keyframes slideDownFade {
+    from { opacity: 0; transform: translateY(-15px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes pulseGlow {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(255,255,255,0.4); }
+    50%      { box-shadow: 0 0 0 8px rgba(255,255,255,0); }
+}
+@keyframes iconBounce {
+    0%, 100% { transform: translateY(0); }
+    50%      { transform: translateY(-3px); }
+}
+@keyframes shimmer {
+    0%   { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+}
+@keyframes ringShake {
+    0%, 100% { transform: rotate(0); }
+    20%      { transform: rotate(-15deg); }
+    40%      { transform: rotate(15deg); }
+    60%      { transform: rotate(-10deg); }
+    80%      { transform: rotate(10deg); }
+}
+
+.desktop-header-wrap, .strides-mobile-header {
+    animation: slideDownFade .5s ease;
+}
+
+/* =====================================================
+   TOP NOTICE BAR
+   ===================================================== */
+.topbar-strides {
+    background: var(--theme-peach);
+    padding: 9px 15px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #111111; /* BLACK TEXT */
+    border-bottom: 1px solid var(--theme-border);
+    display: flex;
+    align-items: center;
+}
+.topbar-strides marquee { margin: 0; padding: 0; color: #111111; }
+
+/* =====================================================
+   DESKTOP HEADER
+   ===================================================== */
+.desktop-header-wrap { position: relative; z-index: 999; }
+
+/* 1. Main Row */
+.strides-main-row {
+    background: var(--brand-gradient);
+    padding: 20px 30px;
+    position: relative;
+    overflow: hidden;
+}
+.strides-main-row::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.05), transparent);
+    background-size: 200% 100%;
+    animation: shimmer 8s linear infinite;
+    pointer-events: none;
+}
+.strides-main-inner {
+    max-width: 1500px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 40px;
+    position: relative;
+    z-index: 1;
+}
+
+.desk-logo img {
+    max-height: 55px;
+    object-fit: contain;
+    transition: transform .4s ease;
+}
+.desk-logo:hover img { transform: scale(1.05) rotate(-1deg); }
+
+/* Search Box */
+.desk-search {
+    flex: 1;
+    max-width: 600px;
+    margin: 0 auto;
+}
+.desk-search form { margin: 0; }
+.desk-sbox {
+    display: flex;
+    align-items: center;
+    height: 48px;
+    background: rgba(255, 255, 255, 0.18);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 30px;
+    overflow: hidden;
+    padding: 0 8px 0 22px;
+    transition: all .35s ease;
+    backdrop-filter: blur(8px);
+}
+.desk-sbox:hover { background: rgba(255, 255, 255, 0.22); }
+.desk-sbox:focus-within {
+    background: rgba(255, 255, 255, 0.28);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+    transform: translateY(-1px);
+}
+.desk-sbox i.fa-search {
+    color: var(--brand-text);
+    font-size: 15px;
+    margin-right: 12px;
+}
+.desk-sbox input {
+    flex: 1;
+    height: 100%;
+    border: 0;
+    outline: 0;
+    background: transparent;
+    font-size: 14px;
+    color: var(--brand-text);
+    font-weight: 500;
+}
+.desk-sbox input::placeholder { color: var(--brand-text); opacity: 0.75; }
+.desk-sbox .sbtn {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    border: 0;
+    background: var(--theme-white);
+    color: var(--brand-solid);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    transition: all .3s ease;
+}
+.desk-sbox .sbtn:hover { transform: rotate(90deg) scale(1.05); }
+
+/* Right Premium Icons */
+.desk-right-icons {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.desk-pico {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 14px;
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.10);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    color: var(--brand-text) !important;
+    text-decoration: none !important;
+    transition: all .35s ease;
+    min-height: 50px;
+}
+.desk-pico:hover {
+    background: rgba(255, 255, 255, 0.22);
+    transform: translateY(-3px);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+}
+.desk-pico .pico-ico {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    background: rgba(255,255,255,0.18);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    color: var(--brand-text);
+    transition: all .3s ease;
+    flex-shrink: 0;
+}
+.desk-pico:hover .pico-ico { animation: iconBounce .6s ease; background: rgba(255,255,255,0.3); }
+.desk-pico .pico-txt {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.15;
+}
+.desk-pico .pico-txt small {
+    font-size: 10.5px;
+    opacity: 0.85;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+}
+.desk-pico .pico-txt strong {
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.desk-pico.is-call .pico-ico { animation: ringShake 2.5s ease infinite; }
+.desk-pico.is-call:hover .pico-ico { animation: ringShake .6s ease; }
+
+.desk-pico .cart-count {
+    position: absolute !important;
+    top: -6px !important;
+    right: -6px !important;
+    min-width: 22px;
+    height: 22px;
+    background: var(--theme-white) !important;
+    color: var(--theme-text-dark) !important;
+    font-size: 11px !important;
+    font-weight: 800 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    border-radius: 50% !important;
+    box-shadow: 0 3px 8px rgba(0,0,0,.2);
+    animation: pulseGlow 2s infinite;
+    padding: 0 4px;
+}
+
+/* 2. Menu Row - FIXED HEIGHT TO REMOVE GAP */
+.strides-menu-row {
+    background: var(--theme-white);
+    border-bottom: 1px solid var(--theme-border);
+    position: sticky;
+    top: 0;
+    z-index: 998;
+    transition: box-shadow .3s ease, background .3s ease;
+    height: 54px; 
+}
+.strides-menu-row.is-stuck {
+    box-shadow: 0 8px 25px rgba(0,0,0,0.08);
+    backdrop-filter: blur(10px);
+    background: rgba(255,255,255,0.97);
+}
+.strides-menu-inner {
+    max-width: 1500px;
+    margin: 0 auto;
+    padding: 0 30px;
+    display: block; 
+    height: 54px; 
+    position: relative; 
+}
+
+/* =====================================================
+   UPDATED DESKTOP NAVIGATION (Horizontal Swipe)
+   ===================================================== */
+.desk-nav {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    align-items: flex-start;
+    justify-content: flex-start;
+    flex-wrap: nowrap; 
+    overflow-x: auto; 
+    overflow-y: hidden;
+    scrollbar-width: none; 
+    -webkit-overflow-scrolling: touch;
+    width: 100%;
+    
+    /* CSS Trick to prevent absolute dropdowns from being clipped vertically */
+    padding-bottom: 400px; 
+    margin-bottom: -400px; 
+    pointer-events: none; 
+}
+.desk-nav::-webkit-scrollbar {
+    display: none; 
+}
+.desk-nav > li {
+    position: relative;
+    display: flex;
+    align-items: stretch;
+    flex-shrink: 0; 
+    pointer-events: auto; 
+}
+.desk-nav > li > a {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 0 18px;
+    color: var(--theme-text-dark) !important;
+    text-decoration: none !important;
+    font-weight: 600;
+    font-size: 14px;
+    transition: all .3s ease;
+    white-space: nowrap; 
+    position: relative;
+    height: 54px;
+}
+.desk-nav > li > a::after {
+    content:"";
+    position: absolute;
+    left: 50%;
+    bottom: 8px;
+    width: 0;
+    height: 2.5px;
+    background: var(--brand-gradient);
+    border-radius: 999px;
+    transform: translateX(-50%);
+    transition: width .35s ease;
+}
+.desk-nav > li:hover > a::after { width: 30px; }
+.desk-nav > li:hover > a { color: var(--theme-text-dark) !important; }
+.desk-nav > li.has-sub > a::before {
+    content:"\f107";
+    font-family: "Font Awesome 5 Free";
+    font-weight: 900;
+    font-size: 10px;
+    margin-right: 4px;
+    order: 1;
+    opacity: 0.7;
+    transition: transform .35s ease;
+}
+.desk-nav > li.has-sub:hover > a::before { transform: rotate(180deg); }
+
+/* Desktop Submenu */
+.desk-sub {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    min-width: 240px;
+    background: var(--theme-white);
+    list-style: none;
+    margin: 0;
+    padding: 8px 0;
+    border-radius: 0 0 12px 12px;
+    box-shadow: 0 20px 40px rgba(0,0,0,0.12);
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(15px);
+    transition: all .35s ease;
+    z-index: 99999;
+    border-top: 3px solid var(--brand-solid);
+}
+.desk-nav > li.has-sub:hover > .desk-sub {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+}
+.desk-sub li a {
+    display: block;
+    padding: 11px 22px;
+    font-size: 13.5px;
+    color: var(--theme-text-dark) !important;
+    text-decoration: none !important;
+    font-weight: 500;
+    transition: all .25s ease;
+    border-left: 3px solid transparent;
+}
+.desk-sub li a:hover {
+    background: var(--theme-peach);
+    color: var(--theme-text-dark) !important;
+    border-left-color: var(--brand-solid);
+    padding-left: 28px;
+}
+
+/* =====================================================
+   MOBILE HEADER
+   ===================================================== */
+.strides-mobile-header {
+    position: sticky;
+    top: 0;
+    z-index: 998;
+    background: var(--brand-gradient);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.12);
+}
+.mob-header-inner { padding: 14px 15px; }
+
+.mob-top-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: relative;
+    height: 45px;
+}
+.mob-btn {
+    background: transparent;
+    border: none;
+    color: var(--brand-text) !important;
+    font-size: 24px;
+    padding: 0;
+    display: flex; align-items: center; justify-content: flex-start;
+    width: 45px; height: 100%;
+    z-index: 2;
+    transition: transform .3s ease;
+}
+.mob-btn:active { transform: scale(0.9); }
+.mob-cart {
+    position: relative;
+    color: var(--brand-text) !important;
+    font-size: 24px;
+    text-decoration: none !important;
+    display: flex; align-items: center; justify-content: flex-end;
+    width: 45px; height: 100%;
+    z-index: 2;
+}
+.mob-cart .cart-count {
+    position: absolute !important;
+    top: -2px !important;
+    right: -5px !important;
+    min-width: 18px; height: 18px;
+    background: var(--theme-white) !important;
+    color: var(--theme-text-dark) !important;
+    font-size: 10px !important;
+    font-weight: 800 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    border-radius: 50% !important;
+    animation: pulseGlow 2s infinite;
+}
+
+.mob-logo {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 1;
+    width: calc(100% - 100px);
+}
+.mob-logo img { max-height: 40px; object-fit: contain; }
+
+.mob-search-wrap { margin-top: 15px; }
+.mob-search-wrap form { margin: 0; }
+
+/* Mobile Search */
+.mob-sbox {
+    display: flex; align-items: center;
+    height: 45px;
+    background: rgba(255, 255, 255, 0.18);
+    border-radius: 30px;
+    overflow: hidden;
+    padding: 4px 4px 4px 18px;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    transition: all .3s ease;
+}
+.mob-sbox:focus-within { 
+    background: rgba(255, 255, 255, 0.25);
+    box-shadow: 0 6px 15px rgba(0,0,0,0.15); 
+}
+.mob-sbox input {
+    flex: 1; height: 100%;
+    border: 0; outline: 0;
+    background: transparent;
+    font-size: 14px;
+    color: var(--brand-text);
+    padding-left: 0;
+}
+.mob-sbox input::placeholder { color: var(--brand-text); opacity: 0.75; }
+.mob-sbox button {
+    width: 38px; height: 38px;
+    border: 0; border-radius: 30px;
+    background: var(--theme-white);
+    color: var(--brand-solid);
+    display: flex align-items: center; justify-content: center;
+    font-size: 14px;
+    transition: transform .3s ease;
+}
+.mob-sbox button:hover { transform: scale(1.05); }
+
+/* Mobile Quick Action Strip */
+.mob-quick {
+    display: flex;
+    gap: 8px;
+    padding: 10px 14px 4px;
+    background: var(--theme-peach);
+}
+.mob-quick a {
+    flex: 1;
+    display: flex; align-items: center; justify-content: center; gap: 6px;
+    padding: 8px;
+    background: var(--theme-white);
+    border-radius: 10px;
+    color: var(--theme-text-dark) !important;
+    text-decoration: none !important;
+    font-size: 12px;
+    font-weight: 600;
+    border: 1px solid var(--theme-border);
+    transition: all .3s ease;
+}
+.mob-quick a:hover { background: var(--brand-gradient); color: var(--brand-text) !important; transform: translateY(-2px); }
+.mob-quick a i { font-size: 13px; }
+
+.mob-chips {
+    background: var(--theme-white);
+    padding: 10px 14px;
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    scrollbar-width: none;
+    border-top: 1px solid var(--theme-border);
+}
+.mob-chips::-webkit-scrollbar { display: none; }
+.mob-chips a {
+    flex-shrink: 0;
+    padding: 7px 14px;
+    background: var(--theme-peach);
+    border-radius: 999px;
+    color: var(--theme-text-dark) !important;
+    text-decoration: none !important;
+    font-size: 12.5px;
+    font-weight: 600;
+    display: inline-flex; align-items: center; gap: 6px;
+    border: 1px solid rgba(0,0,0,0.03);
+    transition: all .3s ease;
+}
+.mob-chips a:hover, .mob-chips a.active {
+    background: var(--brand-gradient);
+    color: var(--brand-text) !important;
+    transform: translateY(-2px);
+}
+
+@media (max-width: 991px) {
+    .desktop-header-wrap { display: none !important; }
+}
+@media (min-width: 992px) {
+    .strides-mobile-header { display: none !important; }
+}
+
+@media (max-width: 1199px) {
+    .desk-pico .pico-txt { display: none; }
+    .desk-pico { padding: 6px; }
+}
+
+/* =====================================================
+   OFFCANVAS MENU
+   ===================================================== */
+.offcanvas-pmm {
+    width: 320px !important;
+    border: 0 !important;
+    box-shadow: 10px 0 50px rgba(0,0,0,0.15) !important;
+}
+.pmm-header {
+    background: var(--theme-peach);
+    padding: 20px 15px;
+    border-bottom: 1px solid var(--theme-border);
+}
+.pmm-header-row {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 15px;
+}
+.pmm-logo img { max-height: 35px; }
+.pmm-close {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    background: var(--theme-white);
+    color: var(--brand-solid);
+    border: 1px solid var(--theme-border);
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    transition: transform .3s ease;
+}
+.pmm-close:hover { transform: rotate(90deg); }
+
+.pmm-user-card {
+    display: flex; align-items: center; gap: 12px;
+    background: var(--theme-white);
+    padding: 10px;
+    border-radius: 12px;
+    text-decoration: none !important;
+    border: 1px solid var(--theme-border);
+    transition: all .3s ease;
+}
+.pmm-user-card:hover { transform: translateY(-2px); box-shadow: 0 6px 15px rgba(0,0,0,0.05); }
+.pmm-avatar {
+    width: 42px; height: 42px;
+    border-radius: 50%;
+    background: var(--brand-gradient);
+    color: var(--theme-white);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px; font-weight: 800;
+}
+.pmm-uinfo small { display: block; font-size: 11px; color: #777; }
+.pmm-uinfo strong { display: block; font-size: 14px; color: var(--theme-dark); }
+
+.pmm-body {
+    background: var(--theme-white);
+    flex: 1;
+    overflow-y: auto;
+    padding: 15px;
+}
+.pmm-cats { list-style: none; margin: 0; padding: 0; }
+.pmm-cat-item {
+    margin-bottom: 8px;
+    background: var(--theme-peach);
+    border-radius: 10px;
+    overflow: hidden;
+    transition: transform .25s ease;
+}
+.pmm-cat-item:hover { transform: translateX(3px); }
+.pmm-cat-head { display: flex; align-items: center; gap: 12px; padding: 10px 12px; }
+.pmm-cat-ico {
+    width: 34px; height: 34px;
+    border-radius: 8px;
+    background: var(--theme-white);
+    color: var(--brand-solid);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px;
+}
+.pmm-cat-name {
+    flex: 1;
+    color: var(--theme-text-dark) !important;
+    font-size: 14px; font-weight: 600;
+    text-decoration: none !important;
+}
+.pmm-cat-arrow {
+    width: 30px; height: 30px;
+    border-radius: 8px;
+    background: var(--theme-white);
+    color: var(--brand-solid);
+    border: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 10px; cursor: pointer;
+    transition: all .3s ease;
+}
+.pmm-cat-arrow:not(.collapsed) {
+    background: var(--brand-gradient);
+    color: var(--theme-white);
+    transform: rotate(180deg);
+}
+.pmm-subs { list-style: none; margin: 0; padding: 5px 15px 10px 50px; }
+.pmm-subs a {
+    display: block; padding: 6px 0;
+    color: var(--theme-text-dark) !important; text-decoration: none !important;
+    font-size: 13.5px; font-weight: 500;
+    transition: padding .25s ease;
+}
+.pmm-subs a:hover { padding-left: 5px; color: var(--theme-text-dark) !important; }
+
+.pmm-call-btn {
+    display: flex !important; align-items: center; justify-content: center; gap: 10px;
+    background: var(--brand-gradient);
+    color: var(--theme-white) !important;
+    padding: 12px; border-radius: 10px;
+    text-decoration: none !important; font-weight: 600;
+    margin-top: 20px;
+    transition: transform .3s ease;
+}
+.pmm-call-btn:hover { transform: translateY(-2px); }
+.pmm-call-btn i { animation: ringShake 2.5s ease infinite; }
+
+/* =====================================================
+   Z-INDEX FIX FOR CART OPEN STATE
+   ===================================================== */
+body.hide-header .desktop-header-wrap,
+body.hide-header .strides-menu-row,
+body.hide-header .strides-mobile-header {
+    z-index: 99 !important;
+}
+
+.cart-dropdown,
+#cart-dropdown,
+#cart_section,
+.cart-content-wrap,
+.cart-overlay {
+    z-index: 999999 !important;
+}
+</style>
+
+{{-- ================= TOP NOTICE BAR ================= --}}
+@if(isset($information) && $information->topbar_active == 1 && !empty($information->topbar_notice))
+<div class="desktop-header-wrap">
+    <div class="topbar-strides">
+        <marquee behavior="scroll" direction="left" scrollamount="5">
+            {{ $information->topbar_notice }} &nbsp; &nbsp; &nbsp; {{ $information->topbar_notice }}
+        </marquee>
+    </div>
+</div>
+@endif
+
+{{-- ================= DESKTOP HEADER ================= --}}
+<div class="desktop-header-wrap axil-header">
+    {{-- Main Row --}}
+    <div class="strides-main-row">
+        <div class="strides-main-inner">
+            <a href="{{ route('front.home') }}" class="desk-logo">
+                <img src="{{ asset('uploads/img/'.$information->site_logo) }}" alt="Site Logo">
+            </a>
+
+            <div class="desk-search">
+                <form action="{{ route('front.products.index') }}" method="GET">
+                    <div class="desk-sbox">
+                        <i class="fas fa-search"></i>
+                        <input type="search" name="q" value="{{ request('q') ?? '' }}" placeholder="Search for products, brands and more..." autocomplete="off">
+                        <button type="submit" class="sbtn"><i class="fas fa-arrow-right"></i></button>
+                    </div>
+                </form>
+            </div>
+
+            <div class="desk-right-icons">
+                {{-- Call Helpline --}}
+                @if(!empty($information->owner_phone))
+                <a href="tel:{{ $information->owner_phone }}" class="desk-pico is-call">
+                    <span class="pico-ico"><i class="fas fa-phone-alt"></i></span>
+                    <span class="pico-txt">
+                        <small>Helpline</small>
+                        <strong>{{ $information->owner_phone }}</strong>
+                    </span>
+                </a>
+                @endif
+
+                {{-- Order Track --}}
+                <a href="{{ route('front.order.track') ?? '#' }}" class="desk-pico" onclick="return true;">
+                    <span class="pico-ico"><i class="fas fa-truck"></i></span>
+                    <span class="pico-txt">
+                        <small>Track</small>
+                        <strong>Your Order</strong>
+                    </span>
+                </a>
+
+                {{-- Account --}}
+                @guest
+                    <a href="{{ route('login') }}" class="desk-pico">
+                        <span class="pico-ico"><i class="far fa-user"></i></span>
+                        <span class="pico-txt">
+                            <small>Sign In</small>
+                            <strong>Account</strong>
+                        </span>
+                    </a>
+                @else
+                    <a href="{{ route('front.dashboard.index') }}" class="desk-pico">
+                        <span class="pico-ico"><i class="fas fa-user-check"></i></span>
+                        <span class="pico-txt">
+                            <small>Hello,</small>
+                            <strong>{{ Str::limit(auth()->user()->first_name ?: 'Account', 10) }}</strong>
+                        </span>
+                    </a>
+                @endguest
+
+                {{-- Cart --}}
+                <a href="{{ route('front.carts.index') }}?segment={{ request()->segment(1) }}" class="desk-pico cart-dropdown-btn">
+                    <span class="pico-ico"><i class="fas fa-shopping-cart"></i></span>
+                    <span class="pico-txt">
+                        <small>My</small>
+                        <strong>Cart</strong>
+                    </span>
+                    <span class="cart-count">{{ getTotalCart() }}</span>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    {{-- Menu Row --}}
+    <div class="strides-menu-row" id="deskCatbar">
+        <div class="strides-menu-inner">
+            <ul class="desk-nav">
+                @foreach($categories as $cat)
+                    <li class="{{ $cat->subcats->count() ? 'has-sub' : '' }}">
+                        <a href="{{ route('front.subCategories1', [$cat->url]) }}">{{ $cat->name }}</a>
+                        @if($cat->subcats->count())
+                            <ul class="desk-sub">
+                                @foreach($cat->subcats as $sub)
+                                    <li><a href="{{ route('front.subsubCategories', [$sub->url]) }}">{{ $sub->name }}</a></li>
+                                @endforeach
+                            </ul>
+                        @endif
+                    </li>
+                @endforeach
+            </ul>
+        </div>
+    </div>
+</div>
+
+{{-- ================= MOBILE HEADER ================= --}}
+<div class="strides-mobile-header axil-header">
+    <div class="mob-header-inner">
+        <div class="mob-top-row">
+            <button class="mob-btn" type="button" data-bs-toggle="offcanvas" data-bs-target="#mobileMenuPMM" aria-controls="mobileMenuPMM">
+                <i class="fas fa-bars"></i>
+            </button>
+            <a href="{{ route('front.home') }}" class="mob-logo">
+                <img src="{{ asset('uploads/img/'.$information->site_logo) }}" alt="Logo">
+            </a>
+            <a href="{{ route('front.carts.index') }}?segment={{ request()->segment(1) }}" class="mob-cart cart-dropdown-btn">
+                <i class="fas fa-shopping-cart"></i>
+                <span class="cart-count">{{ getTotalCart() }}</span>
+            </a>
+        </div>
+
+        <div class="mob-search-wrap">
+            <form action="{{ route('front.products.index') }}" method="GET">
+                <div class="mob-sbox">
+                    <input type="search" name="q" value="{{ request('q') ?? '' }}" placeholder="Search products...">
+                    <button type="submit"><i class="fas fa-search"></i></button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    {{-- Mobile Quick Actions --}}
+    <div class="mob-quick">
+        <a href="{{ route('front.order.track') ?? '#' }}"><i class="fas fa-truck"></i> Track Order</a>
+        @if(!empty($information->owner_phone))
+            <a href="tel:{{ $information->owner_phone }}"><i class="fas fa-phone-alt"></i> Call Now</a>
+        @endif
+        @guest
+            <a href="{{ route('login') }}"><i class="far fa-user"></i> Sign In</a>
+        @else
+            <a href="{{ route('front.dashboard.index') }}"><i class="fas fa-user-check"></i> Account</a>
+        @endguest
+    </div>
+
+    <div class="mob-chips">
+        <a href="{{ route('front.home') }}"><i class="fas fa-home"></i> Home</a>
+        <a href="{{ route('front.products.index') }}"><i class="fas fa-store"></i> Shop</a>
+        @foreach($categories->take(8) as $cat)
+            <a href="{{ route('front.subCategories1', [$cat->url]) }}">{{ $cat->name }}</a>
+        @endforeach
+    </div>
+</div>
+
+{{-- ================= OFFCANVAS MOBILE MENU ================= --}}
+<div class="offcanvas offcanvas-start offcanvas-pmm" tabindex="-1" id="mobileMenuPMM">
+    <div class="pmm-header">
+        <div class="pmm-header-row">
+            <a href="{{ route('front.home') }}" class="pmm-logo">
+                <img src="{{ asset('uploads/img/'.$information->site_logo) }}" alt="Logo">
+            </a>
+            <button type="button" class="pmm-close" data-bs-dismiss="offcanvas" aria-label="Close">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+
+        @guest
+            <a href="{{ route('login') }}" class="pmm-user-card">
+                <div class="pmm-avatar"><i class="fas fa-user"></i></div>
+                <div class="pmm-uinfo">
+                    <small>Welcome</small>
+                    <strong>Login / Register</strong>
+                </div>
+            </a>
+        @else
+            <a href="{{ route('front.dashboard.index') }}" class="pmm-user-card">
+                <div class="pmm-avatar">
+                    {{ strtoupper(substr(auth()->user()->first_name ?: auth()->user()->mobile, 0, 1)) }}
+                </div>
+                <div class="pmm-uinfo">
+                    <small>Hello,</small>
+                    <strong>{{ auth()->user()->first_name ? auth()->user()->first_name : auth()->user()->mobile }}</strong>
+                </div>
+            </a>
+        @endguest
+    </div>
+
+    <div class="pmm-body">
+        <ul class="pmm-cats">
+            @foreach($categories as $key => $cat)
+                <li class="pmm-cat-item">
+                    <div class="pmm-cat-head">
+                        <div class="pmm-cat-ico">
+                            <i class="fas fa-{{ $cat->subcats->count() ? 'layer-group' : 'tag' }}"></i>
+                        </div>
+                        <a href="{{ route('front.subCategories1', [$cat->url]) }}" class="pmm-cat-name">
+                            {{ $cat->name }}
+                        </a>
+                        @if($cat->subcats->count() > 0)
+                            <button class="pmm-cat-arrow collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#pmmCat_{{ $key }}">
+                                <i class="fas fa-chevron-down"></i>
+                            </button>
+                        @endif
+                    </div>
+                    @if($cat->subcats->count() > 0)
+                        <div class="collapse" id="pmmCat_{{ $key }}">
+                            <ul class="pmm-subs">
+                                @foreach($cat->subcats as $sub)
+                                    <li>
+                                        <a href="{{ route('front.subsubCategories', [$sub->url]) }}">{{ $sub->name }}</a>
+                                    </li>
+                                @endforeach
+                            </ul>
+                        </div>
+                    @endif
+                </li>
+            @endforeach
+        </ul>
+
+        @if(!empty($information->owner_phone))
+            <a href="tel:{{ $information->owner_phone }}" class="pmm-call-btn">
+                <i class="fas fa-phone-alt"></i> Call Helpline
+            </a>
+        @endif
+    </div>
+</div>
+
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<script>
+$(function(){
+    // Sticky Desktop Menu
+    var $catbar = $('#deskCatbar');
+    if($catbar.length){
+        var catTop = $catbar.offset().top;
+        $(window).on('scroll', function(){
+            if($(window).scrollTop() > catTop){
+                $catbar.addClass('is-stuck');
+            } else {
+                $catbar.removeClass('is-stuck');
+            }
+        });
+    }
+
+    // JS for Desktop Menu Drag to Scroll (So users can swipe with mouse)
+    const slider = document.querySelector('.desk-nav');
+    let isDown = false;
+    let startX;
+    let scrollLeft;
+
+    if(slider) {
+        slider.addEventListener('mousedown', (e) => {
+            isDown = true;
+            slider.style.cursor = 'grabbing';
+            startX = e.pageX - slider.offsetLeft;
+            scrollLeft = slider.scrollLeft;
+        });
+        slider.addEventListener('mouseleave', () => {
+            isDown = false;
+            slider.style.cursor = 'auto';
+        });
+        slider.addEventListener('mouseup', () => {
+            isDown = false;
+            slider.style.cursor = 'auto';
+        });
+        slider.addEventListener('mousemove', (e) => {
+            if (!isDown) return;
+            e.preventDefault();
+            const x = e.pageX - slider.offsetLeft;
+            const walk = (x - startX) * 2; // Scroll-fast
+            slider.scrollLeft = scrollLeft - walk;
+        });
+    }
+
+    // Cart dropdown logic
+    $(document).on('click', '.cart-dropdown-btn', function(){
+        $('body').addClass('hide-header');
+    });
+    $(document).on('click', '.close-cart, .cart-close, .close, .cart-cancel, .cart-overlay, .closeModal', function(){
+        $('body').removeClass('hide-header');
+    });
+    $(document).on('click', function(e){
+        if (!$(e.target).closest('.cart-dropdown, .cart-dropdown-btn, #cart-dropdown, #cart_section, .cart-content-wrap').length) {
+            $('body').removeClass('hide-header');
+        }
+    });
+});
+</script>

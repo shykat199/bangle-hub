@@ -1,0 +1,9 @@
+[15-Aug-2026 11:37:44 UTC] PHP Warning:  require(/home/habibite/public_html/vendor/composer/../symfony/deprecation-contracts/function.php): Failed to open stream: No such file or directory in /home/habibite/public_html/vendor/composer/autoload_real.php on line 41
+[15-Aug-2026 11:37:44 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/habibite/public_html/vendor/composer/../symfony/deprecation-contracts/function.php' (include_path='.:/opt/cpanel/ea-php82/root/usr/share/pear') in /home/habibite/public_html/vendor/composer/autoload_real.php:41
+Stack trace:
+#0 /home/habibite/public_html/vendor/composer/autoload_real.php(45): {closure}('6e3fae29631ef28...', '/home/habibite/...')
+#1 /home/habibite/public_html/vendor/autoload.php(25): ComposerAutoloaderInitd8153d09081218a9a882251f3dc36fe1::getLoader()
+#2 /home/habibite/public_html/public/index.php(34): require('/home/habibite/...')
+#3 /home/habibite/public_html/server.php(21): require_once('/home/habibite/...')
+#4 {main}
+  thrown in /home/habibite/public_html/vendor/composer/autoload_real.php on line 41

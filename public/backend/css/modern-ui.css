@@ -1,0 +1,99 @@
+/* ===== Modern Theme v2 (global, non-breaking) ===== */
+:root{
+  --ui-bg: #f7f8fb;
+  --ui-card: #ffffff;
+  --ui-text: #0f172a;
+  --ui-muted: #6b7280;
+  --ui-primary: #4f46e5;         /* indigo-600 */
+  --ui-primary-600:#4f46e5;
+  --ui-primary-700:#4338ca;
+  --ui-success:#16a34a;
+  --ui-warning:#f59e0b;
+  --ui-danger:#ef4444;
+  --ui-border:#e5e7eb;
+  --ui-radius: 14px;
+  --ui-shadow: 0 8px 30px rgba(15, 23, 42, 0.08);
+}
+
+html{scroll-behavior:smooth}
+body{
+  -webkit-font-smoothing:antialiased;
+  -moz-osx-font-smoothing:grayscale;
+  color:var(--ui-text);
+  background:var(--ui-bg);
+  font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
+}
+
+/* Cards */
+.card{
+  border-radius: var(--ui-radius) !important;
+  border: 1px solid var(--ui-border) !important;
+  box-shadow: var(--ui-shadow);
+  background: var(--ui-card);
+}
+.card-header{
+  background: #fff !important;
+  border-bottom: 1px solid var(--ui-border) !important;
+}
+.card-title, .card-header h5{ font-weight:600 }
+
+/* Buttons */
+.btn{ border-radius: 10px; padding:.55rem .9rem; font-weight:600 }
+.btn-primary{
+  background: var(--ui-primary-600) !important;
+  border-color: var(--ui-primary-600) !important;
+}
+.btn-primary:hover{ background: var(--ui-primary-700) !important; border-color: var(--ui-primary-700)!important }
+.btn-outline-secondary{ border-color:var(--ui-border) }
+
+/* Inputs */
+.form-control, .form-select{
+  border-radius: 10px; border-color: var(--ui-border); box-shadow:none;
+}
+.form-control:focus, .form-select:focus{
+  border-color: var(--ui-primary-600); box-shadow: 0 0 0 .2rem rgba(79,70,229,.15);
+}
+
+/* Tables */
+.table{ vertical-align: middle; margin-bottom:0 }
+.table thead th{
+  background:#fafafa; border-bottom:1px solid var(--ui-border)!important; font-weight:600;
+}
+.table tbody tr:hover{ background:#fafafa }
+.table .badge{ vertical-align: middle }
+.table td .btn{ margin:2px 3px }
+
+@media (max-width: 768px){
+  .table{ display:block; overflow-x:auto; white-space:nowrap }
+  .card-header .btn, .card-header .form-control{ margin-top:6px }
+}
+
+/* Badges */
+.badge{ border-radius:999px; padding:.5em .75em }
+.badge.bg-success{ background: var(--ui-success)!important }
+.badge.bg-warning{ background: var(--ui-warning)!important; color:#111 }
+.badge.bg-danger{ background: var(--ui-danger)!important }
+
+/* Navbar / Sidebar (generic selectors common in admin templates) */
+.navbar, .topbar{ background:#fff; box-shadow: var(--ui-shadow) }
+.sidebar, .left-sidebar, .app-sidebar{
+  background:#ffffff; border-right:1px solid var(--ui-border)
+}
+.sidebar .nav-link, .left-sidebar .nav-link{ color:#334155 }
+.sidebar .nav-link.active, .left-sidebar .nav-link.active{ color:var(--ui-primary) }
+
+/* Breadcrumb / pagination */
+.breadcrumb{ background:transparent; margin-bottom: .5rem }
+.page-link{ border-radius:8px; border-color:var(--ui-border) }
+.page-item.active .page-link{ background:var(--ui-primary); border-color:var(--ui-primary) }
+
+/* Alerts */
+.alert{ border-radius: 12px; border-color: var(--ui-border) }
+
+/* Images & spacing */
+img{ max-width:100%; height:auto }
+.mb-2, .mb-3, .form-group{ margin-bottom:1rem !important }
+.rounded-2xl{ border-radius: var(--ui-radius)!important }
+
+/* Optional sticky headers for long tables */
+.table-sticky thead th{ position:sticky; top:0; z-index:2 }

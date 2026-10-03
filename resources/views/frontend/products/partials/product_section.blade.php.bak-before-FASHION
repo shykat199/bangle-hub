@@ -1,0 +1,721 @@
+{{-- resources/views/frontend/products/partials/product_section.blade.php --}}
+
+@php
+    $data = getProductInfo($product);
+
+    use App\Models\Information;
+    use App\Models\Variation;
+    use App\Models\ProductStock;
+    use Illuminate\Support\Str;
+
+    $info = Information::first();
+    $curr = $info->currency ?? 'BDT';
+
+    $brandGradient = $info->gradient_code ?? 'linear-gradient(135deg,#0d6efd,#00276C)';
+    $brandText     = $info->primary_color ?? '#ffffff';
+
+    $productParam = $product->slug ?: $product->id;
+
+    $variationId = optional($product->variation)->id
+        ?? optional($product->variations->first())->id
+        ?? Variation::where('product_id', $product->id)->orderBy('id','asc')->value('id');
+
+    $isVariable = $product->type === 'variable';
+
+    // স্টক সরাসরি product_stocks থেকে যোগ করা যাবে না — এই সাইটে অনেক single
+    // প্রোডাক্টের product_stocks row-ই নেই, আসল সংখ্যা products.stock_quantity তে।
+    // resolveStock() ভ্যারিয়েশন → product_stocks → stock_quantity এই ক্রমে fallback করে,
+    // ফলে কার্ড আর ডিটেইল পেজ একই সংখ্যা দেখায়।
+    $isStockEnabled = productStockManaged($product);
+    $qtySource      = resolveStock($product);
+
+    // Manage Stock = No মানে প্রোডাক্ট বন্ধ, "আনলিমিটেড স্টক" নয় — তাই সেটাও STOCK OUT
+    $isOut = (!$isStockEnabled || $qtySource <= 0);
+
+    $hasDiscount = ($product->after_discount ?? 0) > 0;
+    $discountPercent = 0;
+    if($hasDiscount){
+        $p = (float)($product->sell_price ?? 0);
+        $a = (float)($product->after_discount ?? 0);
+        $discountPercent = $p > 0 ? round((($p - $a) / $p) * 100, 0) : 0;
+    }
+
+    $isFreeShipping = (int)($product->is_free_shipping ?? 0) === 1;
+@endphp
+
+@once
+<style>
+    :root {
+        --brand-gradient: {!! $brandGradient !!};
+        --brand-text: {{ $brandText }};
+        --bc-ink: #1a1a1a;
+        --bc-muted: #8a8a8a;
+        --bc-line: #e6e6e6;
+    }
+
+    /* ============================================================
+       BLUCHEEZ-STYLE CARD
+       ============================================================ */
+    .axil-product.product-style-one {
+        position: relative;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        background: #ffffff !important;
+        border: 1px solid var(--bc-line) !important;
+        border-radius: 6px !important;
+        overflow: hidden !important;
+        box-shadow: none !important;
+        transition:
+            transform .4s ease,
+            box-shadow .4s ease,
+            border-color .35s ease;
+        font-family: 'Hind Siliguri', sans-serif;
+    }
+    .axil-product.product-style-one:hover {
+        transform: translateY(-3px);
+        border-color: rgba(15,23,42,.18) !important;
+        box-shadow: 0 10px 22px -12px rgba(15,23,42,.18);
+    }
+
+    /* ============================================================
+       THUMBNAIL
+       ============================================================ */
+    .axil-product .thumbnail {
+        position: relative !important;
+        background: #f6f6f6 !important;
+        border-radius: 0 !important;
+        overflow: hidden !important;
+        padding: 0 !important;
+        aspect-ratio: 3 / 4;
+    }
+    .axil-product .thumbnail > a.thumb-link {
+        display: block; width: 100%; height: 100%;
+        position: relative; z-index: 1;
+    }
+    /* প্রোডাক্টের ছবিগুলো এক মাপের নয় — 2:3, 4:5 আর বর্গাকার তিন রকমই আছে।
+       বক্সটা 3:4, তাই cover দিলে বর্গাকার ছবির দুই পাশ থেকে ২৫%+ কেটে যেত
+       আর জামার অংশ বাদ পড়ত। contain দিলে পুরো পোশাকটা দেখা যায়; বাকি
+       জায়গাটা .thumbnail এর হালকা ব্যাকগ্রাউন্ড ভরে দেয়। */
+    .axil-product .thumbnail img.product_img {
+        width: 100% !important;
+        height: 100% !important;
+        object-fit: contain !important;
+        padding: 6px;
+        display: block;
+        transition: transform .9s cubic-bezier(.22,.61,.36,1), opacity .4s ease;
+        
+        image-rendering: -webkit-optimize-contrast;
+        image-rendering: crisp-edges;
+        transform: translateZ(0); 
+    }
+    .axil-product.product-style-one:hover .thumbnail img.product_img {
+        transform: scale(1.05) !important;
+    }
+
+    /* ============================================================
+       LEFT BADGES — Discount / Free / Out (dynamic brand bg)
+       ============================================================ */
+    .axil-product .label-block.label-left {
+        position: absolute !important;
+        top: 1px !important;  /* Updated: 1px from the top edge */
+        left: 1px !important; /* Updated: 1px from the left edge */
+        z-index: 6 !important;
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 4px !important;
+        align-items: flex-start;
+    }
+    .axil-product .bc-tag {
+        position: relative;
+        display: inline-flex;
+        align-items: center;
+        gap: 3px;
+        padding: 3px 7px; /* Updated: Made smaller */
+        font-size: 9px;   /* Updated: Made smaller */
+        font-weight: 800;
+        letter-spacing: .5px;
+        text-transform: uppercase;
+        line-height: 1.1;
+        border-radius: 0 3px 3px 0;
+        font-family: 'Hind Siliguri', sans-serif;
+        border: 1px solid rgba(255,255,255,.25);
+        border-left: none;
+        box-shadow: 0 2px 6px rgba(0,0,0,.12);
+        overflow: hidden;
+        animation: bcBadgeIn .45s cubic-bezier(.22,.61,.36,1) both;
+    }
+    .axil-product .bc-tag i { font-size: 8px; }
+
+    /* shine sweep */
+    .axil-product .bc-tag::before {
+        content: "";
+        position: absolute;
+        top: 0; left: -150%;
+        width: 60%; height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255,255,255,.5), transparent);
+        transform: skewX(-20deg);
+        animation: bcBadgeShine 4s ease-in-out infinite;
+        animation-delay: 1.2s;
+    }
+
+    /* DISCOUNT — uses brand gradient */
+    .axil-product .bc-tag.is-discount {
+        background: var(--brand-gradient);
+        color: var(--brand-text);
+        border-color: rgba(255,255,255,.3);
+    }
+
+    /* FREE SHIPPING — green */
+    .axil-product .bc-tag.is-shipping {
+        background: linear-gradient(135deg, #10b981, #047857);
+        color: #fff;
+        animation:
+            bcBadgeIn .45s cubic-bezier(.22,.61,.36,1) both,
+            bcFloat 2.4s ease-in-out infinite;
+    }
+    .axil-product .bc-tag.is-shipping i {
+        animation: bcTruck 2.5s ease-in-out infinite;
+    }
+
+    /* OUT OF STOCK — solid dark */
+    .axil-product .bc-tag.is-out {
+        background: linear-gradient(135deg, #ef4444, #991b1b);
+        color: #fff;
+        animation:
+            bcBadgeIn .45s cubic-bezier(.22,.61,.36,1) both,
+            bcOutPulse 2.2s ease-in-out infinite;
+    }
+
+    @keyframes bcBadgeIn {
+        from { opacity: 0; transform: translateX(-8px) scale(.9); }
+        to   { opacity: 1; transform: translateX(0) scale(1); }
+    }
+    @keyframes bcBadgeShine {
+        0%, 60%   { left: -150%; }
+        80%, 100% { left: 150%; }
+    }
+    @keyframes bcFloat {
+        0%, 100% { transform: translateY(0); }
+        50%      { transform: translateY(-2px); }
+    }
+    @keyframes bcTruck {
+        0%, 100% { transform: translateX(0); }
+        50%      { transform: translateX(2px); }
+    }
+    @keyframes bcOutPulse {
+        0%, 100% { box-shadow: 0 3px 8px rgba(239,68,68,.25); }
+        50%      { box-shadow: 0 3px 12px rgba(239,68,68,.5); }
+    }
+
+    /* ============================================================
+       BOTTOM ICONS (Left: Type, Right: Cart)
+       ============================================================ */
+    .axil-product .icon-bottom-left {
+        position: absolute !important;
+        bottom: 10px !important;
+        left: 10px !important;
+        z-index: 6 !important;
+    }
+    .axil-product .icon-bottom-right {
+        position: absolute !important;
+        bottom: 10px !important;
+        right: 10px !important;
+        z-index: 6 !important;
+    }
+
+    /* TYPE icon (single/variable) */
+    .axil-product .type-icon-only {
+        position: relative;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        background: #ffffff;
+        color: var(--bc-ink);
+        border: 1.5px solid var(--bc-ink);
+        font-size: 11px;
+        box-shadow: 0 3px 8px rgba(0,0,0,.10);
+        transition: transform .35s ease, box-shadow .35s ease;
+        animation: bcChipIn .5s cubic-bezier(.22,.61,.36,1) both;
+    }
+    .axil-product.product-style-one:hover .type-icon-only {
+        transform: translateY(-2px) scale(1.08);
+        box-shadow: 0 6px 14px rgba(15,23,42,.20);
+    }
+    /* Variable — uses brand gradient bg */
+    .axil-product .type-icon-only.is-variable {
+        background: var(--brand-gradient);
+        color: var(--brand-text);
+        border-color: transparent;
+    }
+    .axil-product .type-icon-only.is-variable::after {
+        content: "";
+        position: absolute;
+        inset: -3px;
+        border-radius: 50%;
+        border: 2px solid currentColor;
+        opacity: .35;
+        animation: bcRing 1.8s ease-out infinite;
+        pointer-events: none;
+    }
+
+    /* CART icon */
+    .axil-product .corner-cart-btn {
+        position: relative;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        background: #ffffff;
+        color: var(--bc-ink) !important;
+        border: 1.5px solid var(--bc-ink);
+        box-shadow: 0 3px 10px rgba(0,0,0,.12);
+        text-decoration: none !important;
+        cursor: pointer;
+        font-size: 13px;
+        overflow: hidden;
+        transition:
+            transform .35s cubic-bezier(.34,1.56,.64,1),
+            color .3s ease,
+            box-shadow .35s ease,
+            border-color .3s ease;
+        animation: bcChipIn .55s cubic-bezier(.22,.61,.36,1) both;
+        animation-delay: .08s;
+    }
+    .axil-product .corner-cart-btn::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        border-radius: 50%;
+        background: var(--brand-gradient);
+        opacity: 0;
+        transition: opacity .3s ease;
+        z-index: 0;
+    }
+    .axil-product .corner-cart-btn i {
+        position: relative;
+        z-index: 1;
+        transition: transform .35s cubic-bezier(.34,1.56,.64,1);
+    }
+    .axil-product .corner-cart-btn:hover {
+        transform: translateY(-2px) scale(1.08);
+        color: var(--brand-text) !important;
+        border-color: transparent;
+        box-shadow: 0 10px 22px rgba(15,23,42,.25);
+    }
+    .axil-product .corner-cart-btn:hover::before { opacity: 1; }
+    .axil-product .corner-cart-btn:hover i { animation: bcCartWobble .6s ease; }
+    .axil-product .corner-cart-btn:active { transform: translateY(0) scale(.94); }
+    .axil-product .corner-cart-btn .fa-spinner { animation: bcCartSpin .8s linear infinite; }
+
+    @keyframes bcChipIn {
+        from { opacity: 0; transform: translateY(8px) scale(.85); }
+        to   { opacity: 1; transform: translateY(0) scale(1); }
+    }
+    @keyframes bcRing {
+        0%   { transform: scale(.85); opacity: .5; }
+        100% { transform: scale(1.6); opacity: 0; }
+    }
+    @keyframes bcCartWobble {
+        0%,100% { transform: rotate(0) scale(1); }
+        25%     { transform: rotate(-12deg) scale(1.15); }
+        50%     { transform: rotate(0) scale(1.15); }
+        75%     { transform: rotate(8deg) scale(1.15); }
+    }
+    @keyframes bcCartSpin { from { transform: rotate(0); } to { transform: rotate(360deg); } }
+
+    /* ============================================================
+       CONTENT (under image)
+       ============================================================ */
+    .axil-product .product-content {
+        padding: 14px 10px 12px !important;
+        text-align: center !important;
+        display: flex;
+        flex-direction: column;
+        flex-grow: 1;
+        background: #ffffff;
+        gap: 6px;
+        border-top: 1px solid var(--bc-line);
+    }
+    .axil-product .product-content .title {
+        margin: 0 !important;
+        line-height: 1.35 !important;
+        font-weight: 500 !important;
+        font-size: 13.5px !important;
+        min-height: 36px;
+    }
+    .axil-product .product-content .title a {
+        color: var(--bc-ink) !important;
+        text-decoration: none !important;
+        display: -webkit-box !important;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden !important;
+        white-space: normal !important;
+        font-family: 'Hind Siliguri', sans-serif !important;
+        transition: color .25s ease;
+    }
+    .axil-product.product-style-one:hover .product-content .title a {
+        background: var(--brand-gradient);
+        -webkit-background-clip: text;
+                background-clip: text;
+        -webkit-text-fill-color: transparent;
+                color: transparent !important;
+    }
+
+    /* ============================================================
+       PRICE — current bold black, old strikethrough
+       ============================================================ */
+    .axil-product .product-price-variant {
+        display: flex !important;
+        align-items: baseline !important;
+        justify-content: center !important;
+        gap: 8px !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        flex-wrap: wrap;
+    }
+    .axil-product .product-price-variant .current-price {
+        font-family: 'Hind Siliguri', sans-serif !important;
+        font-size: 15px !important;
+        font-weight: 800 !important;
+        color: var(--bc-ink) !important;
+        line-height: 1.2;
+        letter-spacing: .2px;
+        order: 1;
+    }
+    .axil-product .product-price-variant .old-price {
+        font-family: 'Hind Siliguri', sans-serif !important;
+        font-size: 13px !important;
+        color: var(--bc-muted) !important;
+        text-decoration: line-through !important;
+        font-weight: 400 !important;
+        line-height: 1.2;
+        order: 2;
+    }
+
+    /* ============================================================
+       STOCK OUT
+       ============================================================ */
+    .axil-product.product-style-one[data-is-out="1"] .thumbnail img.product_img {
+        opacity: .55 !important;
+        filter: grayscale(100%) !important;
+    }
+    .axil-product.product-style-one[data-is-out="1"]:hover .thumbnail img.product_img {
+        transform: none !important;
+    }
+    .axil-product.product-style-one[data-is-out="1"] .product-content .title a {
+        color: var(--bc-muted) !important;
+    }
+    .axil-product.product-style-one[data-is-out="1"] .product-price-variant .current-price {
+        color: var(--bc-muted) !important;
+    }
+    .axil-product.product-style-one[data-is-out="1"] .product-price-variant .old-price {
+        color: #c9c9c9 !important;
+    }
+    .axil-product.product-style-one[data-is-out="1"]:hover {
+        transform: none !important;
+        border-color: var(--bc-line) !important;
+        box-shadow: none !important;
+    }
+    .axil-product.product-style-one[data-is-out="1"] .corner-cart-btn {
+        background: #f1f5f9 !important;
+        color: #94a3b8 !important;
+        cursor: not-allowed;
+        pointer-events: none;
+        box-shadow: none !important;
+        border-color: #cbd5e1 !important;
+    }
+    .axil-product.product-style-one[data-is-out="1"] .corner-cart-btn::before { display: none !important; }
+    .axil-product.product-style-one[data-is-out="1"] .type-icon-only {
+        opacity: .6;
+        filter: grayscale(100%);
+    }
+
+    /* ============================================================
+       VIEW ALL — dynamic brand gradient button
+       ============================================================ */
+    .section-header a,
+    .view-all-link {
+        position: relative !important;
+        display: inline-flex !important;
+        align-items: center;
+        gap: 8px;
+        padding: 9px 20px !important;
+        font-size: 12.5px !important;
+        font-weight: 700 !important;
+        letter-spacing: 1px !important;
+        text-transform: uppercase;
+        color: var(--brand-text) !important;
+        background: var(--brand-gradient) !important;
+        border: 0 !important;
+        border-radius: 999px !important;
+        text-decoration: none !important;
+        overflow: hidden;
+        isolation: isolate;
+        box-shadow: 0 6px 16px -4px rgba(15,23,42,.20);
+        transition:
+            transform .35s cubic-bezier(.22,.61,.36,1),
+            box-shadow .35s ease,
+            letter-spacing .35s ease;
+        white-space: nowrap;
+        font-family: 'Hind Siliguri', sans-serif !important;
+    }
+    .section-header a::before,
+    .view-all-link::before {
+        content: "";
+        position: absolute;
+        top: 0; left: -120%;
+        width: 60%; height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255,255,255,.45), transparent);
+        transform: skewX(-20deg);
+        transition: left .8s cubic-bezier(.22,.61,.36,1);
+        z-index: 0;
+    }
+    .section-header a::after,
+    .view-all-link::after {
+        content: "→" !important;
+        font-size: 13px;
+        font-weight: 800;
+        position: relative;
+        z-index: 1;
+        transition: transform .3s ease;
+    }
+    .section-header a > *,
+    .view-all-link > * { position: relative; z-index: 1; }
+    .section-header a:hover,
+    .view-all-link:hover {
+        transform: translateY(-2px) !important;
+        letter-spacing: 1.4px !important;
+        color: var(--brand-text) !important;
+        text-decoration: none !important;
+        box-shadow: 0 12px 22px -6px rgba(15,23,42,.28);
+    }
+    .section-header a:hover::before,
+    .view-all-link:hover::before { left: 130%; }
+    .section-header a:hover::after,
+    .view-all-link:hover::after  { transform: translateX(4px); }
+
+    /* ============================================================
+       MOBILE
+       ============================================================ */
+    @media (max-width: 575.98px) {
+        .axil-product.product-style-one { border-radius: 5px !important; }
+        .axil-product .product-content { padding: 11px 8px 10px !important; gap: 4px; }
+        .axil-product .product-content .title { font-size: 12.5px !important; min-height: 34px; }
+        .axil-product .product-price-variant .current-price { font-size: 14px !important; }
+        .axil-product .product-price-variant .old-price { font-size: 12px !important; }
+
+        .axil-product .label-block.label-left  { top: 1px !important; left: 1px !important; gap: 3px !important; }
+        .axil-product .icon-bottom-left  { bottom: 7px !important; left: 7px !important; }
+        .axil-product .icon-bottom-right { bottom: 7px !important; right: 7px !important; }
+        
+        .axil-product .bc-tag { font-size: 8px; padding: 2px 5px; } /* Updated: Even smaller on mobile */
+
+        .axil-product .type-icon-only { width: 27px; height: 27px; font-size: 10px; border-width: 1.2px; }
+        .axil-product .corner-cart-btn { width: 30px; height: 30px; font-size: 12px; border-width: 1.2px; }
+
+        .section-header a,
+        .view-all-link { font-size: 11px !important; padding: 7px 16px !important; letter-spacing: .8px !important; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .axil-product, .axil-product *, .axil-product *::before, .axil-product *::after,
+        .section-header a, .section-header a::before, .section-header a::after {
+            animation-duration: .001ms !important;
+            transition-duration: .001ms !important;
+        }
+    }
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    if(window.ajaxCartInitialized) return;
+    window.ajaxCartInitialized = true;
+
+    // কার্ড থেকে অ্যাড করলেও হেডারের সাইডবারটাই খুলবে। main.js এর
+    // sideOffcanvasToggle ওভারলে (.closeMask), body overflow আর ক্লোজ হ্যান্ডলার
+    // একসাথে সেট করে, তাই ক্লাস নিজে বসানোর চেয়ে ওর ট্রিগারে ক্লিক করাই নিরাপদ।
+    // ওটা টগল, তাই সাইডবার আগে থেকে খোলা থাকলে ক্লিক করলে উল্টো বন্ধ হয়ে যেত।
+    function openCartSidebar() {
+        const dd = document.querySelector('#cart_section, #cart-dropdown, .cart-dropdown-wrap');
+        if (!dd || dd.classList.contains('open')) return;
+
+        const trigger = document.querySelector('.cart-dropdown-btn');
+        if (trigger) { trigger.click(); return; }
+
+        // হেডারে ট্রিগার না থাকলে (অন্য লেআউট) অন্তত সাইডবারটা দেখাই
+        document.body.classList.add('open');
+        dd.classList.add('open');
+    }
+
+    document.body.addEventListener('click', function(e) {
+        let btn = e.target.closest('.ajax-add-btn');
+        if (!btn) return;
+
+        e.preventDefault();
+        e.stopImmediatePropagation();
+
+        if (btn.disabled) return;
+
+        let originalIcon = btn.innerHTML;
+        btn.innerHTML = '<i class="fas fa-spinner"></i>';
+        btn.disabled = true;
+
+        let url = btn.getAttribute('data-url');
+        let formData = new FormData();
+        formData.append('_token', btn.getAttribute('data-token'));
+        formData.append('product_id', btn.getAttribute('data-product'));
+        let variationId = btn.getAttribute('data-variation');
+        if(variationId) formData.append('variation_id', variationId);
+        formData.append('quantity', 1);
+
+        fetch(url, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'Accept': 'application/json'
+            },
+            credentials: 'same-origin'
+        })
+        .then(r => r.json().catch(() => ({})))
+        .then(res => {
+            btn.innerHTML = '<i class="fas fa-check" style="color:#16a34a;"></i>';
+
+            if (res && typeof res.item !== 'undefined') {
+                document.querySelectorAll('.cart-count, .cart-item-count, .pro-count')
+                    .forEach(el => el.textContent = res.item);
+            }
+            if (res && res.amount) {
+                document.querySelectorAll('.cart-amount').forEach(el => {
+                    const t = String(res.amount);
+                    el.textContent = (t.includes('৳') || t.includes('$')) ? t : '৳ ' + t;
+                });
+            }
+            if (res && (res.view || res.html)) {
+                const target = document.querySelector('#cart_section, #cart-dropdown, .cart-dropdown-wrap');
+                if(target) target.innerHTML = res.view || res.html;
+                openCartSidebar();
+            }
+
+            if (window.toastr) toastr.success((res && res.msg) || 'Added to cart');
+
+            setTimeout(() => {
+                btn.innerHTML = originalIcon;
+                btn.disabled = false;
+            }, 1500);
+        })
+        .catch(error => {
+            console.error("Cart Add Error:", error);
+            btn.innerHTML = originalIcon;
+            btn.disabled = false;
+            if (window.toastr) toastr.error('Failed to add to cart');
+        });
+    });
+});
+</script>
+@endonce
+
+<div class="axil-product product-style-one" data-is-out="{{ $isOut ? 1 : 0 }}" data-is-variable="{{ $isVariable ? 1 : 0 }}">
+
+    <div class="thumbnail">
+        <a href="{{ route('front.products.show', ['product' => $productParam]) }}" class="thumb-link">
+            <img src="{{ getImage('products', $product->image) }}" class="product_img" alt="{{ $product->name }}">
+        </a>
+
+        {{-- TOP-LEFT — Discount / Free / Out (dynamic brand colors) --}}
+        @if($hasDiscount || $isFreeShipping || ($isOut && !$isVariable))
+            <div class="label-block label-left">
+                @if($hasDiscount)
+                    <span class="bc-tag is-discount" title="{{ $discountPercent }}% Off">
+                        {{ $discountPercent }}% OFF
+                    </span>
+                @endif
+
+                @if($isFreeShipping)
+                    <span class="bc-tag is-shipping" title="Free Shipping">
+                        <i class="fas fa-shipping-fast"></i> Free
+                    </span>
+                @endif
+
+                @if($isOut && !$isVariable)
+                    <span class="bc-tag is-out" title="Out of Stock">
+                        <i class="fas fa-circle" style="font-size:5px;"></i> Out
+                    </span>
+                @endif
+            </div>
+        @endif
+
+        {{-- BOTTOM-LEFT — TYPE icon (single / variable) --}}
+        <div class="icon-bottom-left">
+            @if($isVariable)
+                <div class="type-icon-only is-variable" title="Variable Product">
+                    <i class="fas fa-layer-group"></i>
+                </div>
+            @else
+                <div class="type-icon-only is-single" title="Single Product">
+                    <i class="fas fa-box"></i>
+                </div>
+            @endif
+        </div>
+
+        {{-- BOTTOM-RIGHT — CART icon --}}
+        <div class="icon-bottom-right">
+            @if($isVariable)
+                <a href="{{ route('front.products.show', ['product' => $productParam]) }}"
+                   class="corner-cart-btn" title="Select Options">
+                    <i class="fas fa-shopping-cart"></i>
+                </a>
+            @elseif($isOut)
+                <button type="button" class="corner-cart-btn" disabled title="Out of Stock">
+                    <i class="fas fa-shopping-cart"></i>
+                </button>
+            @else
+                <button type="button" class="corner-cart-btn ajax-add-btn"
+                    data-url="{{ route('front.carts.store') }}"
+                    data-product="{{ $product->id }}"
+                    data-variation="{{ $variationId }}"
+                    data-token="{{ csrf_token() }}"
+                    title="Add to Cart">
+                    <i class="fas fa-shopping-cart"></i>
+                </button>
+            @endif
+        </div>
+    </div>
+
+    <div class="product-content">
+        <h5 class="title">
+            <a href="{{ route('front.products.show', ['product' => $productParam]) }}"
+               title="{{ $product->name }}">
+                {{ $product->name }}
+            </a>
+        </h5>
+
+        <div class="product-price-variant">
+            <span class="price current-price">
+                @if($curr == 'BDT') ৳ {{ number_format((int)($data['price'] ?? 0)) }}
+                @elseif($curr == 'Dollar') $ {{ $data['price'] ?? 0 }}
+                @elseif($curr == 'Euro') {{ $data['price'] ?? 0 }}
+                @elseif($curr == 'Rupee') {{ $data['price'] ?? 0 }}
+                @endif
+            </span>
+
+            @if($hasDiscount)
+                <span class="price old-price">
+                    @if($curr == 'BDT') ৳ {{ number_format((int)($data['old_price'] ?? 0)) }}
+                    @elseif($curr == 'Dollar') $ {{ $data['old_price'] ?? 0 }}
+                    @elseif($curr == 'Euro') {{ $data['old_price'] ?? 0 }}
+                    @elseif($curr == 'Rupee') {{ $data['old_price'] ?? 0 }}
+                    @endif
+                </span>
+            @endif
+        </div>
+    </div>
+
+</div>

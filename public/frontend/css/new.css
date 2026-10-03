@@ -1,0 +1,270 @@
+.header-search-modal.open {
+        margin-top: 20px;
+    }
+    
+.header-style-2 .axil-header-top {
+    position: fixed;
+    top: 0;
+    width: 100%;
+    z-index: 2;
+}
+.cart-dropdown .cart-content-wrap {
+    z-index: 9999;
+}
+.header-brand a {
+    width: 100px;
+}
+.header-style-2 .axil-header-top {
+    padding: 10px 0;
+    background: #2874f0;
+}
+.header-style-2 .axil-header-top .axil-search input {
+    opacity: 1;
+    background-color: white;
+    border: 1px solid white;
+}
+.header-action>ul>li>a>i {
+    color: white;
+}
+.etrade-newsletter-wrapper {
+    height: 320px;
+}
+.axil-header-top .header-action>ul {
+    justify-content: flex-end;
+}
+i[class^="flaticon-"]:before, i[class*=" flaticon-"]:before {
+    font-size: 25px;
+}
+@media only screen and (max-width: 767px) {
+    .home-menu .img-fluid {
+        display:none;
+    }
+    .home-menu .mainmenu>li {
+        align-items: self-start !important;
+    }
+    .etrade-newsletter-wrapper {
+        height: 150px;
+    }
+}
+
+//  step 2
+
+header.mobile.header.axil-header.header-style-5 {
+    display:none;
+}
+header.desktop.header.axil-header.header-style-5 {
+    display:block;
+    background: #1877f2;
+    padding: 20px 0 0;
+}
+header.desktop.header.axil-header.header-style-5 .axil-mainmenu.axil-sticky {
+    background: #1877f2;
+    padding: 20px 0 0;
+}
+@media only screen and (max-width: 767px) {
+    header.mobile.header.axil-header.header-style-5 {
+        display:block;
+        background: #1877f2;
+    }
+    header.desktop.header.axil-header.header-style-5 {
+        display:none;
+    }
+    .header-style-5 .axil-mainmenu {
+        background: #1877f2;
+    }
+}
+
+//  step 3
+
+.header-action>ul {
+    justify-content: flex-end;
+}
+                        .axil-search {
+                            flex: 1;
+    position: relative;
+}
+button.icon.wooc-btn-search {
+    width: auto;
+    position: absolute;
+    top: 10px;
+    left: 15px;
+    background-color: rgba(0,0,0,0);
+    font-size: 14px;
+    color: var(--color-heading);
+    z-index: 1;
+}
+input#search2 {
+    opacity: 1;
+    background-color: white;
+    border: 1px solid white;
+    border-radius: 6px;
+    font-size: 14px;
+    padding-left: 50px;
+    font-weight: 500;
+    width: 100%;
+}
+.header-action .my-account {
+    position: relative;
+    margin-left: 20px;
+    border: 1px solid #fff;
+    padding: 0 10px;
+    border-radius: 10px;
+}
+.header-action>ul>li>a {
+    font-size: 16px;
+    color: white;
+}
+
+// setp 4
+
+.desktopnav {
+    background: antiquewhite;
+    margin-top: 20px;
+}
+.desktopnav .mainmenu>li {
+    margin: -15px 24px;
+}
+.desktopnav .mainmenu {
+    justify-content: flex-start;
+    margin-left: -30px;
+}
+@media only screen and (max-width: 767px) {
+    .desktopnav {
+        display:none;
+    }
+}
+
+//
+
+.mobilenumber {
+    display: flex;
+    margin-top: 10px;
+    padding-right: 5px;
+    justify-content: flex-end;
+}
+
+@media only screen and (max-width: 767px) {
+    i[class^="flaticon-"]:before, i[class*=" flaticon-"]:before {
+        color:white;
+        font-size: 24px;
+    }
+    .header-style-5 .mainmenu {
+        margin-top: 5px;
+    }
+    .mobilesearch.col-12 {
+        padding: 0 10px 10px 10px;
+    }
+    .header-brand {
+        margin-left: -20px;
+    }
+}
+
+
+.categrie-product-activation button.slide-arrow.prev-arrow.slick-arrow {
+            display: none !important;
+}
+.categrie-product-activation button.slide-arrow.next-arrow.slick-arrow {
+        display: none !important;
+}
+.axil-section-gapcommon {
+    padding: 0;
+    margin-top: -20px;
+}
+.axil-categorie-area.bg-color-white.axil-section-gapcommon {
+    display: none;
+    margin-top: 0px;
+}
+.categrie-product .cat-title {
+    font-size: 14px;
+}
+@media only screen and (max-width: 767px) {
+    .axil-section-gap {
+        padding: 0;
+    }
+}
+@media only screen and (max-width: 767px) {
+    .axil-categorie-area.bg-color-white.axil-section-gapcommon {
+        display: block;
+    }
+    .mobile .slick-single-layout.slick-slide.slick-current.slick-active {
+        width: 70px !important;
+    }
+    .mobile .slick-single-layout.slick-slide {
+        width: 70px !important;
+        margin-right: 5px;
+        margin-top: -40px;
+    }
+    .categrie-product {
+        box-shadow: none;
+    } 
+    .categrie-product a {
+        padding: 0;
+        margin-top: 60px;
+    }
+    .categrie-product img {
+        margin: 0 auto;
+        width: 35px;
+    }
+    .categrie-product:before {
+        background-color: transparent;
+        border: 1px solid transparent;
+    }
+    .categrie-product .cat-title {
+        font-size: 10px;
+    }
+} 
+
+
+.mainmenu>.menu-item-has-children>a::after {
+            color: #1a1b1b;
+        }
+        .home-menu .mainmenu>li>a {
+            line-height: 50px;
+            height: 50px;
+            font-weight: 500;
+            font-size: 14px;
+        }
+        .home-menu .mainmenu>li {
+            margin: 0 10px;
+        }
+        .mainmenu>.menu-item-has-children .axil-submenu li a {
+            font-size: 14px;
+        }
+        .home-menu .mainmenu>li>a:hover {
+            color: var(--color-secondary);
+        }
+        .mainmenu>.menu-item-has-children .axil-submenu li a:hover {
+            color: var(--color-secondary);
+        }
+        .mainmenu>li>a::before { 
+            display:none;
+        }
+        .home-menu .mainmenu {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            -justify-content: space-between;
+            margin-top: 50px;
+            justify-content: flex-start;
+            margin-left: 5px;
+        } 
+        .home-menu .mainmenu>li {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .home-menu .img-fluid {
+            width: 50px;
+            height: auto;
+        }
+        .home-menu {
+            margin-top: -35px;
+        }
+        .categrie-product a {
+            padding: 12px;
+        }           
+        @media only screen and (max-width: 767px) {
+            .desktop.home-menu {
+                display: none;
+            }
+        }

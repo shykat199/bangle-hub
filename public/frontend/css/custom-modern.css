@@ -1,0 +1,136 @@
+
+/* BizCare Modern UI Overrides
+   লক্ষ্য: বর্তমান Blade/JS কাজ ঠিক রেখে শুধুমাত্র লুক & ফিল মডার্ন করা
+*/
+
+html, body { height: 100%; }
+body.site-shell{
+  background: var(--bg);
+  color: #0b1220;
+  font-family: "Hind Siliguri", "Roboto", system-ui, -apple-system, Segoe UI, Arial, sans-serif;
+  line-height: 1.6;
+  overflow-x: hidden;
+}
+
+/* smoother */
+*{ -webkit-tap-highlight-color: transparent; }
+a{ text-decoration: none; }
+a:hover{ text-decoration: none; }
+
+/* container tune */
+.container, .container-fluid{ padding-left: 16px; padding-right: 16px; }
+.container-fluid{ max-width: 1400px !important; margin: 0 auto; }
+
+/* sticky header look */
+.axil-mainmenu{
+  background: rgba(255,255,255,.85) !important;
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid rgba(15,23,42,.08);
+}
+.axil-mainmenu.axil-sticky{
+  box-shadow: 0 10px 30px rgba(2,6,23,.10);
+}
+
+/* top bar */
+.topbar.main-bg{
+  background: var(--brand-gradient) !important;
+}
+.topbar a, .topbar marquee{ color: var(--brand-primary) !important; }
+
+/* brand/logo */
+.header-brand .logo img{
+  height: 44px !important;
+  width: auto !important;
+  object-fit: contain;
+}
+
+/* nav spacing */
+.header-navbar{ align-items: center; }
+.header-main-nav .mainmenu-nav ul.mainmenu{ gap: 6px; }
+.header-main-nav .mainmenu-nav ul.mainmenu > li > a{
+  padding: 10px 12px !important;
+  border-radius: 999px;
+  color: #0b1220 !important;
+  font-weight: 600;
+  transition: .15s ease;
+}
+.header-main-nav .mainmenu-nav ul.mainmenu > li > a:hover{
+  background: rgba(13,110,253,.08);
+}
+
+/* search bar (if exists) */
+.axil-search input,
+.search-box input{
+  border-radius: 999px !important;
+  border: 1px solid rgba(15,23,42,.12) !important;
+  padding: 12px 14px !important;
+  background: rgba(255,255,255,.9) !important;
+  box-shadow: 0 1px 0 rgba(2,6,23,.02);
+}
+.axil-search input:focus,
+.search-box input:focus{
+  outline: none !important;
+  box-shadow: 0 0 0 4px var(--ring) !important;
+}
+
+/* buttons */
+.btn, button, .axil-btn, .main-bg{
+  border-radius: 999px !important;
+}
+.btn, .axil-btn{
+  box-shadow: 0 10px 24px rgba(2,6,23,.10);
+  border: 1px solid rgba(2,6,23,.08);
+}
+.btn:hover, .axil-btn:hover{
+  transform: translateY(-1px);
+}
+
+/* cards/product boxes (generic) */
+.product-grid, .single-product, .axil-product, .product-card, .shop-grid-product{
+  border-radius: var(--radius) !important;
+  background: var(--card);
+  border: 1px solid rgba(15,23,42,.08);
+  box-shadow: 0 10px 26px rgba(2,6,23,.06);
+}
+.single-product:hover, .axil-product:hover, .product-card:hover{
+  box-shadow: 0 16px 40px rgba(2,6,23,.10);
+}
+
+/* badges / counts */
+.cart-count, .badge, .axil-badge{
+  border-radius: 999px !important;
+  box-shadow: 0 8px 18px rgba(2,6,23,.10);
+}
+
+/* dropdown cart */
+.cart-dropdown{
+  z-index: 99999;
+}
+.cart-dropdown .cart-content-wrap{
+  border-radius: 18px;
+  border: 1px solid rgba(15,23,42,.10);
+  box-shadow: 0 30px 70px rgba(2,6,23,.18);
+}
+
+/* footer */
+footer.footer-modern{
+  border-top: 1px solid rgba(255,255,255,.14) !important;
+}
+footer .footer-title{
+  font-weight: 800;
+  letter-spacing: .2px;
+}
+footer .footer-links a{
+  opacity: .92;
+}
+footer .footer-links a:hover{
+  opacity: 1;
+  text-decoration: underline;
+}
+
+/* small devices tweaks */
+@media (max-width: 767px){
+  .container-fluid{ max-width: 100% !important; }
+  .header-brand{ margin-left: 0 !important; }
+  .axil-mainmenu{ padding-top: 8px; padding-bottom: 8px; }
+}

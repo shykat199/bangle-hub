@@ -1,0 +1,286 @@
+{{-- resources/views/frontend/products/partials/product_section.blade.php --}}
+
+@php
+    $data = getProductInfo($product);
+
+    use App\Models\Variation;
+    use App\Models\ProductStock;
+    use Illuminate\Support\Str;
+
+    // ✅ OPTIMIZED: Memoized — was Information::first() per product card (N+1)
+    $info = getInfo();
+    $curr = $info->currency ?? 'BDT';
+
+    $productParam = $product->slug ?: $product->id;
+
+    $isVariable = $product->type === 'variable';
+    $isStockEnabled = productStockManaged($product);
+
+    // আগে কার্ড শুধু variations.stock_quantity পড়ত আর ডিটেইল পেজ product_stocks —
+    // তাই ডিটেইলে স্টক দেখালেও কার্ডে STOCK OUT দেখাত। এখন একটাই নিয়ম।
+    $qtySource = resolveStock($product);
+
+    // Manage Stock = No মানে প্রোডাক্ট বন্ধ, তাই সেটাও STOCK OUT হিসেবেই দেখাবে
+    $isOut = (!$isStockEnabled || $qtySource <= 0);
+
+    // ভ্যারিয়েবল প্রোডাক্টে দাম/ডিসকাউন্ট ভ্যারিয়েশনে থাকে, products.sell_price/after_discount এ না —
+    // তাই আগে কার্ডে ভ্যারিয়েবল প্রোডাক্টের ছাড় (old price/OFF ব্যাজ) কখনো দেখাতো না,
+    // ডিটেইল পেজে দেখাতো। এখন getProductInfo() থেকে পাওয়া ভ্যারিয়েশন-অ্যাওয়্যার দাম দিয়েই হিসাব হয়।
+    if($isVariable){
+        $oldPriceDisplay = (float)($data['old_price'] ?? 0);
+        $hasDiscount = $oldPriceDisplay > (float)($data['price'] ?? 0);
+        $discountAmount = $hasDiscount ? ($oldPriceDisplay - (float)($data['price'] ?? 0)) : 0;
+    } else {
+        $oldPriceDisplay = (float)($product->sell_price ?? 0);
+        $hasDiscount = ($product->after_discount ?? 0) > 0;
+        $discountAmount = 0;
+
+        // সেল প্রাইস থেকে ডিসকাউন্ট প্রাইস মাইনাস করা হয়েছে
+        if($hasDiscount){
+            $p = (float)($product->sell_price ?? 0);
+            $a = (float)($product->after_discount ?? 0);
+            $discountAmount = $p - $a;
+        }
+    }
+
+    // Currency Symbol Helper
+    $curSymbol = '৳';
+    if($curr == 'Dollar') $curSymbol = '$';
+    elseif($curr == 'Euro') $curSymbol = '€';
+    elseif($curr == 'Rupee') $curSymbol = '₹';
+
+@endphp
+
+@once
+<style>
+    :root {
+        --card-border: #e5e7eb;
+        --text-dark: #1f2937;
+        --text-muted: #9ca3af;
+        --success-bg: #dcfce7;
+        --image-bg: #f9fafb; /* ইমেজের কনটেইনারের ব্যাকগ্রাউন্ড */
+    }
+
+    /* ============================================================
+       CLEAN MODERN CARD (The Main Container)
+       ============================================================ */
+    .axil-product.product-style-clean {
+        position: relative;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        background: #ffffff;
+        border: 2px solid var(--card-border);
+        border-radius: 12px;
+        overflow: hidden;
+        transition: transform .3s ease, box-shadow .3s ease, border-color .3s ease;
+        font-family: 'Inter', 'Hind Siliguri', sans-serif;
+        padding: 12px;
+    }
+    
+    .axil-product.product-style-clean:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 10px 20px rgba(0,0,0,0.06);
+        border-color: rgba(0,0,0,0.12);
+    }
+
+    /* ============================================================
+       THUMBNAIL CONTAINER (Strictly 1:1 Square)
+       ============================================================ */
+    .axil-product.product-style-clean .thumbnail {
+        position: relative;
+        width: 100%;
+        aspect-ratio: 1 / 1; /* ইমেজের কনটেইনার সব সময় 1x1 থাকবে */
+        background: var(--image-bg);
+        border-radius: 8px; /* ভিতরের কনটেইনারের রাউন্ডেড কর্নার */
+        margin-bottom: 15px;
+        overflow: hidden;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .axil-product.product-style-clean .thumbnail > a.thumb-link {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%; 
+        height: 100%;
+    }
+    
+    .axil-product.product-style-clean .thumbnail img.product_img {
+        max-width: 100%;
+        max-height: 100%;
+        object-fit: contain; /* ইমেজ না কেটে কনটেইনারের ভেতরে ফিট হবে */
+        transition: transform .5s ease;
+    }
+    
+    .axil-product.product-style-clean:hover .thumbnail img.product_img {
+        transform: scale(1.08); /* হোভার করলে ইমেজ সুন্দরভাবে জুম হবে */
+    }
+
+    /* ============================================================
+       CONTENT
+       ============================================================ */
+    .axil-product.product-style-clean .product-content {
+        text-align: left;
+        display: flex;
+        flex-direction: column;
+        flex-grow: 1;
+        gap: 8px;
+    }
+    
+    .axil-product.product-style-clean .title {
+        margin: 0;
+        font-weight: 600;
+        font-size: 15px;
+        color: var(--text-dark);
+        line-height: 1.4;
+        
+        /* Product Title ১ লাইনে রাখার জন্য আপডেট করা হয়েছে */
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    
+    .axil-product.product-style-clean .title a {
+        color: inherit;
+        text-decoration: none;
+        transition: color .2s ease;
+    }
+    
+    .axil-product.product-style-clean:hover .title a {
+        color: #0d6efd;
+    }
+
+    /* ============================================================
+       PRICE AREA (Updated to prevent wrapping everywhere)
+       ============================================================ */
+    .axil-product.product-style-clean .price-wrap {
+        display: flex;
+        align-items: center;
+        flex-wrap: nowrap; /* কোনোভাবেই নিচের লাইনে নামবে না */
+        gap: 6px; /* গ্যাপ সামান্য কমানো হয়েছে যেন জায়গা কম নেয় */
+        
+        /* ✅ বিশাল গ্যাপ কমানোর জন্য auto বাদ দিয়ে 4px করা হয়েছে */
+        margin-top: 4px; 
+        
+        overflow-x: auto; /* জায়গা কম পড়লে স্ক্রল হবে কিন্তু লেআউট ভাঙবে না */
+        scrollbar-width: none; /* Firefox এর জন্য স্ক্রলবার হাইড */
+    }
+    
+    .axil-product.product-style-clean .price-wrap::-webkit-scrollbar {
+        display: none; /* Chrome/Safari এর জন্য স্ক্রলবার হাইড */
+    }
+
+    /* কোনো টেক্সট বা ব্যাজ যেন মাঝখান থেকে না ভাঙে */
+    .axil-product.product-style-clean .current-price,
+    .axil-product.product-style-clean .old-price,
+    .axil-product.product-style-clean .save-badge {
+        white-space: nowrap; 
+    }
+
+    .axil-product.product-style-clean .current-price {
+        font-size: 15px; /* ডেস্কটপে প্রাইস সামান্য এডজাস্ট করা হয়েছে */
+        font-weight: 700;
+        color: var(--text-dark);
+    }
+
+    .axil-product.product-style-clean .old-price {
+        font-size: 12px;
+        color: var(--text-muted);
+        text-decoration: line-through;
+        font-weight: 500;
+    }
+
+    .axil-product.product-style-clean .save-badge {
+        background: var(--success-bg);
+        color: #000000;
+        font-size: 8px; /* সাইজ ডেস্কটপেও কমিয়ে দেওয়া হয়েছে */
+        font-weight: 700;
+        padding: 2px 4px; /* প্যাডিং কমানো হয়েছে */
+        border-radius: 4px;
+        display: inline-flex;
+        align-items: center;
+        flex-shrink: 0; /* ব্যাজ যেন চাপে ছোট বা চিকন হয়ে না যায় */
+    }
+
+    /* ============================================================
+       STOCK OUT STATE
+       ============================================================ */
+    .axil-product.product-style-clean[data-is-out="1"] .thumbnail img.product_img {
+        opacity: .5;
+        filter: grayscale(100%);
+    }
+    .axil-product.product-style-clean[data-is-out="1"] .title a {
+        color: var(--text-muted);
+    }
+    .axil-product.product-style-clean[data-is-out="1"] .current-price {
+        color: var(--text-muted);
+    }
+
+    /* ============================================================
+       MOBILE ADJUSTMENTS (Updated)
+       ============================================================ */
+    @media (max-width: 575.98px) {
+        .axil-product.product-style-clean { 
+            padding: 8px; 
+            border-radius: 8px; 
+        }
+        
+        .axil-product.product-style-clean .product-content { 
+            gap: 4px; 
+        }
+        
+        .axil-product.product-style-clean .title { 
+            font-size: 13px; 
+        }
+        
+        .axil-product.product-style-clean .price-wrap { 
+            gap: 4px; 
+            margin-top: 2px;
+        }
+
+        .axil-product.product-style-clean .current-price { font-size: 13px; }
+        .axil-product.product-style-clean .old-price { font-size: 11px; }
+    }
+</style>
+@endonce
+
+<div class="axil-product product-style-clean" data-is-out="{{ $isOut ? 1 : 0 }}" data-is-variable="{{ $isVariable ? 1 : 0 }}">
+
+    {{-- THUMBNAIL CONTAINER --}}
+    <div class="thumbnail">
+        <a href="{{ route('front.products.show', ['product' => $productParam]) }}" class="thumb-link" title="{{ $product->name }}">
+            <img src="{{ getThumbImage($product->image) }}" class="product_img" alt="{{ $product->name }}" decoding="async">
+        </a>
+    </div>
+
+    {{-- CONTENT --}}
+    <div class="product-content">
+        <h3 class="title">
+            <a href="{{ route('front.products.show', ['product' => $productParam]) }}" title="{{ $product->name }}">
+                {{ $product->name }}
+            </a>
+        </h3>
+
+        {{-- PRICE BLOCK --}}
+        <div class="price-wrap">
+            {{-- Current Price --}}
+            <span class="current-price">
+                {{ $curSymbol }} {{ number_format((int)($data['price'] ?? 0)) }}
+            </span>
+
+            {{-- Old Price & Discount Badge --}}
+            @if($hasDiscount && $discountAmount > 0)
+                <span class="old-price">
+                    {{ $curSymbol }} {{ number_format((int)$oldPriceDisplay) }}
+                </span>
+                <span class="save-badge">
+                    {{ $curSymbol }} {{ number_format((int)$discountAmount) }} OFF
+                </span>
+            @endif
+        </div>
+    </div>
+
+</div>
