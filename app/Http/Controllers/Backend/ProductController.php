@@ -352,6 +352,8 @@ class ProductController extends Controller
 
             if (isset($request->images)) {
                 $image_data = [];
+                // New gallery images go after the existing ones.
+                $nextOrder = (int) $product->images()->max('sort_order');
                 foreach ($request->images as $image) {
                     $extention = $image->getClientOriginalExtension();
                     $image_name = Str::slug($request->name) . date('-Y-m-d-h-i-s-') . rand(999, 9999) . '.' . $extention;
@@ -363,7 +365,7 @@ class ProductController extends Controller
                         $constraint->upsize();
                     });
                     $img->save($destinationPath . $image_name);
-                    $image_data[] = ['image' => $image_name];
+                    $image_data[] = ['image' => $image_name, 'sort_order' => ++$nextOrder];
                 }
                 if (!empty($image_data)) {
                     $product->images()->createMany($image_data);
@@ -521,6 +523,7 @@ class ProductController extends Controller
             foreach ($product->images as $img) {
                 $new->images()->create([
                     'image' => $this->copyProductFile($img->image, ['products'], $copiedFiles),
+                    'sort_order' => $img->sort_order,
                 ]);
             }
 
@@ -637,10 +640,17 @@ class ProductController extends Controller
             unset($data['slug']);
         }
 
+        // পুরনো মূল ছবি এখন আর আগেভাগে মোছা হয় না। আগে সেভ শেষ হওয়ার আগেই ফাইল
+        // মুছে ফেলা হতো — পরে কোনো ধাপে এরর হলে DB rollback হয়ে পুরনো নামেই ফিরে যেত,
+        // কিন্তু ফাইল তো নেই, তাই ছবি ভাঙা দেখাত আর বারবার আপলোড করতে হতো।
+        // এখন commit সফল হলে তবেই পুরনো ফাইল মোছা হয়; ফেল করলে নতুন ফাইলটা মোছা হয়।
+        $oldMainImage = null;
+        $newMainImage = null;
+
         DB::beginTransaction();
         try {
             if ($request->hasFile('image')) {
-                deleteImage('products', $product->image);
+                $oldMainImage = $product->image;
 
                 $image = Image::make($request->file('image'));
                 $extention = $request->image->getClientOriginalExtension();
@@ -653,8 +663,8 @@ class ProductController extends Controller
                 });
                 $image->save($destinationPath . $image_name);
                 $data['image'] = $image_name;
+                $newMainImage = $image_name;
 
-                deleteImage('thumb_products', $product->image);
                 $destinationPathThumbnail = public_path('thumb_products/');
                 $image->resize(500, 500, function ($constraint) {
                     $constraint->aspectRatio();
@@ -677,6 +687,8 @@ class ProductController extends Controller
 
             if (isset($request->images)) {
                 $image_data = [];
+                // New gallery images go after the existing ones.
+                $nextOrder = (int) $product->images()->max('sort_order');
                 foreach ($request->images as $image) {
                     $extention = $image->getClientOriginalExtension();
                     $image_name = Str::slug($request->name) . date('-Y-m-d-h-i-s-') . rand(999, 9999) . '.' . $extention;
@@ -688,7 +700,7 @@ class ProductController extends Controller
                         $constraint->upsize();
                     });
                     $img->save($destinationPath . $image_name);
-                    $image_data[] = ['image' => $image_name];
+                    $image_data[] = ['image' => $image_name, 'sort_order' => ++$nextOrder];
                 }
                 if (!empty($image_data)) {
                     $product->images()->createMany($image_data);
@@ -739,6 +751,7 @@ class ProductController extends Controller
                 $this->cleanOrphanStocks($product->id);
 
                 DB::commit();
+                $this->removeMainImageFiles($oldMainImage);
                 return response()->json(['status' => true, 'msg' => 'Product Is Updated !!', 'url' => route('admin.products.index')]);
             }
 
@@ -826,11 +839,26 @@ class ProductController extends Controller
             $this->cleanOrphanStocks($product->id);
 
             DB::commit();
+            $this->removeMainImageFiles($oldMainImage);
             return response()->json(['status' => true, 'msg' => 'Product Is Updated !!', 'url' => route('admin.products.index')]);
         } catch (\Exception $e) {
             DB::rollback();
+            $this->removeMainImageFiles($newMainImage);
             return response()->json(['status' => false, 'msg' => $e->getMessage()]);
         }
+    }
+
+    private function removeMainImageFiles($fileName)
+    {
+        if (empty($fileName)) {
+            return;
+        }
+        // Another product (e.g. an older duplicate) might still point to the same file.
+        if (Product::where('image', $fileName)->exists()) {
+            return;
+        }
+        deleteImage('products', $fileName);
+        deleteImage('thumb_products', $fileName);
     }
 
     public function updatePriority(Request $request, $id)
@@ -898,6 +926,49 @@ class ProductController extends Controller
         deleteImage('products', $item->image);
         $item->delete();
         return back();
+    }
+
+    /**
+     * Delete several gallery images of one product at once (admin edit page).
+     */
+    public function bulkDeleteImages(Request $request, $productId)
+    {
+        $request->validate([
+            'ids'   => 'required|array|min:1',
+            'ids.*' => 'integer',
+        ]);
+
+        $images = ProductImage::where('product_id', $productId)
+            ->whereIn('id', $request->ids)
+            ->get();
+
+        foreach ($images as $image) {
+            deleteImage('products', $image->image);
+            $image->delete();
+        }
+
+        return response()->json(['status' => true, 'deleted' => $images->pluck('id')]);
+    }
+
+    /**
+     * Save gallery order after drag & drop. `ids` is the full list in display order.
+     */
+    public function sortImages(Request $request, $productId)
+    {
+        $request->validate([
+            'ids'   => 'required|array|min:1',
+            'ids.*' => 'integer',
+        ]);
+
+        DB::transaction(function () use ($request, $productId) {
+            foreach (array_values($request->ids) as $position => $id) {
+                ProductImage::where('product_id', $productId)
+                    ->where('id', $id)
+                    ->update(['sort_order' => $position + 1]);
+            }
+        });
+
+        return response()->json(['status' => true]);
     }
 
     public function fileUpload(Request $request)

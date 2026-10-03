@@ -104,6 +104,30 @@
     line-height:1;
     text-decoration:none;
   }
+  .gallery-sortable{ display:flex; flex-wrap:wrap; gap:6px; min-height:20px; }
+  .gallery-item{
+    position:relative; width:84px; height:84px; padding:3px;
+    border:2px solid #e5e7eb; border-radius:12px; background:#fff;
+    cursor:grab; user-select:none; transition:border-color .15s, box-shadow .15s;
+  }
+  .gallery-item img{ width:100%; height:100%; object-fit:cover; border-radius:9px; pointer-events:none; }
+  .gallery-item.is-selected{ border-color:var(--danger); box-shadow:0 0 0 2px rgba(239,68,68,.15); }
+  .gallery-item .g-check{
+    position:absolute; top:5px; left:5px; width:17px; height:17px; margin:0; cursor:pointer; z-index:2;
+  }
+  .gallery-item .g-pos{
+    position:absolute; bottom:5px; left:5px; z-index:2;
+    background:rgba(17,24,39,.75); color:#fff; font-size:.68rem; font-weight:600;
+    padding:1px 6px; border-radius:6px;
+  }
+  .gallery-item .g-del{
+    position:absolute; top:3px; right:6px; z-index:2;
+    font-size:18px; font-weight:700; line-height:1; color:var(--danger); text-decoration:none;
+  }
+  .gallery-item.sortable-ghost{ opacity:.35; }
+  .gallery-item.sortable-chosen{ cursor:grabbing; }
+  .gallery-toolbar{ display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin-bottom:8px; }
+  .gallery-toolbar .g-status{ font-size:.75rem; color:#6b7280; }
   .preview-wrap img{
     width:54px;
     height:54px;
@@ -302,29 +326,42 @@
               <div class="media-box mb-2">
                 <small class="d-block mb-1 text-muted">Current Image</small>
                 <div class="d-flex align-items-center gap-2">
-                  <img src="{{ getImage('products',$item->image)}}" width="60" height="60" class="rounded" style="object-fit:cover;border:1px solid #e5e7eb;">
-                  <span class="text-muted" style="font-size:.8rem;">You can replace this image from below.</span>
+                  <img id="main_image_preview" src="{{ getImage('products',$item->image)}}" data-original="{{ getImage('products',$item->image)}}" width="60" height="60" class="rounded" style="object-fit:cover;border:1px solid #e5e7eb;">
+                  <div>
+                    <span id="main_image_note" class="text-muted d-block" style="font-size:.8rem;">You can replace this image from below.</span>
+                    <a href="#" id="main_image_reset" class="text-danger" style="font-size:.78rem;display:none;">Cancel new image</a>
+                  </div>
                 </div>
               </div>
               <label class="form-label">New Image (optional)</label>
               <input type="file" name="image" id="image_single" class="form-control" accept="image/*">
-              <div id="preview_single" class="preview-wrap d-flex"></div>
             </div>
 
             <div class="col-lg-8 col-md-6">
               <div class="media-box mb-2">
-                <small class="d-block mb-1 text-muted">Current Gallery</small>
-                <div class="d-flex flex-wrap mb-1">
+                <small class="d-block mb-1 text-muted">Current Gallery <span class="text-muted">(drag to reorder — the product page shows images in this order)</span></small>
+                @if($item->images->count())
+                  <div class="gallery-toolbar">
+                    <label class="d-flex align-items-center gap-1 mb-0" style="font-size:.8rem;cursor:pointer;">
+                      <input type="checkbox" id="gallery_select_all"> Select all
+                    </label>
+                    <button type="button" id="gallery_delete_selected" class="btn btn-sm btn-danger" disabled>
+                      Delete selected (<span id="gallery_selected_count">0</span>)
+                    </button>
+                    <span class="g-status" id="gallery_status"></span>
+                  </div>
+                @endif
+                <div class="gallery-sortable mb-1" id="gallery_sortable">
                   @foreach ($item->images as $image)
-                    <div class="img-box">
-                      <a href="{{ route('admin.deleteImage',[$image->id])}}" onclick="return confirm('Delete this image?')">&times;</a>
-                      <img src="{{ getImage('products',$image->image)}}" width="54" height="54" style="object-fit:cover;border-radius:10px;border:1px solid #eee;">
+                    <div class="gallery-item" data-id="{{ $image->id }}">
+                      <input type="checkbox" class="g-check" value="{{ $image->id }}" title="Select">
+                      <a href="{{ route('admin.deleteImage',[$image->id])}}" class="g-del" title="Delete" onclick="return confirm('Delete this image?')">&times;</a>
+                      <img src="{{ getImage('products',$image->image)}}" alt="">
+                      <span class="g-pos">{{ $loop->iteration }}</span>
                     </div>
                   @endforeach
-                  @if($item->images->count() == 0)
-                    <span class="text-muted" style="font-size:.8rem;">No gallery images added yet.</span>
-                  @endif
                 </div>
+                <span class="text-muted" id="gallery_empty" style="font-size:.8rem;{{ $item->images->count() ? 'display:none;' : '' }}">No gallery images added yet.</span>
               </div>
               <label class="form-label">Add / Replace Gallery Images</label>
               <input type="file" name="images[]" id="images_multi" class="form-control" multiple accept="image/*">
@@ -543,8 +580,87 @@
 @push('js')
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/summernote@0.8.20/dist/summernote-lite.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
 <script>
 $(function(){
+
+  /* ---------- Gallery: multi-select delete + drag & drop order ---------- */
+  (function(){
+    const box = document.getElementById('gallery_sortable');
+    if (!box) return;
+
+    const $status = $('#gallery_status');
+    const token = '{{ csrf_token() }}';
+    const sortUrl = "{{ route('admin.productImages.sort', $item->id) }}";
+    const deleteUrl = "{{ route('admin.productImages.bulkDelete', $item->id) }}";
+
+    function setStatus(msg, isError){
+      $status.text(msg).css('color', isError ? '#dc2626' : '#6b7280');
+      if (!isError && msg) setTimeout(() => { if ($status.text() === msg) $status.text(''); }, 2000);
+    }
+
+    function refreshUI(){
+      const $items = $(box).children('.gallery-item');
+      $items.each(function(i){ $(this).find('.g-pos').text(i + 1); });
+      const checked = $(box).find('.g-check:checked').length;
+      $('#gallery_selected_count').text(checked);
+      $('#gallery_delete_selected').prop('disabled', checked === 0);
+      $('#gallery_select_all').prop('checked', $items.length > 0 && checked === $items.length);
+      $(box).find('.g-check').each(function(){
+        $(this).closest('.gallery-item').toggleClass('is-selected', this.checked);
+      });
+      if ($items.length === 0) {
+        $('.gallery-toolbar').remove();
+        $('#gallery_empty').show();
+      }
+    }
+
+    function currentOrder(){
+      return $(box).children('.gallery-item').map(function(){ return $(this).data('id'); }).get();
+    }
+
+    Sortable.create(box, {
+      animation: 150,
+      ghostClass: 'sortable-ghost',
+      chosenClass: 'sortable-chosen',
+      filter: '.g-check, .g-del',
+      preventOnFilter: false,
+      onEnd: function(evt){
+        refreshUI();
+        if (evt.oldIndex === evt.newIndex) return;
+        setStatus('Saving order…');
+        $.post(sortUrl, { _token: token, ids: currentOrder() })
+          .done(() => setStatus('Order saved ✓'))
+          .fail(() => setStatus('Could not save order. Please try again.', true));
+      }
+    });
+
+    $(box).on('change', '.g-check', refreshUI);
+
+    $('#gallery_select_all').on('change', function(){
+      $(box).find('.g-check').prop('checked', this.checked);
+      refreshUI();
+    });
+
+    $('#gallery_delete_selected').on('click', function(){
+      const ids = $(box).find('.g-check:checked').map(function(){ return this.value; }).get();
+      if (!ids.length) return;
+      if (!confirm('Delete ' + ids.length + ' selected image(s)? This cannot be undone.')) return;
+
+      const $btn = $(this).prop('disabled', true);
+      setStatus('Deleting…');
+      $.post(deleteUrl, { _token: token, ids: ids })
+        .done(function(resp){
+          (resp.deleted || []).forEach(id => $(box).children('.gallery-item[data-id="' + id + '"]').remove());
+          setStatus('Deleted ✓');
+          refreshUI();
+        })
+        .fail(function(){
+          setStatus('Delete failed. Please try again.', true);
+          $btn.prop('disabled', false);
+        });
+    });
+  })();
 
   $('#type_id,#category_id,#sub_category_id,#prod_type,#is_stock,#discount_type,#is_video_active').select2({ width:'100%' });
 
@@ -580,9 +696,36 @@ $(function(){
     }
   });
 
+  // Show the newly chosen main image right in the "Current Image" box.
+  let mainPreviewUrl = null;
+  function resetMainPreview(){
+    if (mainPreviewUrl) { URL.revokeObjectURL(mainPreviewUrl); mainPreviewUrl = null; }
+    const $img = $('#main_image_preview');
+    $img.attr('src', $img.data('original')).css('border-color', '#e5e7eb');
+    $('#main_image_note').text('You can replace this image from below.').removeClass('text-success').addClass('text-muted');
+    $('#main_image_reset').hide();
+  }
   $('#image_single').on('change', function(e){
-    const f = e.target.files[0]; if(!f) return;
-    $('#preview_single').html(`<img src="${URL.createObjectURL(f)}" alt="preview">`);
+    const f = e.target.files[0];
+    if (!f) { resetMainPreview(); return; }
+    if (!f.type.startsWith('image/')) {
+      alert('Please choose an image file (jpg, png, webp).');
+      this.value = ''; resetMainPreview(); return;
+    }
+    if (f.size > 5 * 1024 * 1024) {
+      alert('Image is larger than 5 MB. Please choose a smaller image.');
+      this.value = ''; resetMainPreview(); return;
+    }
+    if (mainPreviewUrl) URL.revokeObjectURL(mainPreviewUrl);
+    mainPreviewUrl = URL.createObjectURL(f);
+    $('#main_image_preview').attr('src', mainPreviewUrl).css('border-color', '#16a34a');
+    $('#main_image_note').text('New image selected — click "Update Product" to save.').removeClass('text-muted').addClass('text-success');
+    $('#main_image_reset').show();
+  });
+  $('#main_image_reset').on('click', function(e){
+    e.preventDefault();
+    $('#image_single').val('');
+    resetMainPreview();
   });
   $('#images_multi').on('change', function(e){
     $('#preview_multi').empty();

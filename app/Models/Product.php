@@ -115,7 +115,8 @@ class Product extends Model
 
     public function images()
     {
-        return $this->hasMany(ProductImage::class);
+        // Gallery order is controlled from the admin edit page (drag & drop).
+        return $this->hasMany(ProductImage::class)->orderBy('sort_order')->orderBy('id');
     }
 
     public function variations()

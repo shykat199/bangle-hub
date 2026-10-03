@@ -44,7 +44,11 @@
 
             // স্টক পড়ার একটাই নিয়ম — helpers.php::resolveStock()। আগে এই পেজ, popup
             // আর প্রোডাক্ট কার্ড তিন আলাদা উৎস পড়ত বলে এক প্রোডাক্টের তিন রকম সংখ্যা দেখাত।
-            $stock = resolveStock($singleProduct, $v);
+            // single টাইপে একটাই ভ্যারিয়েশন — তার স্টক না থাকলে প্রোডাক্টের স্টকে নামে
+            // (resolveStock-এর নিয়ম); variable হলে প্রতিটা ভ্যারিয়েশনের নিজের স্টক।
+            $stock = ($singleProduct->type ?? 'single') === 'variable'
+                ? resolveStock($singleProduct, $v)
+                : resolveStock($singleProduct);
 
             $varImage = $v->image ? asset('products/'.$v->image) : null;
 
@@ -102,10 +106,9 @@
     $initialVar = $varMap[$initialKey] ?? (count($varMap) ? reset($varMap) : null);
 
     // --- Safe Initial Stock Logic ---
+    // আগে ডিফল্ট ভ্যারিয়েশনের স্টক ০ হলে প্রোডাক্টের মোট স্টক দেখানো হতো, ফলে
+    // স্টক-আউট ভ্যারিয়েশনেও বাটন চালু থাকত। এখন নির্বাচিত ভ্যারিয়েশনের স্টকই চূড়ান্ত।
     $initialStock = $initialVar ? (int)($initialVar['stock'] ?? 0) : (int)($singleProduct->stock_quantity ?? 0);
-    if ($initialStock <= 0) {
-        $initialStock = (int)($singleProduct->stock_quantity ?? 0);
-    }
     $inStock = ($initialStock > 0);
 
     // Whole product unavailable — same rule the cart and product cards use
@@ -641,6 +644,24 @@
       color: var(--text);
       box-shadow: 0 10px 22px rgba(0,0,0,.06);
     }
+    #variantBox .size.is-out{
+      color: #94a3b8;
+      border-style: dashed !important;
+      text-decoration: line-through;
+      text-decoration-color: rgba(220,38,38,.7);
+      padding-right: 34px !important;
+    }
+    #variantBox .size.is-out::after{
+      content: "Out";
+      position: absolute; top: 50%; right: 5px; transform: translateY(-50%);
+      background: #dc2626; color: #fff;
+      font-size: 9px; font-weight: 700; letter-spacing: .3px; line-height: 1;
+      padding: 3px 4px; border-radius: 4px; text-transform: uppercase;
+    }
+    #variantBox .size.is-out.active{
+      background: #64748b !important; border-color: #64748b !important;
+    }
+    .quantity.is-disabled{ opacity: .5; pointer-events: none; }
     #variantBox .size.active{
       border-color: var(--text) !important;
       background: var(--text) !important;
@@ -1261,6 +1282,21 @@
     @media (max-width: 575px){
         .pd-stock-out-overlay span{ font-size: 22px; padding: 10px 0; }
     }
+    .pd-thumb-stock-out{
+        position: absolute; inset: 0; z-index: 3;
+        display: flex; align-items: center; justify-content: center;
+        overflow: hidden; pointer-events: none; border-radius: inherit;
+        background: rgba(255,255,255,.35);
+    }
+    .pd-thumb-stock-out span{
+        display: block; width: 160%; flex: 0 0 auto;
+        padding: 4px 0;
+        background: rgba(232,72,85,.85);
+        color: #fff; font-weight: 700; font-size: 8px;
+        letter-spacing: .5px; line-height: 1;
+        text-align: center; text-transform: uppercase; white-space: nowrap;
+        transform: rotate(-12deg);
+    }
     .pd-stock-out-alert{
         margin: 8px 0 12px; padding: 10px 14px;
         border: 1px solid #fecaca; border-radius: 8px;
@@ -1396,9 +1432,7 @@
                                         </div>
                                     @endif
 
-                                    @if($productOut)
-                                        <div class="pd-stock-out-overlay"><span>Out of Stock</span></div>
-                                    @endif
+                                    <div class="pd-stock-out-overlay" id="pdStockOutOverlay" style="{{ $inStock ? 'display:none;' : '' }}"><span>Out of Stock</span></div>
 
                                     <div class="product-quick-view position-view">
                                         <a href="{{ getImage('products', $singleProduct->image)}}" class="popup-zoom">
@@ -1422,6 +1456,8 @@
 
                                     <div class="small-thumb-img mt-2">
                                         <img src="{{ getImage('products', $singleProduct->image)}}" alt="{{ $singleProduct->name}} image" id="thumb-image">
+                                        {{-- Same "Out of Stock" stamp the product cards use, on the variant's own image --}}
+                                        <div class="pd-thumb-stock-out" id="pdThumbStockOut" style="{{ $inStock ? 'display:none;' : '' }}"><span>Out of Stock</span></div>
                                     </div>
                                     @foreach($singleProduct->images as $im)
                                     <div class="small-thumb-img mt-2">
@@ -1451,11 +1487,10 @@
                                         <span class="current-price-product">{{ biz_format_currency($initFinal) }}</span>
                                     </p>
 
-                                    @if($productOut)
-                                        <div class="pd-stock-out-alert">
-                                            <i class="fas fa-exclamation-circle"></i> This product is currently out of stock.
-                                        </div>
-                                    @endif
+                                    <div class="pd-stock-out-alert" id="pdStockOutAlert" style="{{ $inStock ? 'display:none;' : '' }}">
+                                        <i class="fas fa-exclamation-circle"></i>
+                                        <span id="pdStockOutAlertText">{{ $productOut ? 'This product is currently out of stock.' : 'This variant is currently out of stock. Please choose another option.' }}</span>
+                                    </div>
 
                                     <form action="{{ route('front.carts.storeCart') }}" id="cart_submit" method="POST">
                                         @csrf
@@ -1593,10 +1628,11 @@
                                                     <i class="fas fa-shopping-cart"></i>
                                                 </button>
 
+                                                <template id="orderNowLabel">@if(($singleProduct->is_free_shipping ?? 0) == 1)<i class="fas fa-shipping-fast"></i> &nbsp; {{ $bangla_text->fshipping_text ?? 'Free Shipping' }}@else{{ $dt->order_now_text ?? 'Order Now' }}@endif</template>
                                                 <button type="submit"
                                                         class="btn px-4 order_now_btn order_now_btn_m"
                                                         {{ $inStock ? '' : 'disabled' }}>
-                                                    @if($productOut)
+                                                    @if(!$inStock)
                                                         Out of Stock
                                                     @elseif(($singleProduct->is_free_shipping ?? 0) == 1)
                                                         <i class="fas fa-shipping-fast"></i> &nbsp; {{ $bangla_text->fshipping_text ?? 'Free Shipping' }}
@@ -2344,8 +2380,53 @@ window.__PRODUCT_OUT__ = @json($productOut);
       stockEl.innerHTML = `<i class="fas ${stock > 0 ? 'fa-check-circle text-success' : 'fa-times-circle text-danger'}"></i> <span>${stock > 0 ? stock : '0'} Items left</span>`;
     }
 
-    $('.add_cart_btn, .order_now_btn').prop('disabled', stock <= 0 || window.__PRODUCT_OUT__);
+    setStockState(stock <= 0 || window.__PRODUCT_OUT__);
     if(window.toggleNotifyMe) window.toggleNotifyMe(stock <= 0 || window.__PRODUCT_OUT__);
+    markOutOfStockOptions();
+  }
+
+  // Selected variant out of stock → same look as a stock-out product:
+  // image badge, warning, "Out of Stock" button, everything disabled.
+  function setStockState(isOut){
+    $('.add_cart_btn, .order_now_btn').prop('disabled', isOut);
+    $('#pdStockOutOverlay, #pdThumbStockOut').toggle(isOut);
+    $('#pdStockOutAlert').toggle(isOut);
+    $('#pdStockOutAlertText').text(window.__PRODUCT_OUT__
+      ? 'This product is currently out of stock.'
+      : 'This variant is currently out of stock. Please choose another option.');
+    $('.quantity').toggleClass('is-disabled', isOut);
+    if(isOut) $('.quantity input[name="quantity"]').val(1);
+
+    const $order = $('.order_now_btn');
+    if(isOut){
+      $order.text('Out of Stock');
+    }else{
+      const tpl = document.getElementById('orderNowLabel');
+      if(tpl) $order.html(tpl.innerHTML);
+    }
+  }
+
+  // Tag each size/colour chip whose combination with the current other choice has no stock.
+  function stockOf(sizeId, colorId){
+    const v = resolveVariation(sizeId, colorId);
+    return v ? parseInt(v.stock || 0) : null;
+  }
+  function markOutOfStockOptions(){
+    const hasSize  = $('#sizeOptions').length > 0;
+    const hasColor = $('#colorOptions').length > 0;
+    const activeSize  = hasSize  ? parseInt($('#sizeOptions .size-opt.active').data('size-id') || 0) : 0;
+    const activeColor = hasColor ? parseInt($('#colorOptions .color-opt.active').data('color-id') || 0) : 0;
+
+    $('#sizeOptions .size-opt').each(function(){
+      const st = stockOf(parseInt($(this).data('size-id') || 0), activeColor);
+      $(this).toggleClass('is-out', st !== null && st <= 0)
+             .attr('title', st !== null && st <= 0 ? 'Out of stock' : null);
+    });
+    $('#colorOptions .color-opt').each(function(){
+      const st = stockOf(activeSize, parseInt($(this).data('color-id') || 0));
+      $(this).toggleClass('is-out', st !== null && st <= 0)
+             .attr('title', st !== null && st <= 0 ? 'Out of stock' : null);
+    });
   }
 
   function setInvalidState(){
@@ -2359,6 +2440,7 @@ window.__PRODUCT_OUT__ = @json($productOut);
     
     $('.add_cart_btn, .order_now_btn').prop('disabled', true);
     if(window.toggleNotifyMe) window.toggleNotifyMe(!!window.__PRODUCT_OUT__);
+    markOutOfStockOptions();
   }
 
   $(document)

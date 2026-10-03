@@ -291,6 +291,8 @@ Route::group(['prefix' => 'admin','middleware' => ['auth','staff'],'as'=>'admin.
 
     Route::post('/file-upload',[ProductController::class,'fileUpload'])->name('ckeditor.upload');
     Route::get('/file-delete/{id}',[ProductController::class,'deleteImage'])->name('deleteImage')->middleware('deny.worker');
+    Route::post('/product-images/{product}/bulk-delete',[ProductController::class,'bulkDeleteImages'])->name('productImages.bulkDelete')->middleware('deny.worker');
+    Route::post('/product-images/{product}/sort',[ProductController::class,'sortImages'])->name('productImages.sort')->middleware('deny.worker');
     Route::get('/get-sub-category',[ProductController::class,'getSubcategory'])->name('getSubcategory');
     Route::get('/product-export',[ProductController::class,'productExport'])->name('productExport');
     Route::post('/update-priority/{id}', [ProductController::class, 'updatePriority']);
