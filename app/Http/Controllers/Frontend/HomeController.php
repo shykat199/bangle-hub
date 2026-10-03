@@ -48,7 +48,7 @@ class HomeController extends Controller
                             // কার্ড এখন resolveStock() ডাকে, তাই stocks-ও eager-load।
                             // getProductInfo() এখন ভ্যারিয়েবল প্রোডাক্টের দাম variation থেকে পড়ে,
                             // তাই price/after_discount_price কলাম না আনলে কার্ডে দাম ০ দেখাতো।
-                            ->with(['category:id,name,url', 'variations:id,product_id,price,after_discount_price,stock_quantity', 'variations.stocks'])
+                            ->with(['category:id,name,url', 'variations:id,product_id,price,after_discount_price,stock_quantity', 'variations.stocks', 'images'])
                             ->orderByRaw('IF(priority IS NULL, 1, 0), priority ASC')
                             ->latest()
                             ->get()
@@ -65,7 +65,7 @@ class HomeController extends Controller
 
         $popular_products = Product::where('is_popular', 1)
                         ->where('status', 1)
-                        ->with(['category:id,name,url', 'variations:id,product_id,price,after_discount_price,stock_quantity', 'variations.stocks'])
+                        ->with(['category:id,name,url', 'variations:id,product_id,price,after_discount_price,stock_quantity', 'variations.stocks', 'images'])
                         ->latest()
                         ->take(12)
                         ->get();

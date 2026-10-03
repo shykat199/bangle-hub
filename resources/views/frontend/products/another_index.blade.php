@@ -370,7 +370,7 @@
                                             <span class="pill cat-pill {{ ($c->id == $currentCatId) ? 'active' : '' }}" 
                                                   data-id="{{ $c->id }}"
                                                   {{-- ✅ FIX 1: URL should point to subCategories1 --}}
-                                                  data-url="{{ route('front.subCategories1', [$c->url]) }}">
+                                                  data-url="{{ route('front.category', [$c->url]) }}">
                                                 {{ $c->name }}
                                             </span>
                                         @endforeach
@@ -509,7 +509,7 @@
                                 @foreach($cats as $c)
                                     <span class="pill m-cat-pill {{ ($c->id == $currentCatId) ? 'active' : '' }}" 
                                           data-id="{{ $c->id }}"
-                                          data-url="{{ route('front.subCategories1', [$c->url]) }}">
+                                          data-url="{{ route('front.category', [$c->url]) }}">
                                         {{ $c->name }}
                                     </span>
                                 @endforeach

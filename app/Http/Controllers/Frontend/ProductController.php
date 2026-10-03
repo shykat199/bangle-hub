@@ -119,7 +119,7 @@ class ProductController extends Controller
         // প্রতিটা কার্ড resolveStock() ডাকে, যেটা variations আর product_stocks দুটোই দেখে।
         // eager-load না থাকায় ১২টা কার্ডের পেজে কয়েক ডজন বাড়তি কোয়েরি হতো (N+1)।
         $query = Product::query()
-            ->with(['variation', 'category:id,name,url', 'variations.stocks'])
+            ->with(['variation', 'category:id,name,url', 'variations.stocks', 'images'])
             ->select('products.*')
             ->where('products.status', 1);
 
@@ -129,7 +129,7 @@ class ProductController extends Controller
         $this->applyCommonFilters($query, $type_id, $size_id, $q, $min_price, $max_price);
         $this->applySort($query, $orderKey);
 
-        $items = $query->paginate(12)->withQueryString();
+        $items = $query->paginate(32)->withQueryString();
 
         if ($request->ajax()) {
             return view('frontend.products.partials.category_products', compact('items'))->render();
@@ -162,7 +162,7 @@ class ProductController extends Controller
 
     public function comboProducts()
     {
-        $items = Combo::with('product')->paginate(12);
+        $items = Combo::with('product')->paginate(32);
         return view('frontend.products.combo', compact('items'));
     }
 
@@ -405,7 +405,7 @@ class ProductController extends Controller
                 ->where('products.status', 1)
                 ->select('products.*')
                 ->orderBy('products.id', 'desc')
-                ->paginate(12);
+                ->paginate(32);
 
             $view = view('frontend.products.partials.discount', compact('items'))->render();
             return response()->json(['success' => true, 'html' => $view]);
@@ -428,6 +428,19 @@ class ProductController extends Controller
         return view('frontend.sub_categories', compact('subs'));
     }
 
+    /**
+     * Root-level category URL (/{slug}): a top-level category lists by
+     * category_id, a sub-category by sub_category_id.
+     */
+    public function categoryPage(Request $request, $slug)
+    {
+        $cat = Category::where('url', $slug)->firstOrFail();
+
+        return $cat->parent_id
+            ? $this->subsubCategories($request, $slug)
+            : $this->subCategories1($request, $slug);
+    }
+
     public function subCategories1(Request $request, $slug)
     {
         $cat = Category::where('url', $slug)->firstOrFail();
@@ -441,7 +454,7 @@ class ProductController extends Controller
         $orderKey = $this->orderKey($request);
         $sort     = $orderKey;
 
-        $query = Product::with(['variation', 'category:id,name,url', 'variations.stocks'])
+        $query = Product::with(['variation', 'category:id,name,url', 'variations.stocks', 'images'])
             ->select('products.*')
             ->where('products.category_id', $cat->id)
             ->where('products.status', 1);
@@ -449,7 +462,7 @@ class ProductController extends Controller
         $this->applyCommonFilters($query, $brand_ids, $size_ids, $q, $min_price, $max_price);
         $this->applySort($query, $orderKey);
 
-        $items = $query->paginate(12)->withQueryString();
+        $items = $query->paginate(32)->withQueryString();
 
         if ($request->ajax()) {
             return view('frontend.products.partials.category_products', compact('items'))->render();
@@ -493,7 +506,7 @@ class ProductController extends Controller
         $orderKey = $this->orderKey($request);
         $sort     = $orderKey;
 
-        $query = Product::with('variation')
+        $query = Product::with(['variation', 'images'])
             ->select('products.*')
             ->where('products.sub_category_id', $s_cat->id)
             ->where('products.status', 1);
@@ -501,7 +514,7 @@ class ProductController extends Controller
         $this->applyCommonFilters($query, $brand_ids, $size_ids, $q, $min_price, $max_price);
         $this->applySort($query, $orderKey);
 
-        $items = $query->paginate(12)->withQueryString();
+        $items = $query->paginate(32)->withQueryString();
 
         if ($request->ajax()) {
             return view('frontend.products.partials.category_products', compact('items'))->render();
@@ -563,7 +576,7 @@ class ProductController extends Controller
             ->where('products.is_free_shipping', 1)
             ->select('products.*')
             ->orderBy('products.id', 'desc')
-            ->paginate(12);
+            ->paginate(32);
 
         return view('frontend.products.free_shipping_products', compact('items'));
     }

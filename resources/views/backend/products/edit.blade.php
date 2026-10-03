@@ -418,6 +418,21 @@
             </div>
 
             <div class="col-lg-3 col-md-6">
+              <label class="form-label d-block">Enable Wholesale</label>
+              <input type="hidden" name="is_wholesale" value="0">
+              <div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" role="switch" id="is_wholesale" name="is_wholesale" value="1" {{ $item->is_wholesale ? 'checked' : '' }}>
+                <label class="form-check-label" for="is_wholesale">Sell with a minimum order quantity</label>
+              </div>
+            </div>
+
+            <div id="min_order_qty_wrap" class="col-lg-3 col-md-6 {{ $item->is_wholesale ? '' : 'd-none' }}">
+              <label class="form-label">Minimum Order Quantity</label>
+              <input type="number" min="1" step="1" name="min_order_qty" id="min_order_qty" class="form-control" placeholder="Ex: 12" value="{{ old('min_order_qty', $item->min_order_qty) }}">
+              <small class="text-muted">Applies to every variant of this product.</small>
+            </div>
+
+            <div class="col-lg-3 col-md-6">
               <label class="form-label">Discount Type (optional)</label>
               <select class="form-select" name="discount_type" id="discount_type">
                 <option value="">Select Discount Type</option>
@@ -465,6 +480,7 @@
                         @foreach($sizes as $size)
                           <option value="{{$size->id}}" {{ $size->id==$v->size_id ? 'selected':'' }}>{{ $size->title }}</option>
                         @endforeach
+                        <option value="__new__">+ Add new size…</option>
                       </select>
                     </td>
                     <td data-label="Color">
@@ -473,6 +489,7 @@
                         @foreach($colors as $color)
                           <option value="{{$color->id}}" {{ $color->id==$v->color_id ? 'selected':'' }}>{{ $color->name }}</option>
                         @endforeach
+                        <option value="__new__">+ Add new color…</option>
                       </select>
                     </td>
                     <td data-label="Image">
@@ -510,6 +527,7 @@
                         @foreach($sizes as $size)
                           <option value="{{ $size->id }}">{{ $size->title }}</option>
                         @endforeach
+                        <option value="__new__">+ Add new size…</option>
                       </select>
                     </td>
                     <td data-label="Color">
@@ -518,6 +536,7 @@
                         @foreach($colors as $color)
                           <option value="{{ $color->id }}">{{ $color->name }}</option>
                         @endforeach
+                        <option value="__new__">+ Add new color…</option>
                       </select>
                     </td>
                     <td data-label="Image">
@@ -803,6 +822,11 @@ $(function(){
   $('#is_stock').on('change', toggleStock);
   toggleStock();
 
+  function toggleWholesale(){
+    $('#min_order_qty_wrap').toggleClass('d-none', !$('#is_wholesale').is(':checked'));
+  }
+  $('#is_wholesale').on('change', toggleWholesale); toggleWholesale();
+
   $('input[name="sell_price"]').on('blur', function(){
     $('.variable_sell_price').val($(this).val());
   });
@@ -832,6 +856,7 @@ $(function(){
           @foreach($sizes as $size)
             <option value="{{$size->id}}">{{ $size->title }}</option>
           @endforeach
+          <option value="__new__">+ Add new size…</option>
         </select>
       </td>
       <td data-label="Color">
@@ -840,6 +865,7 @@ $(function(){
           @foreach($colors as $color)
             <option value="{{$color->id}}">{{ $color->name }}</option>
           @endforeach
+          <option value="__new__">+ Add new color…</option>
         </select>
       </td>
       <td data-label="Image">
@@ -868,4 +894,5 @@ $(function(){
 
 });
 </script>
+@include('backend.products.partials.variant_option_quick_add')
 @endpush

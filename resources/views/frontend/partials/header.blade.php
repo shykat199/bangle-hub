@@ -60,8 +60,17 @@ width: 100%;
 }
 .desktop-logo-clean { flex: 0 0 15%; display: flex; align-items: center; }
 .desktop-logo-clean img { max-height: 45px; object-fit: contain; }
-.desktop-menu-clean { flex: 1; display: flex; justify-content: center; }
-.nav-menu-clean { display: flex; gap: 25px; list-style: none; margin: 0; padding: 0; align-items: center; }
+/* Many menu items: the bar scrolls sideways instead of overflowing the header.
+   margin:auto (not justify-content:center) keeps the first items reachable. */
+.desktop-menu-clean {
+flex: 1; min-width: 0; display: flex; margin: 0 15px;
+overflow-x: auto; overflow-y: hidden;
+scrollbar-width: thin; scrollbar-color: rgba(128,128,128,.45) transparent;
+}
+.desktop-menu-clean::-webkit-scrollbar { height: 4px; }
+.desktop-menu-clean::-webkit-scrollbar-track { background: transparent; }
+.desktop-menu-clean::-webkit-scrollbar-thumb { background: rgba(128,128,128,.45); border-radius: 4px; }
+.nav-menu-clean { display: flex; gap: 25px; list-style: none; margin: 0 auto; padding: 0; align-items: center; }
 .nav-item-clean { position: relative; flex-shrink: 0; }
 .nav-link-clean {
 font-size: 14px; font-weight: 600; text-transform: uppercase;
@@ -750,11 +759,11 @@ body.hide-header .topbar {
 <li class="nav-item-clean"><a href="{{ route('front.home') }}" class="nav-link-clean">Home</a></li>
 @foreach($categories as $cat)
 <li class="nav-item-clean {{ $cat->subcats->count() ? 'has-sub' : '' }}">
-<a href="{{ route('front.subCategories1',[$cat->url])}}" class="nav-link-clean">{{ $cat->name }}</a>
+<a href="{{ route('front.category',[$cat->url])}}" class="nav-link-clean">{{ $cat->name }}</a>
 @if($cat->subcats->count())
 <ul class="axil-submenu-clean">
 @foreach($cat->subcats as $sub)
-<li><a href="{{ route('front.subsubCategories',[$sub->url])}}">{{ $sub->name }}</a></li>
+<li><a href="{{ route('front.category',[$sub->url])}}">{{ $sub->name }}</a></li>
 @endforeach
 </ul>
 @endif
@@ -905,7 +914,7 @@ body.hide-header .topbar {
                         <div class="pmm-cat-icon">
                             <i class="fas fa-{{ $cat->subcats->count() ? 'layer-group' : 'tag' }}"></i>
                         </div>
-                        <a href="{{ route('front.subCategories1', [$cat->url]) }}" class="pmm-cat-link">
+                        <a href="{{ route('front.category', [$cat->url]) }}" class="pmm-cat-link">
                             {{ $cat->name }}
                         </a>
                         @if($cat->subcats->count() > 0)
@@ -923,7 +932,7 @@ body.hide-header .topbar {
                             <ul class="pmm-subcat-list">
                                 @foreach($cat->subcats as $sub)
                                     <li>
-                                        <a href="{{ route('front.subsubCategories', [$sub->url]) }}">
+                                        <a href="{{ route('front.category', [$sub->url]) }}">
                                             {{ $sub->name }}
                                         </a>
                                     </li>
@@ -1014,4 +1023,38 @@ $('#mobileMenu').on('click', '.pmm-cat-link, .pmm-quick-item, .pmm-subcat-list a
     if(off) setTimeout(function(){ off.hide(); }, 150);
 });
 });
+
+// Desktop nav scrolls horizontally. A scroll container clips its children,
+// so dropdowns are switched to fixed positioning under their menu item.
+(function(){
+    var menu = document.querySelector('.desktop-menu-clean');
+    if (!menu) return;
+
+    function placeSub(item){
+        var sub = item.querySelector('.axil-submenu-clean');
+        if (!sub) return;
+        var r = item.getBoundingClientRect();
+        var left = Math.max(8, Math.min(r.left, window.innerWidth - sub.offsetWidth - 8));
+        sub.style.position = 'fixed';
+        sub.style.top = r.bottom + 'px';
+        sub.style.left = left + 'px';
+    }
+    function placeHovered(){
+        menu.querySelectorAll('.nav-item-clean.has-sub:hover').forEach(placeSub);
+    }
+
+    menu.querySelectorAll('.nav-item-clean.has-sub').forEach(function(item){
+        item.addEventListener('mouseenter', function(){ placeSub(item); });
+    });
+    menu.addEventListener('scroll', placeHovered, { passive: true });
+    window.addEventListener('scroll', placeHovered, { passive: true });
+    window.addEventListener('resize', placeHovered);
+
+    // Mouse wheel scrolls the bar sideways when it overflows.
+    menu.addEventListener('wheel', function(e){
+        if (menu.scrollWidth <= menu.clientWidth || Math.abs(e.deltaY) <= Math.abs(e.deltaX)) return;
+        e.preventDefault();
+        menu.scrollLeft += e.deltaY;
+    }, { passive: false });
+})();
 </script>

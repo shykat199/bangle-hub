@@ -612,7 +612,7 @@
                     <div class="swiper-wrapper">
                         @foreach($cats as $cat)
                             <div class="swiper-slide">
-                                <a href="{{ route('front.subCategories1', [$cat->url]) }}" class="pop-card">
+                                <a href="{{ route('front.category', [$cat->url]) }}" class="pop-card">
                                     <div class="pop-img">
                                         <img src="{{ getImage('categories', $cat->image) }}" alt="{{ $cat->name }}">
                                     </div>
@@ -657,7 +657,7 @@
 
                 @if($catUrl)
                     <div class="category-view-all-wrap">
-                        <a href="{{ route('front.subCategories1', [$catUrl]) }}" class="category-view-all-btn">
+                        <a href="{{ route('front.category', [$catUrl]) }}" class="category-view-all-btn">
                             {{ $viewAllText }} <i class="fas fa-arrow-right"></i>
                         </a>
                     </div>

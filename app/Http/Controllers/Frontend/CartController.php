@@ -188,6 +188,17 @@ class CartController extends Controller
         // --- FIX: ইউনিক Cart Key তৈরি করা হলো যাতে Overwrite না হয় ---
         $cartKey = $product_id . '_' . $variation_id;
 
+        // Wholesale minimum is per cart line (so per variant). One-click
+        // buttons always send quantity 1, so the line is topped up to the
+        // minimum instead of being refused.
+        $minQty = $product->minOrderQty();
+        $raisedToMin = false;
+        $existingLineQty = (int) ($cart[$cartKey]['quantity'] ?? 0);
+        if ($existingLineQty + $quantity < $minQty) {
+            $quantity = $minQty - $existingLineQty;
+            $raisedToMin = true;
+        }
+
         // ✅ Stock Check
         $is_stock = (int) ($product->is_stock ?? 0);
 
@@ -319,7 +330,9 @@ class CartController extends Controller
             'ok' => true,
             'payload' => [
                 'success' => true,
-                'msg'     => 'Product added to cart successfully!',
+                'msg'     => $raisedToMin
+                    ? "Minimum order quantity is {$minQty} — {$minQty} added to cart."
+                    : 'Product added to cart successfully!',
                 'html'    => $view,
                 'item'    => $total_item,
                 'amount'  => $total_amount,
@@ -401,6 +414,11 @@ class CartController extends Controller
             if (!productStockManaged($product)) {
                 return response()->json(['success'=>false, 'msg'=>'This product is currently unavailable.']);
             }
+            $minQty = $product->minOrderQty();
+            if ($qty < $minQty) {
+                return response()->json(['success'=>false, 'msg'=>"Minimum order quantity for this product is {$minQty}."]);
+            }
+
             if ($is_stock === 1) {
                 $stockQty = $this->getAvailableStock($product, $variation_id);
                 if ($stockQty < $qty) {

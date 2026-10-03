@@ -299,7 +299,12 @@ class ProductController extends Controller
             'dicount_amount' => 'nullable',
             'after_discount' => 'nullable',
             'weight' => 'nullable|numeric', 
+            'is_wholesale' => 'nullable|boolean',
+            'min_order_qty' => 'nullable|required_if:is_wholesale,1|integer|min:1',
         ]);
+
+        $data['is_wholesale'] = $request->boolean('is_wholesale');
+        $data['min_order_qty'] = $request->filled('min_order_qty') ? (int) $request->min_order_qty : null;
 
         // 'images' হলো গ্যালারি ফাইলের অ্যারে — products টেবিলে ওই নামে কোনো কলাম নেই।
         // Product-এ $guarded = [] বলে validated অ্যারের সব কী-ই mass-assign হয়ে যায়,
@@ -373,8 +378,8 @@ class ProductController extends Controller
             }
 
             if ($request->type == 'variable') {
-                $sizes = (array) $request->size_id;
-                $colors = (array) $request->color_id;
+                $sizes = $this->variantOptionIds($request->size_id);
+                $colors = $this->variantOptionIds($request->color_id);
                 $purchases = (array) $request->purchase_price;
                 $prices = (array) $request->price;
                 $after = (array) $request->after_discount_price;
@@ -495,7 +500,9 @@ class ProductController extends Controller
         try {
             $new = $product->replicate();
 
-            $baseSlug = ($product->slug ?: Str::slug($product->name)) . '-copy';
+            // Strip any "-copy"/"-copy-N" tail first, so copying a copy gives
+            // "name-copy-2" instead of "name-copy-copy".
+            $baseSlug = $this->stripCopySuffix($product->slug ?: Str::slug($product->name)) . '-copy';
             $slug = $baseSlug;
             $i = 2;
             while (Product::where('slug', $slug)->exists()) {
@@ -506,7 +513,7 @@ class ProductController extends Controller
             // update() validates sku as unique, so an identical sku would make
             // the copy impossible to save from the edit page.
             if (!empty($product->sku)) {
-                $baseSku = $product->sku . '-copy';
+                $baseSku = $this->stripCopySuffix($product->sku) . '-copy';
                 $sku = $baseSku;
                 $i = 2;
                 while (Product::where('sku', $sku)->exists()) {
@@ -562,6 +569,60 @@ class ProductController extends Controller
     }
 
     /**
+     * Size / color ids posted per variant row. Anything non-numeric (the
+     * "+ Add new…" placeholder left selected) counts as "none".
+     */
+    private function variantOptionIds($ids): array
+    {
+        return array_map(fn ($id) => is_numeric($id) ? $id : null, (array) $ids);
+    }
+
+    /**
+     * Product form: "+ Add new…" in a variant's Size / Color dropdown. Creates
+     * the size or color (or returns the existing one with the same name) so it
+     * can be selected without leaving the form.
+     */
+    public function storeVariantOption(Request $request)
+    {
+        if (!auth()->user()->can('product.create') && !auth()->user()->can('product.edit')) {
+            abort(403, 'unauthorized');
+        }
+
+        $request->merge(['name' => trim((string) $request->name)]);
+        $request->validate([
+            'type' => 'required|in:size,color',
+            'name' => 'required|string|max:255',
+        ]);
+
+        [$model, $column] = $request->type === 'size' ? [Size::class, 'title'] : [Color::class, 'name'];
+
+        $option = $model::whereRaw("LOWER($column) = ?", [mb_strtolower($request->name)])->first();
+        $existed = (bool) $option;
+        if (!$option) {
+            $option = $model::create([$column => $request->name]);
+        }
+
+        return response()->json([
+            'status' => true,
+            'id' => $option->id,
+            'name' => $option->$column,
+            'msg' => $existed
+                ? ucfirst($request->type) . ' already exists — selected it.'
+                : ucfirst($request->type) . ' added.',
+        ]);
+    }
+
+    /**
+     * Removes trailing "-copy" / "-copy-N" segments left by earlier duplicates.
+     */
+    private function stripCopySuffix($value)
+    {
+        $stripped = preg_replace('/(-copy(-\d+)?)+$/i', '', $value);
+
+        return $stripped !== '' ? $stripped : $value;
+    }
+
+    /**
      * Copies an image file into each given public folder under a fresh name
      * and returns that name. Returns the original value when there is no file.
      */
@@ -572,7 +633,8 @@ class ProductController extends Controller
         }
 
         $ext = pathinfo($fileName, PATHINFO_EXTENSION);
-        $newName = pathinfo($fileName, PATHINFO_FILENAME) . '-copy-' . Str::random(6) . ($ext ? '.' . $ext : '');
+        $baseName = preg_replace('/(-copy-[A-Za-z0-9]{6})+$/', '', pathinfo($fileName, PATHINFO_FILENAME));
+        $newName = $baseName . '-copy-' . Str::random(6) . ($ext ? '.' . $ext : '');
 
         foreach ($folders as $folder) {
             $src = public_path($folder . '/' . $fileName);
@@ -618,7 +680,12 @@ class ProductController extends Controller
             'dicount_amount' => 'nullable',
             'after_discount' => 'nullable',
             'weight' => 'nullable|numeric', 
+            'is_wholesale' => 'nullable|boolean',
+            'min_order_qty' => 'nullable|required_if:is_wholesale,1|integer|min:1',
         ]);
+
+        $data['is_wholesale'] = $request->boolean('is_wholesale');
+        $data['min_order_qty'] = $request->filled('min_order_qty') ? (int) $request->min_order_qty : null;
         
         // store()-এর মতোই: গ্যালারি ফাইলের অ্যারে products টেবিলের কলাম নয়,
         // mass-assign হলে update-ও "Unknown column 'images'" দিয়ে ফেল করে।
@@ -756,8 +823,8 @@ class ProductController extends Controller
             }
 
             $variationIdsReq = (array) $request->variation_id;
-            $sizeIds = (array) $request->size_id;
-            $colorIds = (array) $request->color_id;
+            $sizeIds = $this->variantOptionIds($request->size_id);
+            $colorIds = $this->variantOptionIds($request->color_id);
             $purchasePrices = (array) $request->purchase_price;
             $prices = (array) $request->price;
             $afterPrices = (array) $request->after_discount_price;

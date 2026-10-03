@@ -72,6 +72,7 @@
 		                // No reload here: the AJAX above already refreshed the cart sidebar.
 		            }else{
 		                toastr.error(res.msg);
+		                $button.parent().find('input').val(oldValue);
 		            }
                   	calculate_total();
 		        }

@@ -447,6 +447,10 @@ class CheckoutController extends Controller
             return response()->json(['success' => false, 'msg' => 'Please select a valid quantity.']);
         }
 
+        if ($proQty < $product->minOrderQty()) {
+            return response()->json(['success' => false, 'msg' => "Minimum order quantity for this product is {$product->minOrderQty()}."]);
+        }
+
         // Landing pages let the customer pick a bulk-discount package (e.g.
         // "2 pcs for ৳9000"). This endpoint used to ignore it entirely and
         // charge quantity × the product's normal unit price, so a customer
@@ -941,6 +945,18 @@ class CheckoutController extends Controller
             $msg = 'Your cart is empty.';
             if ($request->ajax()) return response()->json(['success' => false, 'msg' => $msg]);
             return redirect()->route('home')->with('error', $msg);
+        }
+
+        // Wholesale minimum, re-checked here because the cart may predate the
+        // admin enabling wholesale (or raising the minimum) on a product.
+        $cartProducts = Product::whereIn('id', array_column($carts, 'product_id'))->get()->keyBy('id');
+        foreach ($carts as $item) {
+            $cartProduct = $cartProducts->get($item['product_id'] ?? 0);
+            if ($cartProduct && (int) $item['quantity'] < $cartProduct->minOrderQty()) {
+                $msg = "Minimum order quantity for {$cartProduct->name} is {$cartProduct->minOrderQty()}.";
+                if ($request->ajax()) return response()->json(['success' => false, 'msg' => $msg]);
+                return back()->with('error', $msg);
+            }
         }
 
         $total_cart_qty = 0;

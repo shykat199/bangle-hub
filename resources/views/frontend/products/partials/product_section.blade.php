@@ -130,6 +130,20 @@
         transform: scale(1.08) !important;
     }
 
+    /* Hover photo: sits on top of the main image and fades in once loaded */
+    .axil-product .thumbnail img.product_img_hover {
+        position: absolute; inset: 0;
+        width: 100% !important; height: 100% !important;
+        object-fit: cover !important;
+        opacity: 0;
+        transition: opacity .3s ease;
+        pointer-events: none;
+    }
+    .axil-product .thumbnail img.product_img_hover:not([src]) { display: none; }
+    @media (hover: hover) {
+        .axil-product.product-style-one:hover .thumbnail img.product_img_hover.is-loaded { opacity: 1; }
+    }
+
     /* ============================================================
        ✨ BADGES (LEFT — Discount / Stock Out)
        ============================================================ */
@@ -562,6 +576,18 @@ document.addEventListener('DOMContentLoaded', function() {
     if(window.ajaxCartInitialized) return;
     window.ajaxCartInitialized = true;
 
+    // Hover photo is downloaded on first hover only, so cards never load two
+    // images up front. Delegated, so AJAX-loaded cards work too.
+    document.body.addEventListener('mouseover', function(e) {
+        const card = e.target.closest && e.target.closest('.axil-product.product-style-one');
+        if (!card) return;
+        const img = card.querySelector('img.product_img_hover[data-hover-src]');
+        if (!img) return;
+        img.addEventListener('load', () => img.classList.add('is-loaded'), { once: true });
+        img.src = img.dataset.hoverSrc;
+        img.removeAttribute('data-hover-src');
+    });
+
     // কার্ডের বোতামে কার্টে যোগ হত ঠিকই, কিন্তু সাইডবার খুলত না — নিচে
     // res.html বসানোর পরেও কেউ ওটা দেখাত না। হেডারের ট্রিগারে ক্লিক করলে
     // main.js এর sideOffcanvasToggle ওভারলে (.closeMask), body overflow আর
@@ -651,6 +677,11 @@ document.addEventListener('DOMContentLoaded', function() {
     <div class="thumbnail">
         <a href="{{ route('front.products.show', ['product' => $productParam]) }}">
             <img src="{{ getImage('thumb_products', $product->image) }}" class="product_img" alt="{{ $product->name }}">
+            {{-- Second photo shown on hover: the first gallery image, fetched only when hovered --}}
+            @php $hoverImage = optional($product->images->first())->image; @endphp
+            @if($hoverImage && file_exists(public_path('products/' . $hoverImage)))
+                <img data-hover-src="{{ asset('products/' . $hoverImage) }}" class="product_img_hover" alt="" aria-hidden="true">
+            @endif
         </a>
 
         {{-- Big STOCK OUT overlay across the image --}}

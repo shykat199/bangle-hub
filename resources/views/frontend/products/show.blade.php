@@ -111,6 +111,9 @@
     $initialStock = $initialVar ? (int)($initialVar['stock'] ?? 0) : (int)($singleProduct->stock_quantity ?? 0);
     $inStock = ($initialStock > 0);
 
+    // Wholesale products must be bought in at least this many pieces.
+    $minOrderQty = $singleProduct->minOrderQty();
+
     // Whole product unavailable — same rule the cart and product cards use
     $productOut = !productIsOrderable($singleProduct);
     if ($productOut) $inStock = false;
@@ -169,6 +172,32 @@
     
     .bg-color-white{ background: var(--bg) !important; }
     .axil-single-product-area{ background: var(--bg) !important; }
+
+    /* Breadcrumb: one line; links keep their width, the product name takes
+       the remaining space and is cut with "…" on small screens. */
+    .pd-breadcrumb{ padding-top: 16px; }
+    .pd-breadcrumb ol{
+        display: flex; align-items: center; flex-wrap: nowrap;
+        list-style: none; margin: 0; padding: 0;
+        font-size: 14px; line-height: 1.4; color: var(--muted);
+    }
+    .pd-breadcrumb li{ display: flex; align-items: center; flex-shrink: 0; white-space: nowrap; margin: 0; }
+    .pd-breadcrumb li + li::before{ content: "/"; margin: 0 8px; color: #cbd5e1; }
+    .pd-breadcrumb a{ color: var(--muted); text-decoration: none; transition: color .2s ease; }
+    .pd-breadcrumb a:hover{ color: var(--text); }
+    .pd-breadcrumb li.is-current{
+        display: block; flex: 0 1 auto; min-width: 0;
+        overflow: hidden; text-overflow: ellipsis;
+        color: var(--text); font-weight: 600;
+    }
+    @media (max-width: 575px){
+        .pd-breadcrumb{ padding-top: 12px; }
+        .pd-breadcrumb ol{ font-size: 12.5px; }
+        .pd-breadcrumb li + li::before{ margin: 0 5px; }
+        /* long category names may shrink too, so the product name stays visible */
+        .pd-breadcrumb li:not(:first-child):not(.is-current){ flex-shrink: 1; min-width: 40px; overflow: hidden; }
+        .pd-breadcrumb li:not(:first-child):not(.is-current) a{ overflow: hidden; text-overflow: ellipsis; }
+    }
 
     /* --- Added Thumbnail Fix --- */
     .axil-product .thumbnail {
@@ -662,6 +691,9 @@
       background: #64748b !important; border-color: #64748b !important;
     }
     .quantity.is-disabled{ opacity: .5; pointer-events: none; }
+    .pd-wholesale{ display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin:6px 0 10px; }
+    .pd-wholesale-badge{ background:#0f172a; color:#fff; font-size:12px; font-weight:700; padding:4px 10px; border-radius:999px; letter-spacing:.3px; }
+    .pd-wholesale-text{ font-size:13px; color:#b45309; background:#fffbeb; border:1px solid #fde68a; padding:3px 10px; border-radius:999px; }
     #variantBox .size.active{
       border-color: var(--text) !important;
       background: var(--text) !important;
@@ -1382,7 +1414,27 @@
 <main class="main-wrapper">
     <div class="axil-single-product-area p pb--0 bg-color-white">
         <div class="single-product-thumb mb--5">
-            <div class="container mt-4 mobile_show">
+            @php
+                $crumbCategory = $singleProduct->category;
+                $crumbSubCategory = $singleProduct->sub_category_id
+                    ? \App\Models\Category::find($singleProduct->sub_category_id)
+                    : null;
+            @endphp
+            <div class="container">
+                <nav class="pd-breadcrumb" aria-label="Breadcrumb">
+                    <ol>
+                        <li><a href="{{ route('front.home') }}"><i class="fas fa-home"></i> Home</a></li>
+                        @if($crumbCategory && $crumbCategory->url)
+                            <li><a href="{{ route('front.category', [$crumbCategory->url]) }}">{{ $crumbCategory->name }}</a></li>
+                        @endif
+                        @if($crumbSubCategory && $crumbSubCategory->url)
+                            <li><a href="{{ route('front.category', [$crumbSubCategory->url]) }}">{{ $crumbSubCategory->name }}</a></li>
+                        @endif
+                        <li class="is-current" aria-current="page" title="{{ $singleProduct->name }}">{{ $singleProduct->name }}</li>
+                    </ol>
+                </nav>
+            </div>
+            <div class="container mt-2 mobile_show">
                 <div class="row">
                     <div class="col-lg-6 mb--10">
                         <div class="row mx_0">
@@ -1474,6 +1526,12 @@
                             <div class="product">
                                 <div class="product-cart">
                                     <p class="name">{{ $singleProduct->name}}</p>
+                                    @if($minOrderQty > 1)
+                                        <div class="pd-wholesale">
+                                            <span class="pd-wholesale-badge"><i class="fas fa-boxes"></i> Wholesale</span>
+                                            <span class="pd-wholesale-text">Minimum order: <strong>{{ $minOrderQty }}</strong> pcs{{ $singleProduct->type === 'variable' ? ' per variant' : '' }}</span>
+                                        </div>
+                                    @endif
 
                                     <p class="details-price">
                                         @if($initRaw > $initFinal && $initRaw > 0)
@@ -1528,7 +1586,7 @@
                                             <div class="qty-cart m-0" style="margin-top: 0; width: auto;">
                                                 <div class="quantity" style="margin: 0;">
                                                     <span class="minus">-</span>
-                                                    <input type="number" name="quantity" value="1" min="1" readonly>
+                                                    <input type="number" name="quantity" value="{{ $minOrderQty }}" min="{{ $minOrderQty }}" readonly>
                                                     <span class="plus">+</span>
                                                 </div>
                                             </div>
@@ -2128,6 +2186,7 @@ window.__PRODUCT_OUT__ = @json($productOut);
       });
     });
 
+    const MIN_QTY = {{ $minOrderQty }};
     const qtyWrap = document.querySelector('.quantity');
     if(qtyWrap && !qtyWrap.dataset.bound){
       qtyWrap.dataset.bound = "1";
@@ -2145,7 +2204,7 @@ window.__PRODUCT_OUT__ = @json($productOut);
       if(plus){
         plus.addEventListener('click', (e) => {
           e.preventDefault(); e.stopImmediatePropagation();
-          let v = parseInt(input.value) || 1;
+          let v = Math.max(MIN_QTY, parseInt(input.value) || MIN_QTY);
           input.value = v + 1;
           bumpQty();
         }, true);
@@ -2153,8 +2212,9 @@ window.__PRODUCT_OUT__ = @json($productOut);
       if(minus){
         minus.addEventListener('click', (e) => {
           e.preventDefault(); e.stopImmediatePropagation();
-          let v = parseInt(input.value) || 1;
-          if(v > 1) { input.value = v - 1; bumpQty(); }
+          let v = parseInt(input.value) || MIN_QTY;
+          if(v > MIN_QTY) { input.value = v - 1; bumpQty(); }
+          else if(MIN_QTY > 1) { toastUnique('warning', 'Minimum order quantity is ' + MIN_QTY + '.'); }
         }, true);
       }
     }
@@ -2223,7 +2283,7 @@ window.__PRODUCT_OUT__ = @json($productOut);
 
       let qtyInput = form.find('input[name="quantity"]');
       let currentQty = parseInt(qtyInput.val());
-      if(isNaN(currentQty) || currentQty < 1) { currentQty = 1; qtyInput.val(1); }
+      if(isNaN(currentQty) || currentQty < {{ $minOrderQty }}) { currentQty = {{ $minOrderQty }}; qtyInput.val(currentQty); }
 
       let product_id    = form.find('input[name="product_id"]').val();
       let product_name = form.find('input[name="product_name"]').val();
@@ -2395,7 +2455,7 @@ window.__PRODUCT_OUT__ = @json($productOut);
       ? 'This product is currently out of stock.'
       : 'This variant is currently out of stock. Please choose another option.');
     $('.quantity').toggleClass('is-disabled', isOut);
-    if(isOut) $('.quantity input[name="quantity"]').val(1);
+    if(isOut) $('.quantity input[name="quantity"]').val({{ $minOrderQty }});
 
     const $order = $('.order_now_btn');
     if(isOut){

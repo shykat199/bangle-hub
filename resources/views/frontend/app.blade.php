@@ -756,9 +756,10 @@
     const input = box.querySelector('.quantity input[name="quantity"]');
     if(!input) return;
 
-    let v = Math.max(1, parseInt(input.value || '1') || 1);
+    const minQty = parseInt(input.dataset.min || '1') || 1;
+    let v = Math.max(minQty, parseInt(input.value || '1') || 1);
     if(plus) v++;
-    if(minus) v = Math.max(1, v-1);
+    if(minus) v = Math.max(minQty, v-1);
     input.value = v;
   }, true);
 
@@ -803,7 +804,7 @@
     const actionType = box.querySelector('#popup_action_type')?.value || 'cart';
 
     const qtyInput = box.querySelector('.quantity input[name="quantity"]');
-    const q = Math.max(1, parseInt(qtyInput?.value || '1') || 1);
+    const q = Math.max(parseInt(qtyInput?.dataset.min || '1') || 1, parseInt(qtyInput?.value || '1') || 1);
     if(qtyInput) qtyInput.value = q;
 
     if(!hasJQ()){

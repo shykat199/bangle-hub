@@ -24,6 +24,7 @@ class Product extends Model
         'weight' => 'float',
         'is_video_active' => 'boolean',
         'is_popular' => 'integer',
+        'is_wholesale' => 'boolean',
     ];
 
     protected $appends = [
@@ -63,6 +64,15 @@ class Product extends Model
                 $product->slug = $slug;
             }
         });
+    }
+
+    /**
+     * Smallest quantity a customer may order of this product (per variant).
+     * 1 unless wholesale is enabled with a minimum above 1.
+     */
+    public function minOrderQty(): int
+    {
+        return $this->is_wholesale ? max(1, (int) $this->min_order_qty) : 1;
     }
 
     public function getRouteKeyName()

@@ -308,6 +308,12 @@
       <div class="pmodal-info">
 
         <h3 class="pname">{{ $singleProduct->name }}</h3>
+        @if($singleProduct->minOrderQty() > 1)
+          <div style="display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:4px 0 8px;">
+            <span style="background:#0f172a;color:#fff;font-size:12px;font-weight:700;padding:3px 10px;border-radius:999px;">Wholesale</span>
+            <span style="font-size:13px;color:#b45309;">Minimum order: <strong>{{ $singleProduct->minOrderQty() }}</strong> pcs{{ $singleProduct->type === 'variable' ? ' per variant' : '' }}</span>
+          </div>
+        @endif
 
         <div class="pprice">
           <div class="pprice-line">
@@ -402,7 +408,7 @@
             <div class="qty-cart">
               <div class="quantity pmodalQty">
                 <span class="minus">-</span>
-                <input type="text" name="quantity" value="1" inputmode="numeric">
+                <input type="text" name="quantity" value="{{ $singleProduct->minOrderQty() }}" data-min="{{ $singleProduct->minOrderQty() }}" inputmode="numeric">
                 <span class="plus">+</span>
               </div>
             </div>
@@ -621,17 +627,19 @@
     if(plus){
       plus.addEventListener('click', function(e){
         e.preventDefault();
+        const min = parseInt(inp.dataset.min || '1', 10) || 1;
         let v = parseInt(inp.value || '1', 10);
-        if(!v || v < 1) v = 1;
+        if(!v || v < min) v = min;
         inp.value = v + 1;
       });
     }
     if(minus){
       minus.addEventListener('click', function(e){
         e.preventDefault();
+        const min = parseInt(inp.dataset.min || '1', 10) || 1;
         let v = parseInt(inp.value || '1', 10);
-        if(!v || v < 1) v = 1;
-        inp.value = Math.max(1, v - 1);
+        if(!v || v < min) v = min;
+        inp.value = Math.max(min, v - 1);
       });
     }
   }

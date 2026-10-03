@@ -887,7 +887,7 @@
 
                 <nav class="footer-links d-flex flex-wrap gap-2 justify-content-center justify-content-md-start">
                     @foreach(DB::table('categories')->where('is_popular', 1)->take(6)->get() as $cat)
-                        <a href="{{ route('front.subCategories1',[$cat->url])}}" class="footer-pill-link">
+                        <a href="{{ route('front.category',[$cat->url])}}" class="footer-pill-link">
                             {{ $cat->name }}
                         </a>
                     @endforeach

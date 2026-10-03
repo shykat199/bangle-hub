@@ -187,6 +187,21 @@
                 <label class="form-label">Stock Quantity</label>
                 <input type="number" step="any" name="pro_quantity" class="form-control quantity" value="1">
               </div>
+
+              <div class="col-lg-4 col-md-6">
+                <label class="form-label d-block">Enable Wholesale</label>
+                <input type="hidden" name="is_wholesale" value="0">
+                <div class="form-check form-switch">
+                  <input class="form-check-input" type="checkbox" role="switch" id="is_wholesale" name="is_wholesale" value="1" >
+                  <label class="form-check-label" for="is_wholesale">Sell with a minimum order quantity</label>
+                </div>
+              </div>
+
+              <div id="min_order_qty_wrap" class="col-lg-4 col-md-6 d-none">
+                <label class="form-label">Minimum Order Quantity</label>
+                <input type="number" min="1" step="1" name="min_order_qty" id="min_order_qty" class="form-control" placeholder="Ex: 12" value="">
+                <small class="text-muted">Applies to every variant of this product.</small>
+              </div>
             </div>
           </div>
 
@@ -214,6 +229,7 @@
                         @foreach($sizes as $size)
                           <option {{ $size->is_default==1 ? 'selected' : '' }} value="{{ $size->id }}">{{ $size->title }}</option>
                         @endforeach
+                        <option value="__new__">+ Add new size…</option>
                       </select>
                     </td>
                     <td data-label="Color">
@@ -222,6 +238,7 @@
                         @foreach($colors as $color)
                           <option {{ $color->is_default==1 ? 'selected' : '' }} value="{{ $color->id }}">{{ $color->name }}</option>
                         @endforeach
+                        <option value="__new__">+ Add new color…</option>
                       </select>
                     </td>
                     <td data-label="Image">
@@ -338,6 +355,11 @@ $(function () {
   }
   $('#is_stock').on('change', toggleStock); toggleStock();
 
+  function toggleWholesale(){
+    $('#min_order_qty_wrap').toggleClass('d-none', !$('#is_wholesale').is(':checked'));
+  }
+  $('#is_wholesale').on('change', toggleWholesale); toggleWholesale();
+
   $('#image_single').on('change', function(e){
     const f = e.target.files[0]; if(!f) return;
     const url = URL.createObjectURL(f);
@@ -385,6 +407,7 @@ $(function () {
             @foreach($sizes as $size)
               <option value="{{ $size->id }}">{{ $size->title }}</option>
             @endforeach
+            <option value="__new__">+ Add new size…</option>
           </select>
         </td>
         <td data-label="Color">
@@ -393,6 +416,7 @@ $(function () {
             @foreach($colors as $color)
               <option value="{{ $color->id }}">{{ $color->name }}</option>
             @endforeach
+            <option value="__new__">+ Add new color…</option>
           </select>
         </td>
         <td data-label="Image">
@@ -422,4 +446,5 @@ $(function () {
 
 });
 </script>
+@include('backend.products.partials.variant_option_quick_add')
 @endpush

@@ -166,8 +166,9 @@ Route::group(['as'=>'front.'], function() {
         Route::get('/products-list','index')->name('products.index');
         Route::get('/category','categories')->name('categories');
         Route::get('/c/{slug}','subCategories')->name('subCategories');
-        Route::get('/cs/{slug}','subCategories1')->name('subCategories1');
-        Route::get('/s/{slug}','subsubCategories')->name('subsubCategories');
+        // Old prefixed category URLs — now served at /{slug} (see end of file).
+        Route::get('/cs/{slug}', fn ($slug) => redirect()->route('front.category', $slug, 301))->name('subCategories1');
+        Route::get('/s/{slug}', fn ($slug) => redirect()->route('front.category', $slug, 301))->name('subsubCategories');
         Route::get('/brands','brands')->name('brands');
         Route::get('/discount-products','discountProduct')->name('discountProduct');
 
@@ -374,6 +375,7 @@ Route::group(['prefix' => 'admin','middleware' => ['auth','staff'],'as'=>'admin.
     Route::get('/show-update',[ProductController::class,'showUpdate'])->name('showUpdate');
     Route::get('/product-copy/{id}',[ProductController::class,'productCopy'])->name('productCopy');
     Route::post('/products/{id}/duplicate',[ProductController::class,'duplicate'])->name('products.duplicate');
+    Route::post('/products/variant-option',[ProductController::class,'storeVariantOption'])->name('products.variantOption');
     Route::get('/products/search', [ProductController::class, 'search'])->name('products.search');
     Route::post('/products/toggle-popular', [ProductController::class, 'togglePopular'])->name('product.togglePopular');
 
@@ -642,3 +644,7 @@ if (app()->environment('local')
     && in_array(request()->ip(), ['127.0.0.1', '::1'], true)) {
     require __DIR__ . '/dev_login.php';
 }
+
+// Category / sub-category pages live at the domain root: /{slug}.
+// Must stay the last route in this file so it never shadows a real page.
+Route::get('/{slug}', [FrontProduct::class, 'categoryPage'])->name('front.category');
