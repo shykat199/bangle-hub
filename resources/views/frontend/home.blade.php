@@ -6,7 +6,6 @@
     use App\Models\AdminText;
     use App\Models\Information;
     $adminText = AdminText::first();
-    $popularTitle = $adminText->popular_category_title ?? 'জনপ্রিয় ক্যাটাগরি';
     $viewAllText  = $adminText->view_all_text ?? 'View All';
     $info = Information::first();
     $popularDotColor  = $info->popular_dot_color ?? '#0d6efd';
@@ -394,6 +393,9 @@
 
     .product-section-wrap .popular_product{ margin: 0 0 22px; }
 
+    .cat-product-swiper{ padding: 4px 2px 10px; }
+    .cat-product-swiper .swiper-slide{ height: auto; }
+
     .product-section-wrap .row > [class*="col"]{
         opacity: 0;
         transform: translateY(24px);
@@ -600,32 +602,6 @@
     </div>
     @endif
 
-    {{-- ✨ POPULAR CATEGORY --}}
-    <div class="popular_section reveal-section">
-        <div class="container">
-            <div class="popular_product">
-                <b></b><span>{{ $popularTitle }}</span><b></b>
-            </div>
-
-            <div class="popular_swiper_wrap">
-                <div class="swiper popular-swiper">
-                    <div class="swiper-wrapper">
-                        @foreach($cats as $cat)
-                            <div class="swiper-slide">
-                                <a href="{{ route('front.category', [$cat->url]) }}" class="pop-card">
-                                    <div class="pop-img">
-                                        <img src="{{ getImage('categories', $cat->image) }}" alt="{{ $cat->name }}">
-                                    </div>
-                                    <p class="pop-title">{{ $cat->name }}</p>
-                                </a>
-                            </div>
-                        @endforeach
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
     {{-- ✅ PRODUCTS LOOP --}}
     @foreach ($homeProducts as $categoryId => $products)
         @php
@@ -642,16 +618,13 @@
                     </div>
                 @endif
 
-                <div style="margin-bottom: 6px;">
-                    <div class="slick-single-layout">
-                        <div class="row row--15">
-                            @foreach($products as $product)
-                                @continue($loop->iteration > 6)
-                                <div class="col-lg-2 col-md-4 col-6 mb--30">
-                                    @include('frontend.products.partials.product_section', ['adminText' => $adminText])
-                                </div>
-                            @endforeach
-                        </div>
+                <div class="swiper cat-product-swiper">
+                    <div class="swiper-wrapper">
+                        @foreach($products as $product)
+                            <div class="swiper-slide">
+                                @include('frontend.products.partials.product_section', ['adminText' => $adminText])
+                            </div>
+                        @endforeach
                     </div>
                 </div>
 
@@ -682,6 +655,21 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function () {
+
+    // Category product sliders — one per home category, auto-sliding.
+    document.querySelectorAll('.cat-product-swiper').forEach(function (el) {
+        new Swiper(el, {
+            slidesPerView: 2, spaceBetween: 10,
+            rewind: true, speed: 600, grabCursor: true,
+            autoplay: { delay: 3000, disableOnInteraction: false, pauseOnMouseEnter: true },
+            breakpoints: {
+                576:  { slidesPerView: 3, spaceBetween: 12 },
+                768:  { slidesPerView: 4, spaceBetween: 14 },
+                992:  { slidesPerView: 5, spaceBetween: 16 },
+                1200: { slidesPerView: 6, spaceBetween: 16 }
+            }
+        });
+    });
 
     const DESKTOP_DELAY = 5500;
     const desktopSwiper = new Swiper('.desktop-swiper', {
@@ -725,59 +713,6 @@ document.addEventListener('DOMContentLoaded', function () {
         const fresh = active.cloneNode(true);
         active.parentNode.replaceChild(fresh, active);
     }
-
-    const popWrap = document.querySelector('.popular-swiper .swiper-wrapper');
-    if (popWrap) {
-        const originals = Array.from(popWrap.children);
-        const needMin = 20;
-        if (originals.length > 0 && originals.length < needMin) {
-            let guard = 0;
-            while (popWrap.children.length < needMin && guard < 60) {
-                originals.forEach(sl => popWrap.appendChild(sl.cloneNode(true)));
-                guard++;
-            }
-        }
-    }
-
-    const popularSwiper = new Swiper('.popular-swiper', {
-        loop: true, centeredSlides: true, slidesPerView: 'auto',
-        spaceBetween: 18, grabCursor: true,
-        observer: true, observeParents: true, loopAdditionalSlides: 8,
-        effect: 'coverflow',
-        coverflowEffect: { rotate: 18, stretch: 10, depth: 90, modifier: 1, slideShadows: false, scale: 0.92 },
-        speed: 4500,
-        // delay: 1 (not 0 — Swiper needs a truthy delay) so the next slide starts
-        // the instant the current transition ends: a non-stop conveyor instead of
-        // slide-then-pause-then-slide.
-        autoplay: { delay: 1, disableOnInteraction: false, pauseOnMouseEnter: true },
-        breakpoints: {
-            0:    { spaceBetween: 8,  coverflowEffect: { rotate: 14, stretch: 6, depth: 60, scale: 0.92, slideShadows: false } },
-            576:  { spaceBetween: 10, coverflowEffect: { rotate: 14, stretch: 6, depth: 70, scale: 0.92, slideShadows: false } },
-            768:  { spaceBetween: 14, coverflowEffect: { rotate: 16, stretch: 8, depth: 80, scale: 0.92, slideShadows: false } },
-            992:  { spaceBetween: 16, coverflowEffect: { rotate: 18, stretch: 10, depth: 90, scale: 0.93, slideShadows: false } },
-            1200: { spaceBetween: 18, coverflowEffect: { rotate: 20, stretch: 12, depth: 100, scale: 0.93, slideShadows: false } },
-            1400: { spaceBetween: 22, coverflowEffect: { rotate: 22, stretch: 14, depth: 110, scale: 0.94, slideShadows: false } }
-        },
-        on: {
-            init: function(){ cleanupShadows(this); },
-            slideChange: function(){ cleanupShadows(this); },
-            transitionEnd: function(){ cleanupShadows(this); }
-        }
-    });
-
-    function cleanupShadows(sw){
-        if(!sw || !sw.el) return;
-        const shadows = sw.el.querySelectorAll(
-            '.swiper-slide-shadow, .swiper-slide-shadow-left, .swiper-slide-shadow-right, .swiper-slide-shadow-top, .swiper-slide-shadow-bottom, .swiper-cube-shadow'
-        );
-        shadows.forEach(s => s.remove());
-    }
-
-    document.addEventListener('visibilitychange', function(){
-        if(!document.hidden && popularSwiper && popularSwiper.autoplay){
-            popularSwiper.autoplay.start();
-        }
-    });
 
     if ('IntersectionObserver' in window) {
         const io = new IntersectionObserver((entries) => {

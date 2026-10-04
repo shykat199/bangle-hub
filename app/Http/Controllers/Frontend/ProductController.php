@@ -77,9 +77,16 @@ class ProductController extends Controller
     private function applyCommonFilters($query, array $brand_ids, array $size_ids, string $q, $min_price, $max_price)
     {
         if ($q !== '') {
-            $query->where(function ($row) use ($q) {
+            // A search that matches a category name also brings every product of that category.
+            $matchedCatIds = Category::where('name', 'like', "%{$q}%")->pluck('id')->all();
+
+            $query->where(function ($row) use ($q, $matchedCatIds) {
                 $row->where('products.name', 'like', "%{$q}%")
                     ->orWhere('products.description', 'like', "%{$q}%");
+
+                if (!empty($matchedCatIds)) {
+                    $row->orWhere(fn ($w) => $w->inCategory($matchedCatIds));
+                }
             });
         }
 
@@ -123,7 +130,7 @@ class ProductController extends Controller
             ->select('products.*')
             ->where('products.status', 1);
 
-        if (!empty($cat_id))  $query->whereIn('products.category_id', $cat_id);
+        if (!empty($cat_id))  $query->inCategory($cat_id);
         if (!empty($type_id)) $query->whereIn('products.type_id', $type_id);
 
         $this->applyCommonFilters($query, $type_id, $size_id, $q, $min_price, $max_price);
@@ -456,7 +463,7 @@ class ProductController extends Controller
 
         $query = Product::with(['variation', 'category:id,name,url', 'variations.stocks', 'images'])
             ->select('products.*')
-            ->where('products.category_id', $cat->id)
+            ->inCategory([$cat->id])
             ->where('products.status', 1);
 
         $this->applyCommonFilters($query, $brand_ids, $size_ids, $q, $min_price, $max_price);
@@ -468,19 +475,16 @@ class ProductController extends Controller
             return view('frontend.products.partials.category_products', compact('items'))->render();
         }
 
-        $minDb = Product::where('category_id', $cat->id)->min('sell_price') ?? 0;
-        $maxDb = Product::where('category_id', $cat->id)->max('sell_price') ?? 0;
+        $minDb = Product::inCategory([$cat->id])->min('sell_price') ?? 0;
+        $maxDb = Product::inCategory([$cat->id])->max('sell_price') ?? 0;
 
         $types = Type::orderBy('name')->get();
         $cats  = Category::whereNull('parent_id')->get();
 
-        $sizeIds = DB::table('variations')
-            ->join('products', 'products.id', '=', 'variations.product_id')
-            ->where('products.category_id', $cat->id)
-            ->where('products.status', 1)
-            ->whereNotNull('variations.size_id')
+        $sizeIds = Variation::whereIn('product_id', Product::inCategory([$cat->id])->where('status', 1)->select('id'))
+            ->whereNotNull('size_id')
             ->distinct()
-            ->pluck('variations.size_id')
+            ->pluck('size_id')
             ->toArray();
 
         $hasSizes = !empty($sizeIds);
@@ -508,7 +512,7 @@ class ProductController extends Controller
 
         $query = Product::with(['variation', 'images'])
             ->select('products.*')
-            ->where('products.sub_category_id', $s_cat->id)
+            ->inCategory([$s_cat->id])
             ->where('products.status', 1);
 
         $this->applyCommonFilters($query, $brand_ids, $size_ids, $q, $min_price, $max_price);
@@ -520,19 +524,16 @@ class ProductController extends Controller
             return view('frontend.products.partials.category_products', compact('items'))->render();
         }
 
-        $minDb = Product::where('sub_category_id', $s_cat->id)->min('sell_price') ?? 0;
-        $maxDb = Product::where('sub_category_id', $s_cat->id)->max('sell_price') ?? 0;
+        $minDb = Product::inCategory([$s_cat->id])->min('sell_price') ?? 0;
+        $maxDb = Product::inCategory([$s_cat->id])->max('sell_price') ?? 0;
 
         $types = Type::orderBy('name')->get();
         $cats  = Category::whereNull('parent_id')->get();
 
-        $sizeIds = DB::table('variations')
-            ->join('products', 'products.id', '=', 'variations.product_id')
-            ->where('products.sub_category_id', $s_cat->id)
-            ->where('products.status', 1)
-            ->whereNotNull('variations.size_id')
+        $sizeIds = Variation::whereIn('product_id', Product::inCategory([$s_cat->id])->where('status', 1)->select('id'))
+            ->whereNotNull('size_id')
             ->distinct()
-            ->pluck('variations.size_id')
+            ->pluck('size_id')
             ->toArray();
 
         $hasSizes = !empty($sizeIds);

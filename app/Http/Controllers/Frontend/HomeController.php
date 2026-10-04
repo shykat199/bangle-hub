@@ -27,35 +27,34 @@ class HomeController extends Controller
         $sliders = Slider::latest()->take(10)->get();
         $brands = Type::whereNotNull('is_top')->take(12)->get();
 
-        $cats = Category::whereNull('parent_id')
-                    ->where('is_popular', 1)
-                    ->with('subcats')
-                    ->get();
-
         $featured_images = HomeSectionImage::first();
 
+        // Only the categories the admin has switched on for the home page.
         $home_categories = HomeCategory::with('category')
+                            ->where('status', 1)
                             ->orderBy('serial', 'asc')
                             ->paginate(10);
 
-        // ✅ Single query for ALL category products (was N+1 — 10 queries)
         $categoryIds = $home_categories->pluck('category_id')->filter()->unique()->values()->toArray();
 
+        // 10 products per category for the home sliders: recommended ones first,
+        // then by priority, then newest. One small query per home category.
         $homeProducts = [];
-        if (!empty($categoryIds)) {
-            $allProducts = Product::whereIn('category_id', $categoryIds)
-                            ->where('is_recommended', 1)
+        foreach ($categoryIds as $categoryId) {
+            $products = Product::inCategory([$categoryId])
+                            ->where('status', 1)
                             // কার্ড এখন resolveStock() ডাকে, তাই stocks-ও eager-load।
                             // getProductInfo() এখন ভ্যারিয়েবল প্রোডাক্টের দাম variation থেকে পড়ে,
                             // তাই price/after_discount_price কলাম না আনলে কার্ডে দাম ০ দেখাতো।
                             ->with(['category:id,name,url', 'variations:id,product_id,price,after_discount_price,stock_quantity', 'variations.stocks', 'images'])
+                            ->orderByDesc('is_recommended')
                             ->orderByRaw('IF(priority IS NULL, 1, 0), priority ASC')
                             ->latest()
-                            ->get()
-                            ->groupBy('category_id');
+                            ->take(10)
+                            ->get();
 
-            foreach ($home_categories as $hCats) {
-                $homeProducts[$hCats->category_id] = $allProducts->get($hCats->category_id, collect())->take(6);
+            if ($products->isNotEmpty()) {
+                $homeProducts[$categoryId] = $products;
             }
         }
 
@@ -71,7 +70,7 @@ class HomeController extends Controller
                         ->get();
 
         return view('frontend.home', compact(
-            'sliders','cats','brands','featured_images',
+            'sliders','brands','featured_images',
             'homeProducts','popular_products','homeCategoryCovers'
         ));
     }

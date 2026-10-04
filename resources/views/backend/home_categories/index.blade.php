@@ -338,6 +338,7 @@
                     <th>Category Name</th>
                     <th>Cover Image</th>
                     <th>Serial</th>
+                    <th>Show on Home</th>
                     <th style="width: 110px;">Action</th>
                   </tr>
                 </thead>
@@ -356,6 +357,11 @@
                       </td>
                       <td data-label="Serial">
                         <span class="badge-serial">{{$item->serial}}</span>
+                      </td>
+                      <td data-label="Show on Home">
+                        <div class="form-check form-switch mb-0">
+                          <input type="checkbox" class="form-check-input homecat-status" data-url="{{ route('admin.homecat_status', [$item->id]) }}" {{ $item->status ? 'checked' : '' }} @cannot('category.edit') disabled @endcannot>
+                        </div>
                       </td>
                       <td data-label="Action" class="text-md-center">
                         <a href="javascript:void(0)" class="action-icon edit-icon" data-bs-toggle="modal" data-bs-target="#editModal{{$item->id}}" title="Edit">
@@ -419,7 +425,7 @@
 
                   @if($home_categories->count() === 0)
                     <tr>
-                      <td colspan="4" class="text-center py-3 text-muted">
+                      <td colspan="5" class="text-center py-3 text-muted">
                         No home category found.
                       </td>
                     </tr>
@@ -445,6 +451,23 @@
 
     $(".check_all").on('change',function(){
       $(".checkbox").prop('checked',$(this).is(":checked"));
+    });
+
+    // Show / hide a category on the home page
+    $(document).on('change', '.homecat-status', function(){
+      var box = $(this);
+      $.ajax({
+        type: 'POST',
+        url: box.data('url'),
+        data: { _token: '{{ csrf_token() }}', status: box.is(':checked') ? 1 : 0 },
+        success: function(res){
+          toastr.success(res.msg);
+        },
+        error: function(){
+          box.prop('checked', !box.is(':checked'));
+          toastr.error('Something went wrong!');
+        }
+      });
     });
 
     // AJAX form submission for the Edit Modal

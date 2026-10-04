@@ -129,6 +129,32 @@ class Product extends Model
         return $this->hasMany(ProductImage::class)->orderBy('sort_order')->orderBy('id');
     }
 
+    /** Extra categories, on top of the main category_id / sub_category_id. */
+    public function categories()
+    {
+        return $this->belongsToMany(Category::class, 'category_product');
+    }
+
+    /**
+     * Products that belong to any of the given categories — as main category,
+     * as sub category, or as one of the extra categories.
+     */
+    public function scopeInCategory($query, $categoryIds)
+    {
+        $categoryIds = collect($categoryIds)->filter()->values()->all();
+
+        return $query->where(function ($w) use ($categoryIds) {
+            $w->whereIn('products.category_id', $categoryIds)
+                ->orWhereIn('products.sub_category_id', $categoryIds)
+                ->orWhereExists(function ($sub) use ($categoryIds) {
+                    $sub->selectRaw('1')
+                        ->from('category_product')
+                        ->whereColumn('category_product.product_id', 'products.id')
+                        ->whereIn('category_product.category_id', $categoryIds);
+                });
+        });
+    }
+
     public function variations()
     {
         return $this->hasMany(Variation::class, 'product_id');
@@ -142,6 +168,44 @@ class Product extends Model
     public function variation()
     {
         return $this->belongsTo(Variation::class, 'id', 'product_id')->orderBy('id');
+    }
+
+    /**
+     * SQL twin of the resolveStock() helper, so product lists can be filtered
+     * by the same stock number they display. Keep the two in sync.
+     */
+    public static function resolvedStockSql(): string
+    {
+        $rows = '(select sum(ps.quantity) from product_stocks ps where ps.variation_id = v.id)';
+        $hasRows = 'exists (select 1 from product_stocks ps where ps.variation_id = v.id)';
+        $variationStock = "case when $hasRows then greatest(0, coalesce($rows, 0)) else greatest(0, coalesce(v.stock_quantity, 0)) end";
+        $ownStock = 'greatest(0, coalesce(products.stock_quantity, 0))';
+
+        return "(case
+            when not exists (select 1 from variations v where v.product_id = products.id) then $ownStock
+            when coalesce(products.type, 'single') = 'variable' then
+                (select coalesce(sum($variationStock), 0) from variations v where v.product_id = products.id)
+            else
+                (select case
+                        when $hasRows then greatest(0, coalesce($rows, 0))
+                        when coalesce(v.stock_quantity, 0) > 0 then v.stock_quantity
+                        else $ownStock
+                    end
+                 from variations v where v.product_id = products.id order by v.id limit 1)
+        end)";
+    }
+
+    /** $status: in_stock (above the low-stock limit), low_stock (1..limit), stock_out (0). */
+    public function scopeStockStatus($query, $status, int $lowLimit = 5)
+    {
+        $stock = static::resolvedStockSql();
+
+        return match ($status) {
+            'in_stock'  => $query->whereRaw("$stock > ?", [$lowLimit]),
+            'low_stock' => $query->whereRaw("$stock between 1 and ?", [$lowLimit]),
+            'stock_out' => $query->whereRaw("$stock <= 0"),
+            default     => $query,
+        };
     }
 
     public function getTotalStockAttribute()

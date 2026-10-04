@@ -172,7 +172,9 @@ Route::group(['as'=>'front.'], function() {
         Route::get('/brands','brands')->name('brands');
         Route::get('/discount-products','discountProduct')->name('discountProduct');
 
-        Route::get('/product-show/{product}', [FrontProduct::class, 'show'])->name('products.show');
+        Route::get('/product/{product}', [FrontProduct::class, 'show'])->name('products.show');
+        // Old product URLs — now served at /product/{slug}.
+        Route::get('/product-show/{product}', fn ($product) => redirect()->route('front.products.show', $product, 301));
         Route::get('/relative-product/{product}', [FrontProduct::class, 'relativeProduct'])->name('products.relativeProduct');
 
         Route::get('/combo-products','comboProducts')->name('combo_products');
@@ -375,6 +377,8 @@ Route::group(['prefix' => 'admin','middleware' => ['auth','staff'],'as'=>'admin.
     Route::get('/show-update',[ProductController::class,'showUpdate'])->name('showUpdate');
     Route::get('/product-copy/{id}',[ProductController::class,'productCopy'])->name('productCopy');
     Route::post('/products/{id}/duplicate',[ProductController::class,'duplicate'])->name('products.duplicate');
+    Route::get('/products/{id}/quick-stock',[ProductController::class,'quickStock'])->name('products.quickStock');
+    Route::post('/products/{id}/quick-stock',[ProductController::class,'quickStockUpdate'])->name('products.quickStockUpdate');
     Route::post('/products/variant-option',[ProductController::class,'storeVariantOption'])->name('products.variantOption');
     Route::get('/products/search', [ProductController::class, 'search'])->name('products.search');
     Route::post('/products/toggle-popular', [ProductController::class, 'togglePopular'])->name('product.togglePopular');
@@ -391,6 +395,7 @@ Route::group(['prefix' => 'admin','middleware' => ['auth','staff'],'as'=>'admin.
     Route::delete('/del-home-category/{id}', [CategoryController::class, 'delhomeCatgeory'])->name('del_homecat');
     
     Route::post('/home-category/update/{id}', [CategoryController::class, 'updatehomeCatgeory'])->name('update_homecat');
+    Route::post('/home-category/status/{id}', [CategoryController::class, 'homeCategoryStatus'])->name('homecat_status');
     Route::get('/home-category/remove-cover/{id}', [CategoryController::class, 'removeHomeCover'])->name('remove_homecat_cover');
 
     Route::get('/popular-category',[CategoryController::class,'popularCatgeory'])->name('popularCatgeory');

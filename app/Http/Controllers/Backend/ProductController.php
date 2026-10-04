@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Support\Str;
 use Illuminate\Http\Request;
 use App\Models\Product;
+use App\Models\Information;
 use App\Models\ProductStock;
 use App\Models\Category;
 use App\Models\ProductImage;
@@ -190,11 +191,14 @@ class ProductController extends Controller
             abort(403, 'unauthorized');
         }
 
-        $cat_id = '';
+        $cat_id = request()->category_id;
         $q = request()->q;
+        $stock_status = request()->stock_status;
+        $brand_id = request()->type_id;
+        $product_type = request()->product_type;
         // Stock কলাম এখন resolveStock() দিয়ে ভ্যারিয়েশন ও product_stocks-ও দেখে,
         // তাই eager-load — নাহলে প্রতি সারিতে দুইটা করে বাড়তি কোয়েরি হতো (N+1)।
-        $query = Product::query()->with(['variations.stocks']);
+        $query = Product::query()->with(['variations.stocks', 'category', 'categories:id,name']);
 
         if (!empty($q)) {
             $query->where(function ($row) use ($q) {
@@ -208,10 +212,110 @@ class ProductController extends Controller
             $query->where('user_id', auth()->user()->id);
         }
 
+        if (!empty($cat_id)) {
+            $query->inCategory([$cat_id]);
+        }
+
+        if (!empty($brand_id)) {
+            $query->where('type_id', $brand_id);
+        }
+
+        if (in_array($product_type, ['single', 'variable'], true)) {
+            $query->where('type', $product_type);
+        }
+
+        // Stock filter uses the same number the Stock column shows. Counts are
+        // taken before the stock filter so every option shows its own total.
+        $lowLimit = (int) (Information::orderBy('id', 'desc')->value('stock_warning_limit') ?? 5);
+        $stockCounts = ['' => (clone $query)->count()];
+        foreach (['in_stock', 'low_stock', 'stock_out'] as $status) {
+            $stockCounts[$status] = (clone $query)->stockStatus($status, $lowLimit)->count();
+        }
+
+        if (in_array($stock_status, ['in_stock', 'low_stock', 'stock_out'], true)) {
+            $query->stockStatus($stock_status, $lowLimit);
+        }
+
         $categories = Category::where('parent_id', null)->get();
+        $brands = Type::orderBy('name')->get();
         $items = $query->latest()->paginate(30);
 
-        return view('backend.products.index', compact('items', 'q', 'categories', 'cat_id'));
+        return view('backend.products.index', compact('items', 'q', 'categories', 'cat_id', 'brands', 'brand_id', 'product_type', 'stock_status', 'stockCounts', 'lowLimit'));
+    }
+
+    /** Product the current user may edit stock for (workers only see their own products, like the list). */
+    private function quickStockProduct($id)
+    {
+        if (!auth()->user()->can('product.edit')) {
+            abort(403, 'unauthorized');
+        }
+
+        return Product::with(['variations.size', 'variations.color', 'variations.stocks'])
+            ->when(!auth()->user()->hasRole('admin'), fn ($q) => $q->where('user_id', auth()->id()))
+            ->findOrFail($id);
+    }
+
+    /** Data for the quick stock modal on the product list. */
+    public function quickStock($id)
+    {
+        $product = $this->quickStockProduct($id);
+        $isVariable = $product->type === 'variable' && $product->variations->isNotEmpty();
+
+        return response()->json([
+            'status' => true,
+            'name' => $product->name,
+            'sku' => $product->sku,
+            'image' => getImage('products', $product->image),
+            'is_variable' => $isVariable,
+            'stock' => resolveStock($product),
+            'variations' => $isVariable ? $product->variations->map(fn ($v) => [
+                'id' => $v->id,
+                // display_title leaves a stray " - " when a variation has only a size or only a colour.
+                'title' => trim($v->display_title, ' -') ?: 'Variant',
+                'image' => $v->image ? getImage('products', $v->image) : null,
+                'stock' => resolveVariationStock($v),
+            ])->values() : [],
+        ]);
+    }
+
+    public function quickStockUpdate(Request $request, $id)
+    {
+        $product = $this->quickStockProduct($id);
+        $isVariable = $product->type === 'variable' && $product->variations->isNotEmpty();
+
+        $request->validate([
+            'stock' => $isVariable ? 'nullable' : 'required|integer|min:0',
+            'variations' => $isVariable ? 'required|array' : 'nullable',
+            'variations.*' => 'required|integer|min:0',
+        ]);
+
+        DB::transaction(function () use ($request, $product, $isVariable) {
+            if ($isVariable) {
+                // Only this product's own variations are touched, whatever ids were posted.
+                foreach ($product->variations as $variation) {
+                    if ($request->has('variations.' . $variation->id)) {
+                        $this->setVariationStock($product->id, $variation->id, (int) $request->input('variations.' . $variation->id));
+                    }
+                }
+            } else {
+                // Same places the edit form writes a single product's stock.
+                $qty = (int) $request->stock;
+                $product->stock_quantity = $qty;
+                $product->save();
+
+                if ($singleVar = $product->variations->first()) {
+                    $this->setVariationStock($product->id, $singleVar->id, $qty);
+                }
+            }
+
+            $this->cleanOrphanStocks($product->id);
+        });
+
+        return response()->json([
+            'status' => true,
+            'msg' => 'Stock updated !!',
+            'stock' => resolveStock($product->fresh(['variations.stocks'])),
+        ]);
     }
 
     public function getSubcategory()
@@ -228,7 +332,7 @@ class ProductController extends Controller
             abort(403, 'unauthorized');
         }
 
-        $cats = Category::whereNull('parent_id')->get();
+        $cats = Category::whereNull('parent_id')->with('subcats')->get();
         $sizes = Size::all();
         $types = Type::all();
         $colors = Color::all();
@@ -277,10 +381,13 @@ class ProductController extends Controller
 
         $data = $request->validate([
             'name' => 'required',
+            'slug' => 'nullable|string|max:255',
             'type' => 'required|in:single,variable',
             'image' => 'required|image|mimes:jpeg,png,jpg,webp|max:5120', 
             'category_id' => 'required',
             'sub_category_id' => 'nullable',
+            'category_ids' => 'nullable|array',
+            'category_ids.*' => 'integer|exists:categories,id',
             'type_id' => 'nullable',
             'short_description' => 'nullable',
             'description' => 'nullable',
@@ -311,16 +418,13 @@ class ProductController extends Controller
         // ফলে গ্যালারি ছবি দিলে insert-এ "Unknown column 'images'" এসে পুরো সেভ ফেল করত।
         // ছবিগুলো নিচে আলাদা করে product_images-এ যায়, তাই এখানে বাদ দেওয়া হলো।
         unset($data['images']);
+        // Extra categories live in the category_product table, not on products.
+        unset($data['category_ids']);
 
         $data['user_id'] = auth()->user()->id;
 
-        $slug = Str::slug($request->name);
-        $originalSlug = $slug;
-        $count = 1;
-        while (Product::where('slug', $slug)->exists()) {
-            $slug = $originalSlug . '-' . $count++;
-        }
-        $data['slug'] = $slug;
+        // Admin may type a custom slug; left blank it is built from the name.
+        $data['slug'] = $this->uniqueSlug($request->filled('slug') ? $request->slug : $request->name);
 
         DB::beginTransaction();
         try {
@@ -347,6 +451,7 @@ class ProductController extends Controller
 
             // Create Product
             $product = Product::create($data);
+            $this->syncExtraCategories($product, $request->input('category_ids', []));
             
             // FORCE UPDATE STOCK AND SETTINGS TO BYPASS $fillable
             $mainQty = (int) ($request->pro_quantity ?? 0);
@@ -458,8 +563,8 @@ class ProductController extends Controller
         }
 
         // stocks-ও লোড করা হয় — এডিট ফর্মে অর্ডারে কমে যাওয়া আসল স্টকই দেখাতে হবে
-        $item = Product::with(['sizes', 'images', 'variations.stocks'])->findOrFail($id);
-        $cats = Category::whereNull('parent_id')->get();
+        $item = Product::with(['sizes', 'images', 'variations.stocks', 'categories:id'])->findOrFail($id);
+        $cats = Category::whereNull('parent_id')->with('subcats')->get();
         $sizes = Size::all();
         $types = Type::all();
         $colors = Color::all();
@@ -526,6 +631,7 @@ class ProductController extends Controller
             $new->optional_image = $this->copyProductFile($product->optional_image, ['products'], $copiedFiles);
             $new->user_id = auth()->id();
             $new->save();
+            $new->categories()->sync($product->categories()->pluck('categories.id')->all());
 
             foreach ($product->images as $img) {
                 $new->images()->create([
@@ -615,6 +721,28 @@ class ProductController extends Controller
     /**
      * Removes trailing "-copy" / "-copy-N" segments left by earlier duplicates.
      */
+    /** The main and sub category are already on the product, so they are not repeated as extras. */
+    private function syncExtraCategories(Product $product, $categoryIds): void
+    {
+        $ids = collect($categoryIds)->map(fn ($id) => (int) $id)->filter()
+            ->reject(fn ($id) => $id === (int) $product->category_id || $id === (int) $product->sub_category_id)
+            ->unique()->values()->all();
+
+        $product->categories()->sync($ids);
+    }
+
+    private function uniqueSlug($value, $ignoreId = null): string
+    {
+        $base = Str::slug((string) $value);
+        $slug = $base;
+        $count = 1;
+        while (Product::where('slug', $slug)->when($ignoreId, fn ($q) => $q->where('id', '!=', $ignoreId))->exists()) {
+            $slug = $base . '-' . $count++;
+        }
+
+        return $slug;
+    }
+
     private function stripCopySuffix($value)
     {
         $stripped = preg_replace('/(-copy(-\d+)?)+$/i', '', $value);
@@ -658,10 +786,13 @@ class ProductController extends Controller
 
         $data = $request->validate([
             'name' => 'required',
+            'slug' => 'nullable|string|max:255',
             'type' => 'required|in:single,variable',
             'image' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:5120', 
             'category_id' => 'required',
             'sub_category_id' => 'nullable',
+            'category_ids' => 'nullable|array',
+            'category_ids.*' => 'integer|exists:categories,id',
             'type_id' => 'nullable',
             'short_description' => 'nullable',
             'description' => 'nullable',
@@ -690,19 +821,19 @@ class ProductController extends Controller
         // store()-এর মতোই: গ্যালারি ফাইলের অ্যারে products টেবিলের কলাম নয়,
         // mass-assign হলে update-ও "Unknown column 'images'" দিয়ে ফেল করে।
         unset($data['images']);
+        // Extra categories live in the category_product table, not on products.
+        unset($data['category_ids']);
 
         // আগে প্রতিবার সেভে নাম থেকে slug নতুন করে বানানো হতো — নামের একটা অক্ষর
         // বদলালেই URL বদলে যেত আর পুরনো লিংক (ফেসবুক অ্যাড, শেয়ার করা লিংক,
         // গুগলে ইনডেক্স হওয়া পেজ) সব 404 হয়ে যেত। slug একবার বসলে আর বদলায় না;
         // কোনো কারণে ফাঁকা থাকলে তখনই শুধু বানানো হয়।
-        if (empty($product->slug)) {
-            $slug = Str::slug($request->name);
-            $originalSlug = $slug;
-            $count = 1;
-            while (Product::where('slug', $slug)->where('id', '!=', $id)->exists()) {
-                $slug = $originalSlug . '-' . $count++;
-            }
-            $data['slug'] = $slug;
+        // The slug only changes when the admin edits the slug field themselves.
+        $requestedSlug = Str::slug((string) $request->slug);
+        if ($requestedSlug !== '' && $requestedSlug !== $product->slug) {
+            $data['slug'] = $this->uniqueSlug($requestedSlug, $id);
+        } elseif (empty($product->slug)) {
+            $data['slug'] = $this->uniqueSlug($request->name, $id);
         } else {
             unset($data['slug']);
         }
@@ -742,6 +873,7 @@ class ProductController extends Controller
 
             // Update Product
             $product->update($data);
+            $this->syncExtraCategories($product, $request->input('category_ids', []));
             
             // FORCE UPDATE STOCK AND SETTINGS TO BYPASS $fillable
             $mainQty = (int) ($request->pro_quantity ?? 0);
@@ -942,10 +1074,8 @@ class ProductController extends Controller
 
     public function cat_wise_product(Request $request)
     {
-        $cat_id = $request->category_id;
-        $items = Product::with('category')->where('category_id', $request->category_id)->orderBy('id', 'desc')->paginate(30);
-        $categories = Category::where('parent_id', null)->get();
-        return view('backend.products.index', compact('items', 'categories', 'cat_id'));
+        // The list filters (category, search, stock) now all live in index().
+        return $this->index();
     }
 
     public function destroy($id)
@@ -978,6 +1108,7 @@ class ProductController extends Controller
                 $dv->delete();
             }
 
+            $product->categories()->detach();
             $product->delete();
             DB::commit();
             return response()->json(['status' => true, 'msg' => 'Product Is Deleted !!']);

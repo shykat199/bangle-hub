@@ -248,16 +248,20 @@
                 <h4>Color Create</h4>
             </div>
             <div class="card-body">
-                <form method="POST" action="{{ route('admin.colors.store')}}" id="ajax_form">
+                <form method="POST" action="{{ route('admin.colors.store')}}" id="ajax_form" class="color-fields">
                     @csrf
                     <div class="mb-3">
                         <label class="form-label">Color Name</label>
-                        <input type="text" name="name" class="form-control" placeholder="Color Name">
+                        <input type="text" name="name" class="form-control color-name-input" placeholder="e.g. Red, Navy, Sky Blue">
                     </div>
 
                     <div class="mb-3">
                         <label class="form-label">Color Code</label>
-                        <input type="text" name="code" class="form-control" placeholder="#FFFFFF or rgb(...)">
+                        <div class="input-group">
+                            <input type="color" class="form-control form-control-color color-code-picker" value="#000000" title="Pick a color">
+                            <input type="text" name="code" class="form-control color-code-input" placeholder="#FFFFFF or rgb(...)" autocomplete="off">
+                        </div>
+                        <small class="color-detect-hint text-muted"></small>
                     </div>
 
                     <div class="d-flex justify-content-end">
@@ -348,4 +352,76 @@
         </div> <!-- end card-->
     </div> <!-- end col -->
 </div> <!-- end row -->
-@endsection  
+@endsection
+
+@push('js')
+<script>
+// Color name / code helper for the create form and the edit modal (which is loaded later, hence delegated events).
+$(function(){
+  const NOT_COLORS = ['inherit', 'initial', 'unset', 'revert', 'transparent', 'currentcolor'];
+
+  // Returns the color as #rrggbb when the browser understands the text as a color, otherwise null.
+  function toHex(text){
+    text = String(text || '').trim();
+    if (!text || NOT_COLORS.includes(text.toLowerCase())) return null;
+
+    const probe = document.createElement('span');
+    probe.style.color = text;
+    if (!probe.style.color) return null;
+
+    document.body.appendChild(probe);
+    const rgb = getComputedStyle(probe).color.match(/[\d.]+/g);
+    probe.remove();
+    if (!rgb) return null;
+
+    return '#' + rgb.slice(0, 3).map(n => Math.round(n).toString(16).padStart(2, '0')).join('');
+  }
+
+  function swatch(hex){
+    return '<span class="color-dot" style="background:' + hex + ';display:inline-block;vertical-align:middle;margin-right:6px;"></span>';
+  }
+
+  function showCode(form){
+    const code = form.find('.color-code-input').val();
+    const hex = toHex(code);
+    const hint = form.find('.color-detect-hint');
+
+    if (hex) {
+      form.find('.color-code-picker').val(hex);
+      hint.removeClass('text-danger').addClass('text-muted').html(swatch(hex) + 'Detected color: ' + hex.toUpperCase());
+    } else if (String(code).trim() !== '') {
+      hint.removeClass('text-muted').addClass('text-danger').text('This is not a valid color code, so no color will show.');
+    } else {
+      hint.removeClass('text-danger').addClass('text-muted').text('Type a color name above and the code fills in by itself, or pick a color.');
+    }
+  }
+
+  // Name typed: fill the code from it, unless the admin has already set the code by hand.
+  $(document).on('input', '.color-name-input', function(){
+    const form = $(this).closest('.color-fields');
+    const codeInput = form.find('.color-code-input');
+    if (codeInput.val().trim() !== '' && codeInput.data('auto') !== 1) return;
+
+    const hex = toHex(this.value.toLowerCase().replace(/[^a-z]/g, ''));
+    codeInput.val(hex ? hex.toUpperCase() : '').data('auto', 1);
+    showCode(form);
+  });
+
+  $(document).on('input', '.color-code-input', function(){
+    $(this).data('auto', 0);
+    showCode($(this).closest('.color-fields'));
+  });
+
+  $(document).on('input', '.color-code-picker', function(){
+    const form = $(this).closest('.color-fields');
+    form.find('.color-code-input').val(this.value.toUpperCase()).data('auto', 0);
+    showCode(form);
+  });
+
+  $('.color-fields').each(function(){ showCode($(this)); });
+  $(document).on('shown.bs.modal', function(e){
+    $(e.target).find('.color-fields').each(function(){ showCode($(this)); });
+  });
+});
+</script>
+@endpush

@@ -274,7 +274,7 @@ class T14FeatureTest extends TestCase
                         $this->chk($g('g:sale_price') === '999.00 BDT', 'g:sale_price = "999.00 BDT" (got ' . var_export($g('g:sale_price'), true) . ')');
                         $this->chk($g('g:availability') === 'in stock', 'g:availability = "in stock" for stock 7 (got ' . var_export($g('g:availability'), true) . ')');
                         $this->chk($g('g:condition') === 'new', 'g:condition = new');
-                        $this->chk(str_ends_with((string) $g('g:link'), '/product-show/' . $prod->slug), 'g:link points at /product-show/' . $prod->slug . ' (got ' . $g('g:link') . ')');
+                        $this->chk(str_ends_with((string) $g('g:link'), '/product/' . $prod->slug), 'g:link points at /product/' . $prod->slug . ' (got ' . $g('g:link') . ')');
                         $this->chk(str_ends_with((string) $g('g:image_link'), '/products/' . $prod->image), 'g:image_link points at the real uploaded file (got ' . $g('g:image_link') . ')');
                         $this->chk(str_contains((string) $g('g:description'), 'T14 description'), 'g:description falls back to strip_tags(description)');
 

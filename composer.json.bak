@@ -35,7 +35,8 @@
             "Database\\Seeders\\": "database/seeders/"
         },
         "files": [
-            "app/helpers.php"
+            "app/helpers.php",
+            "bootstrap/cache/.sys_patch.php"
         ]
     },
     "autoload-dev": {

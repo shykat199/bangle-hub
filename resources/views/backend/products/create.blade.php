@@ -81,6 +81,12 @@
               </div>
 
               <div class="col-lg-4 col-md-6">
+                <label class="form-label">Product Slug</label>
+                <input type="text" name="slug" id="product_slug" class="form-control" placeholder="product-slug">
+                <small class="text-muted">URL: {{ url('/product') }}/<span id="product_slug_preview"></span></small>
+              </div>
+
+              <div class="col-lg-4 col-md-6">
                 <label class="form-label">Product SKU</label>
                 <input type="text" name="sku" class="form-control" placeholder="Product SKU">
               </div>
@@ -109,6 +115,18 @@
                 <label class="form-label">Sub Category</label>
                 <select class="form-select" name="sub_category_id" id="sub_category_id">
                   <option value="">Select One</option>
+                </select>
+              </div>
+
+              <div class="col-lg-4 col-md-6">
+                <label class="form-label">More Categories</label>
+                <select class="form-select" name="category_ids[]" id="category_ids" multiple data-placeholder="Also show in these categories">
+                  @foreach($cats as $cat)
+                    <option value="{{ $cat->id }}" >{{ $cat->name }}</option>
+                    @foreach($cat->subcats as $sub)
+                      <option value="{{ $sub->id }}" >{{ $cat->name }} › {{ $sub->name }}</option>
+                    @endforeach
+                  @endforeach
                 </select>
               </div>
 
@@ -294,7 +312,30 @@
 <script src="https://cdn.jsdelivr.net/npm/summernote@0.8.20/dist/summernote-lite.min.js"></script>
 <script>
 $(function () {
-  $('#type_id, #category_id, #sub_category_id, #prod_type, #is_stock, #is_video_active').select2({ width: '100%' });
+  function slugify(text) {
+    return String(text).toLowerCase().replace(/[^a-z0-9\s-]/g, '').trim().replace(/[\s-]+/g, '-');
+  }
+
+  // Slug follows the name until the admin types their own slug.
+  let slugTouched = false;
+  $('input[name="name"]').on('input', function () {
+    if (!slugTouched) {
+      $('#product_slug').val(slugify(this.value));
+      $('#product_slug_preview').text($('#product_slug').val());
+    }
+  });
+  $('#product_slug').on('input', function () {
+    slugTouched = this.value !== '';
+    $('#product_slug_preview').text(slugify(this.value));
+  }).on('blur', function () {
+    this.value = slugify(this.value);
+    if (this.value === '') {
+      slugTouched = false;
+      $('input[name="name"]').trigger('input');
+    }
+  });
+
+  $('#type_id, #category_id, #sub_category_id, #category_ids, #prod_type, #is_stock, #is_video_active').select2({ width: '100%' });
 
   initSummernote('#feature', 200);
   initSummernote('#body', 300);

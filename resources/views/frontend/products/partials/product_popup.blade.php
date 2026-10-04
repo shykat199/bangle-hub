@@ -121,7 +121,7 @@
     $hasDiscount = ($baseFinal > 0 && $baseOld > 0 && $baseFinal < $baseOld);
     $discPercent = $hasDiscount ? round((($baseOld - $baseFinal) / $baseOld) * 100, 0) : 0;
 
-    $detailsUrl = url("/product-show/{$singleProduct->id}");
+    $detailsUrl = route('front.products.show', $singleProduct->slug ?: $singleProduct->id);
 
     $fmt = function($amount) use ($curr){
         $amount = (float)$amount;

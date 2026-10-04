@@ -281,7 +281,7 @@ class T12FeatureTest extends TestCase
             $this->chk(str_contains($hb,'01799000098'),       'Footer renders the configured owner phone');
             $this->chk(str_contains($hb,'wa.me/+8801799000099'),
                 'whats_active=1 + whats_num renders the floating WhatsApp button');
-            $prodHtml = $this->get('/product-show/'.$prod->slug)->getContent();
+            $prodHtml = $this->get('/product/'.$prod->slug)->getContent();
             $this->chk(str_contains($hb,'T12HOTLINE2') || str_contains($prodHtml,'T12HOTLINE2')
                        || str_contains($co->getContent(),'T12HOTLINE2'),
                 'Settings "Hotline 2" (supp_num1) appears somewhere on the storefront');
@@ -399,7 +399,7 @@ class T12FeatureTest extends TestCase
             $this->chk(str_contains($home->getContent(),'T12 POPULAR CATS') || str_contains($home->getContent(),'T12 VIEW ALL'),
                 'Home page renders the configured popular-category / view-all labels');
 
-            $pshow = $this->get('/product-show/'.$prod->slug);
+            $pshow = $this->get('/product/'.$prod->slug);
             $pbody = $pshow->getContent();
             $this->chk($pshow->status()===200, 'Product page renders (status '.$pshow->status().')');
             $this->chk(str_contains($pbody,'T12 ORDER NOW'),  'Product page renders order_now_text');
@@ -419,7 +419,7 @@ class T12FeatureTest extends TestCase
                 'courier_delivery_title'  => 'T12 COURIER TITLE',
                 'short_description_title' => 'T12 SHORT DESC',
             ]);
-            $pbody2 = $this->get('/product-show/'.$prod->slug)->getContent();
+            $pbody2 = $this->get('/product/'.$prod->slug)->getContent();
             $ppop2  = $this->get('/product-popup/'.$prod->id)->getContent();
             $this->chk(str_contains($pbody2,'T12 CODE LABEL') || str_contains($ppop2,'T12 CODE LABEL'),
                 'admin_texts.product_code_label reaches the product page');

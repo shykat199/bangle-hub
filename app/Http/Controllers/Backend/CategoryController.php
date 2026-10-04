@@ -182,6 +182,13 @@ class CategoryController extends Controller
         return response()->json(['status'=>true ,'msg'=>'Home Category Updated !!','url'=>route('admin.homecat')]);
     }
     
+    public function homeCategoryStatus(Request $request, $id) {
+        $home_category = HomeCategory::findOrFail($id);
+        $home_category->update(['status' => $request->boolean('status')]);
+
+        return response()->json(['status'=>true ,'msg'=> $home_category->status ? 'Category is now shown on home page.' : 'Category is hidden from home page.']);
+    }
+
     public function delhomeCatgeory(Request $request, $id) {
         $delete_data = HomeCategory::find($id);
 

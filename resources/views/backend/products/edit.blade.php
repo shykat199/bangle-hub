@@ -267,6 +267,15 @@
             </div>
 
             <div class="col-lg-4 col-md-6">
+              <label class="form-label">Product Slug</label>
+              <div class="input-group">
+                <input type="text" name="slug" id="product_slug" class="form-control" placeholder="product-slug" value="{{ $item->slug }}">
+                <button type="button" class="btn btn-outline-secondary" id="slug_from_name" title="Generate from product name">From name</button>
+              </div>
+              <small class="text-muted">URL: {{ url('/product') }}/<span id="product_slug_preview">{{ $item->slug }}</span></small>
+            </div>
+
+            <div class="col-lg-4 col-md-6">
               <label class="form-label">Product SKU</label>
               <input type="text" name="sku" class="form-control" placeholder="Product SKU" value="{{ $item->sku }}">
             </div>
@@ -297,6 +306,19 @@
                 <option value="">Select One</option>
                 @foreach($subs as $sub)
                   <option value="{{$sub->id}}" {{ $sub->id == $item->sub_category_id ? 'selected':'' }}>{{ $sub->name }}</option>
+                @endforeach
+              </select>
+            </div>
+
+            <div class="col-lg-4 col-md-6">
+              <label class="form-label">More Categories</label>
+              @php $extraCatIds = $item->categories->pluck('id'); @endphp
+              <select class="form-select" name="category_ids[]" id="category_ids" multiple data-placeholder="Also show in these categories">
+                @foreach($cats as $cat)
+                  <option value="{{ $cat->id }}" {{ $extraCatIds->contains($cat->id) ? 'selected' : '' }}>{{ $cat->name }}</option>
+                  @foreach($cat->subcats as $sub)
+                    <option value="{{ $sub->id }}" {{ $extraCatIds->contains($sub->id) ? 'selected' : '' }}>{{ $cat->name }} › {{ $sub->name }}</option>
+                  @endforeach
                 @endforeach
               </select>
             </div>
@@ -602,6 +624,18 @@
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
 <script>
 $(function(){
+  function slugify(text) {
+    return String(text).toLowerCase().replace(/[^a-z0-9\s-]/g, '').trim().replace(/[\s-]+/g, '-');
+  }
+
+  $('#product_slug').on('input', function () {
+    $('#product_slug_preview').text(slugify(this.value));
+  }).on('blur', function () {
+    this.value = slugify(this.value);
+  });
+  $('#slug_from_name').on('click', function () {
+    $('#product_slug').val(slugify($('input[name="name"]').val())).trigger('input');
+  });
 
   /* ---------- Gallery: multi-select delete + drag & drop order ---------- */
   (function(){
@@ -699,7 +733,7 @@ $(function(){
     });
   })();
 
-  $('#type_id,#category_id,#sub_category_id,#prod_type,#is_stock,#discount_type,#is_video_active').select2({ width:'100%' });
+  $('#type_id,#category_id,#sub_category_id,#category_ids,#prod_type,#is_stock,#discount_type,#is_video_active').select2({ width:'100%' });
 
   $('#body').summernote({
     height: 300,

@@ -116,7 +116,7 @@ class FacebookFeedController extends Controller
             echo '<g:id>' . $product->id . '</g:id>';
             echo '<g:title><![CDATA[' . htmlspecialchars($product->name ?? '', ENT_QUOTES, 'UTF-8') . ']]></g:title>';
             echo '<g:description><![CDATA[' . $desc . ']]></g:description>';
-            echo '<g:link>' . url('/product-show/' . $slugOrId) . '</g:link>';
+            echo '<g:link>' . url('/product/' . $slugOrId) . '</g:link>';
 
             if (!empty($imageUrl)) {
                 echo '<g:image_link><![CDATA[' . $imageUrl . ']]></g:image_link>';
