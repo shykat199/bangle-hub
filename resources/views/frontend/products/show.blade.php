@@ -144,9 +144,8 @@
 @endphp
 
 @push('css')
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css"/>
-
 <style>
+    /* --- kept: vars --- */
     :root{
       --brand-gradient: {!! $info->gradient_code ?? 'linear-gradient(90deg,#0d6efd,#00276C)' !!};
       --brand-text: {{ $info->primary_color ?? '#ffffff' }};
@@ -180,636 +179,12 @@
       --order-btn-bg: {{ $info->order_now_btn_color ?? '#0f172a' }};
       --order-btn-text: {{ $info->order_now_btn_text_color ?? '#ffffff' }};
     }
-
-    body {
-        background-color: var(--bg);
-    }
-    
-    .bg-color-white{ background: var(--bg) !important; }
-    .axil-single-product-area{ background: var(--bg) !important; }
-
-    /* Breadcrumb: one line; links keep their width, the product name takes
-       the remaining space and is cut with "…" on small screens. */
-    .pd-breadcrumb{ padding-top: 16px; }
-    .pd-breadcrumb ol{
-        display: flex; align-items: center; flex-wrap: nowrap;
-        list-style: none; margin: 0; padding: 0;
-        font-size: 14px; line-height: 1.4; color: var(--muted);
-    }
-    .pd-breadcrumb li{ display: flex; align-items: center; flex-shrink: 0; white-space: nowrap; margin: 0; }
-    .pd-breadcrumb li + li::before{ content: "/"; margin: 0 8px; color: #cbd5e1; }
-    .pd-breadcrumb a{ color: var(--muted); text-decoration: none; transition: color .2s ease; }
-    .pd-breadcrumb a:hover{ color: var(--text); }
-    .pd-breadcrumb li.is-current{
-        display: block; flex: 0 1 auto; min-width: 0;
-        overflow: hidden; text-overflow: ellipsis;
-        color: var(--text); font-weight: 600;
-    }
-    @media (max-width: 575px){
-        .pd-breadcrumb{ padding-top: 12px; }
-        .pd-breadcrumb ol{ font-size: 12.5px; }
-        .pd-breadcrumb li + li::before{ margin: 0 5px; }
-        /* long category names may shrink too, so the product name stays visible */
-        .pd-breadcrumb li:not(:first-child):not(.is-current){ flex-shrink: 1; min-width: 40px; overflow: hidden; }
-        .pd-breadcrumb li:not(:first-child):not(.is-current) a{ overflow: hidden; text-overflow: ellipsis; }
-    }
-
-    /* --- Added Thumbnail Fix --- */
-    .axil-product .thumbnail {
-        aspect-ratio: 1 / 1 !important;
-    }
-    /* --------------------------- */
-
+    /* --- kept: fadeInUp --- */
     @keyframes fadeInUp {
         from { opacity: 0; transform: translateY(30px); }
         to { opacity: 1; transform: translateY(0); }
     }
-    @keyframes fadeInLeft {
-        from { opacity: 0; transform: translateX(-40px); }
-        to { opacity: 1; transform: translateX(0); }
-    }
-    @keyframes fadeInRight {
-        from { opacity: 0; transform: translateX(40px); }
-        to { opacity: 1; transform: translateX(0); }
-    }
-    @keyframes fadeInScale {
-        from { opacity: 0; transform: scale(0.92); }
-        to { opacity: 1; transform: scale(1); }
-    }
-    @keyframes shimmerLoad {
-        0% { background-position: -1000px 0; }
-        100% { background-position: 1000px 0; }
-    }
-    @keyframes floatBadge {
-        0%, 100% { transform: translateY(0) rotate(-3deg); }
-        50% { transform: translateY(-6px) rotate(-3deg); }
-    }
-    @keyframes priceFlash {
-        0% { transform: scale(1); background: #f8fafc; }
-        50% { transform: scale(1.08); background: #fef3c7; }
-        100% { transform: scale(1); background: #f8fafc; }
-    }
-    @keyframes successPop {
-        0% { transform: scale(1); }
-        50% { transform: scale(1.15) rotate(5deg); }
-        100% { transform: scale(1); }
-    }
-    @keyframes ripple {
-        to { transform: scale(2.5); opacity: 0; }
-    }
-    @keyframes slideInBlur {
-        from { opacity: 0; filter: blur(8px); transform: translateY(20px); }
-        to { opacity: 1; filter: blur(0); transform: translateY(0); }
-    }
-    @keyframes pulseRing {
-        0% { box-shadow: 0 0 0 0 rgba(15, 23, 42, 0.4); }
-        70% { box-shadow: 0 0 0 14px rgba(15, 23, 42, 0); }
-        100% { box-shadow: 0 0 0 0 rgba(15, 23, 42, 0); }
-    }
-    @keyframes shimmerSweep {
-        0% { left: -100%; }
-        100% { left: 200%; }
-    }
-    @keyframes iconSpin {
-        from { transform: rotate(0deg); }
-        to { transform: rotate(360deg); }
-    }
-    @keyframes wobble {
-        0%, 100% { transform: translateX(0); }
-        25% { transform: translateX(-3px) rotate(-2deg); }
-        75% { transform: translateX(3px) rotate(2deg); }
-    }
-    @keyframes glowPulse {
-        0%, 100% { box-shadow: 0 0 0 0 rgba(251, 191, 36, 0.4); }
-        50% { box-shadow: 0 0 0 8px rgba(251, 191, 36, 0); }
-    }
-
-    .single-product-thumbnail-wrap {
-        border-radius: var(--radius2);
-        box-shadow: var(--premium-shadow) !important;
-        border: 4px solid var(--premium-border);
-        background: var(--card);
-        transition: all var(--t);
-        animation: fadeInLeft 0.7s cubic-bezier(0.4, 0, 0.2, 1) both;
-    }
-    .single-product-thumbnail-wrap:hover {
-        box-shadow: var(--premium-shadow-hover) !important;
-        transform: translateY(-4px);
-    }
-
-    .single-product-thumbnail-wrap img {
-        transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-    .single-product-thumbnail-wrap:hover img {
-        transform: scale(1.04);
-    }
-
-    .small-thumb-img {
-        position: relative;
-        overflow: hidden;
-        border-radius: 10px;
-        cursor: pointer;
-        transition: all var(--t);
-        opacity: 1;
-    }
-    .small-thumb-img:hover {
-        transform: translateY(-3px) scale(1.05);
-        box-shadow: 0 8px 20px rgba(0,0,0,0.08);
-    }
-    .small-thumb-img img {
-        transition: transform 0.4s ease;
-    }
-
-    /* ✅ CUSTOM SMALL THUMB GALLERY — Slick কে replace করি */
-    /* Desktop: Vertical scrollable list */
-    .small-thumb-wrapper.custom-gallery-mode {
-        max-height: 480px;
-        overflow-y: auto;
-        overflow-x: hidden;
-        scrollbar-width: thin;
-        scrollbar-color: rgba(0,0,0,0.15) transparent;
-        padding-right: 4px;
-        display: block !important;
-    }
-    .small-thumb-wrapper.custom-gallery-mode::-webkit-scrollbar {
-        width: 4px;
-    }
-    .small-thumb-wrapper.custom-gallery-mode::-webkit-scrollbar-track {
-        background: transparent;
-    }
-    .small-thumb-wrapper.custom-gallery-mode::-webkit-scrollbar-thumb {
-        background: rgba(0,0,0,0.15);
-        border-radius: 4px;
-    }
-    .small-thumb-wrapper.custom-gallery-mode .small-thumb-img {
-        display: block;
-        margin: 0 0 10px 0 !important;
-        width: 100%;
-        opacity: 1 !important;
-        visibility: visible !important;
-        animation: none !important;
-    }
-    .small-thumb-wrapper.custom-gallery-mode .small-thumb-img img {
-        width: 100%;
-        max-width: 90px;
-        height: auto;
-        aspect-ratio: 1 / 1;
-        /* পোশাকের ছবি লম্বাটে (2:3 / 4:5), বর্গাকার থাম্বে cover দিলে ~৩৩% কেটে
-           যেত আর কোন ছবি কোনটা বোঝা যেত না। contain-এ পুরোটা দেখা যায়। */
-        object-fit: contain;
-        background: #f6f6f6;
-        border: 2px solid transparent;
-        border-radius: 8px;
-        display: block;
-        margin: 0 auto;
-    }
-    .small-thumb-wrapper.custom-gallery-mode .small-thumb-img.active-thumb img,
-    .small-thumb-wrapper.custom-gallery-mode .small-thumb-img:hover img {
-        border-color: var(--brand-dark, #0f172a);
-    }
-
-    /* Mobile / Tablet: Horizontal scroll */
-    @media (max-width: 991px) {
-        .small-thumb-wrapper.custom-gallery-mode {
-            display: flex !important;
-            flex-direction: row;
-            max-height: none;
-            overflow-x: auto;
-            overflow-y: hidden;
-            gap: 10px;
-            padding-bottom: 6px;
-            padding-right: 0;
-        }
-        .small-thumb-wrapper.custom-gallery-mode::-webkit-scrollbar {
-            height: 4px;
-        }
-        .small-thumb-wrapper.custom-gallery-mode .small-thumb-img {
-            flex: 0 0 70px;
-            margin: 0 !important;
-        }
-        .small-thumb-wrapper.custom-gallery-mode .small-thumb-img img {
-            width: 70px;
-            max-width: 70px;
-        }
-    }
-
-    .label-block {
-        animation: floatBadge 3s ease-in-out infinite;
-    }
-    .product-badget {
-        position: relative;
-        overflow: hidden;
-    }
-    .product-badget::before {
-        content: "";
-        position: absolute;
-        top: 0;
-        left: -100%;
-        width: 50%;
-        height: 100%;
-        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
-        animation: shimmerSweep 3s infinite;
-    }
-
-    .video-thumb-container {
-        position: relative;
-        cursor: pointer;
-    }
-    .video-play-icon {
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        font-size: 16px;
-        color: #fff;
-        background: rgba(239, 68, 68, 0.9);
-        width: 32px;
-        height: 32px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        border-radius: 50%;
-        z-index: 2;
-        box-shadow: 0 4px 10px rgba(0,0,0,0.3);
-        animation: pulseRing 2s infinite;
-    }
-    .video-play-icon i {
-        transition: transform var(--t);
-    }
-    .video-thumb-container:hover .video-play-icon i {
-        transform: scale(1.2);
-    }
-    .video-slide {
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        background: #000;
-        aspect-ratio: 1/1;
-    }
-    .video-slide iframe {
-        width: 100% !important;
-        height: 100% !important;
-        border: none;
-    }
-
-    @media (min-width: 992px){
-      .details_right{ margin-left: 20px; }
-    }
-    .details-price{ margin-bottom: 12px !important; }
-
-    .details_right{
-      border: 4px solid var(--premium-border) !important;
-      background: var(--card);
-      padding: 20px 24px;
-      height: 100%;
-      border-radius: var(--radius2);
-      box-shadow: var(--premium-shadow) !important;
-      position: relative;
-      overflow: hidden;
-      transition: all var(--t);
-      animation: fadeInRight 0.7s cubic-bezier(0.4, 0, 0.2, 1) both;
-      animation-delay: 0.15s;
-    }
-    .details_right:hover {
-      box-shadow: var(--premium-shadow-hover) !important;
-    }
-
-    .woocommerce-tabs .tab-content {
-      background: var(--card);
-      border-radius: var(--radius2);
-      padding: 24px;
-      margin-top: 20px;
-      box-shadow: var(--premium-shadow) !important;
-      border: 4px solid var(--premium-border);
-      transition: all var(--t);
-      animation: fadeInUp 0.6s ease both;
-    }
-    .woocommerce-tabs .tab-content:hover {
-      box-shadow: var(--premium-shadow-hover) !important;
-    }
-    .tab-pane.fade {
-        transition: opacity 0.4s ease;
-    }
-    .tab-pane.fade.show.active {
-        animation: slideInBlur 0.5s ease both;
-    }
-
-    .product-cart .name{
-      font-size: 16px;
-      font-weight: 800;
-      text-transform: capitalize;
-      color: var(--text);
-      letter-spacing: -0.02em;
-      line-height: 1.3;
-      margin-bottom: 8px;
-      animation: fadeInUp 0.5s ease both;
-      animation-delay: 0.3s;
-    }
-
-    .details-price{
-      font-size: 20px;
-      font-weight: 800;
-      color: var(--text);
-      margin: 8px 0;
-      display:flex;
-      flex-wrap:wrap;
-      align-items: baseline;
-      gap: 12px;
-      animation: fadeInUp 0.5s ease both;
-      animation-delay: 0.4s;
-    }
-    .details-price del{
-      color: var(--muted);
-      font-size: 15px;
-      font-weight: 600;
-      transition: all var(--t);
-    }
-    .current-price-product{
-      background: #f8fafc; 
-      border: 1px solid var(--border);
-      padding: 4px 12px;
-      border-radius: 999px;
-      font-size: 16px;
-      color: var(--text);
-      box-shadow: 0 2px 8px rgba(0,0,0,0.02);
-      transition: all var(--t);
-      display: inline-block;
-    }
-    .current-price-product.price-flash {
-        animation: priceFlash 0.6s ease;
-    }
-
-    .meta-row {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        flex-wrap: wrap;
-        gap: 10px;
-        margin-bottom: 12px;
-        animation: fadeInUp 0.5s ease both;
-        animation-delay: 0.5s;
-    }
-
-    .details-ratting-wrapper{
-      display: inline-flex;
-      align-items: center;
-      flex-wrap: nowrap;
-      white-space: nowrap;
-      gap: 6px;
-      padding: 6px 12px;
-      border-radius: 10px;
-      border: 1px solid var(--border);
-      background: var(--card);
-      box-shadow: 0 4px 15px rgba(0,0,0,.02);
-      font-size: 12px;
-      font-weight: 600;
-      transition: all var(--t);
-    }
-    .details-ratting-wrapper:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 8px 20px rgba(0,0,0,.06);
-    }
-    .details-ratting-wrapper i{ color: #fbbf24; font-size: 12px; }
-    .details-ratting-wrapper i.far.fa-star{ color: #cbd5e1; }
-    .all-reviews-button{
-      text-decoration: none;
-      margin-left: 6px;
-      cursor: pointer;
-      font-weight: 800;
-      color: var(--text);
-      position: relative;
-      font-size: 12px;
-    }
-    .all-reviews-button:after{
-      content:"";
-      position:absolute;
-      left:0; right:0; bottom:-2px;
-      height:2px;
-      background: var(--text);
-      border-radius: 999px;
-      transform: scaleX(0);
-      transform-origin:right;
-      transition: transform var(--t);
-    }
-    .all-reviews-button:hover:after{ transform: scaleX(1); transform-origin:left; }
-
-    .product-code p, .product-stock-box p {
-      display: inline-flex;
-      align-items:center;
-      gap: 6px;
-      background: #f8fafc;
-      color: var(--text) !important;
-      padding: 8px 14px;
-      border-radius: 10px;
-      line-height: 1;
-      margin: 0;
-      font-weight: 700;
-      border: 1px solid var(--border);
-      font-size: 13px;
-      transition: all var(--t);
-    }
-    .product-code p:hover, .product-stock-box p:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 6px 15px rgba(0,0,0,0.05);
-    }
-    .product-stock-box p i {
-        transition: transform var(--t);
-    }
-    .product-stock-box p:hover i {
-        transform: scale(1.2) rotate(10deg);
-    }
-
-    .premium-short-description {
-        background: #ffffff;
-        border: 1px solid #f1f5f9;
-        border-left: 4px solid var(--text);
-        border-radius: 10px;
-        padding: 12px 16px;
-        margin: 12px 0;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.03);
-        font-family: 'Hind Siliguri', sans-serif;
-        font-size: 14px;
-        line-height: 1.6;
-        color: var(--text);
-        transition: all var(--t);
-        animation: fadeInUp 0.5s ease both;
-        animation-delay: 0.6s;
-    }
-    .premium-short-description:hover {
-        box-shadow: 0 8px 25px rgba(0,0,0,0.06);
-        transform: translateY(-2px);
-        border-left-width: 6px;
-    }
-    .premium-short-description p:last-child {
-        margin-bottom: 0;
-    }
-
-    .hide_span{ display:none; }
-    .size{ cursor:pointer; user-select:none; transition: all var(--t); }
-
-    #variantBox{ 
-        margin-top: 10px !important; 
-        animation: fadeInUp 0.5s ease both;
-        animation-delay: 0.7s;
-    }
-    #variantBox label{ font-size: 13px; margin-bottom: 6px !important; font-weight: 700; color: var(--text); }
-
-    #variantBox .size{
-      background: var(--card);
-      border: 2px solid #e2e8f0 !important;
-      border-radius: 10px !important;
-      padding: 6px 14px !important;
-      font-weight: 700;
-      color: var(--muted);
-      font-size: 13px !important;
-      transition: all var(--t-smooth);
-      position: relative;
-      overflow: hidden;
-    }
-    #variantBox .size::before {
-        content: "";
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        width: 0;
-        height: 0;
-        border-radius: 50%;
-        background: rgba(15, 23, 42, 0.15);
-        transform: translate(-50%, -50%);
-        transition: width 0.5s ease, height 0.5s ease;
-    }
-    #variantBox .size:active::before {
-        width: 200px;
-        height: 200px;
-    }
-    #variantBox .size:hover{
-      transform: translateY(-3px) scale(1.03);
-      border-color: #cbd5e1 !important;
-      color: var(--text);
-      box-shadow: 0 10px 22px rgba(0,0,0,.06);
-    }
-    #variantBox .size.is-out{
-      color: #94a3b8;
-      border-style: dashed !important;
-      text-decoration: line-through;
-      text-decoration-color: rgba(220,38,38,.7);
-      padding-right: 34px !important;
-    }
-    #variantBox .size.is-out::after{
-      content: "Out";
-      position: absolute; top: 50%; right: 5px; transform: translateY(-50%);
-      background: #dc2626; color: #fff;
-      font-size: 9px; font-weight: 700; letter-spacing: .3px; line-height: 1;
-      padding: 3px 4px; border-radius: 4px; text-transform: uppercase;
-    }
-    #variantBox .size.is-out.active{
-      background: #64748b !important; border-color: #64748b !important;
-    }
-    .quantity.is-disabled{ opacity: .5; pointer-events: none; }
-    .pd-wholesale{ display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin:6px 0 10px; }
-    .pd-wholesale-badge{ background:#0f172a; color:#fff; font-size:12px; font-weight:700; padding:4px 10px; border-radius:999px; letter-spacing:.3px; }
-    .pd-wholesale-text{ font-size:13px; color:#b45309; background:#fffbeb; border:1px solid #fde68a; padding:3px 10px; border-radius:999px; }
-    #variantBox .size.active{
-      border-color: var(--text) !important;
-      background: var(--text) !important;
-      color: var(--card) !important;
-      box-shadow: 0 10px 25px rgba(0,0,0,.15);
-      animation: successPop 0.4s ease;
-    }
-
-    .size_name{
-      margin-top: 8px;
-      display:inline-block;
-      padding: 6px 14px;
-      border-radius: 8px;
-      background: #f1f5f9;
-      color: var(--text) !important;
-      font-weight: 700;
-      font-size: 13px;
-      width: 100%;
-      transition: all var(--t);
-    }
-
-    .qty-cart{
-      width: auto;
-      display: flex;
-      align-items: center;
-      column-gap: 14px;
-      margin-top: 12px;
-    }
-    .qty-cart .quantity{
-      position: relative;
-      border: 2px solid #e2e8f0;
-      height: 40px;
-      overflow: hidden;
-      width: 120px;
-      margin-top: 0;
-      border-radius: 10px;
-      background: var(--card);
-      box-shadow: 0 4px 15px rgba(0,0,0,.02);
-      transition: all var(--t);
-    }
-    .qty-cart .quantity:hover {
-        border-color: #cbd5e1;
-        box-shadow: 0 6px 18px rgba(0,0,0,.06);
-    }
-    .quantity .minus,
-    .quantity .plus{
-      position: absolute;
-      bottom: 0;
-      z-index: 2;
-      height: 36px;
-      line-height: 36px;
-      width: 36px;
-      text-align: center;
-      cursor: pointer;
-      transition: all var(--t);
-      user-select:none;
-      font-weight: 800;
-      color: var(--text);
-      background: transparent;
-    }
-    .quantity .minus{ left:0; font-size: 20px; }
-    .quantity .plus{ right:0; font-size: 18px; }
-    .quantity .minus:hover,
-    .quantity .plus:hover{ 
-        background: #f1f5f9; 
-        color: #000; 
-        transform: scale(1.15);
-    }
-    .quantity .minus:active,
-    .quantity .plus:active {
-        transform: scale(0.92);
-    }
-    .quantity input{
-      position: relative;
-      z-index: 1;
-      text-align: center;
-      font-size: 14px;
-      height: 100%;
-      width: 100%;
-      font-weight: 800;
-      color: var(--text);
-      background: var(--card) !important;
-      border: none !important;
-      outline: none !important;
-      pointer-events: none;
-      transition: transform 0.3s ease;
-    }
-    .quantity input.qty-bump {
-        animation: successPop 0.3s ease;
-    }
-
-    .single_product{
-      gap: 12px;
-      margin-top: 16px !important;
-      display:flex;
-      animation: fadeInUp 0.5s ease both;
-      animation-delay: 0.8s;
-    }
-
-    .add_cart_btn,
-    .order_now_btn,
+    /* --- kept: reviewbtn --- */
     .submit-review-btn {
       height: 48px !important;
       border-radius: 12px !important;
@@ -827,8 +202,6 @@
       overflow: hidden;
     }
 
-    .add_cart_btn::after,
-    .order_now_btn::after,
     .submit-review-btn::after {
         content: "";
         position: absolute;
@@ -839,119 +212,27 @@
         background: linear-gradient(90deg, transparent, rgba(255,255,255,0.25), transparent);
         transition: left 0.6s ease;
     }
-    .add_cart_btn:hover::after,
-    .order_now_btn:hover::after,
     .submit-review-btn:hover::after {
         left: 200%;
     }
 
-    .add_cart_btn,
-    .submit-review-btn {
-      background: var(--common-btn-bg) !important;
-      color: var(--common-btn-text) !important;
-      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1) !important;
+    /* review buttons use the site's theme colour, like the other buttons on this page */
+    .submit-review-btn,
+    .submit-review-btn i {
+      background: var(--pd-accent) !important;
+      color: #fff !important;
     }
-    
-    .add_cart_btn:hover,
+    .submit-review-btn{ box-shadow: 0 8px 20px -8px var(--pd-accent) !important; }
+    .submit-review-btn i{ background: none !important; }
     .submit-review-btn:hover {
-      transform: translateY(-3px) scale(1.02);
-      box-shadow: 0 14px 28px rgba(0, 0, 0, 0.22) !important;
-      filter: brightness(1.05);
+      background: color-mix(in srgb, var(--pd-accent) 82%, #000) !important;
+      transform: translateY(-2px);
+      box-shadow: 0 14px 26px -10px var(--pd-accent) !important;
     }
-    .add_cart_btn:active,
     .submit-review-btn:active {
         transform: translateY(-1px) scale(0.98);
     }
-    .add_cart_btn i {
-        transition: transform var(--t-elastic);
-    }
-    .add_cart_btn:hover i {
-        transform: scale(1.2) rotate(-10deg);
-    }
-    .add_cart_btn.cart-success i {
-        animation: successPop 0.5s ease;
-    }
-
-    .add_cart_btn {
-        width: 56px !important;
-        flex: 0 0 56px;
-        padding: 0 !important;
-    }
-    .add_cart_btn i {
-        font-size: 18px;
-        margin: 0;
-    }
-    
-    .order_now_btn {
-        flex: 1;
-        width: auto !important;
-    }
-
-    @keyframes premiumPulseGlow {
-        0% { box-shadow: 0 0 0 0 rgba(15, 23, 42, 0.7), 0 6px 15px rgba(15, 23, 42, 0.2); }
-        70% { box-shadow: 0 0 0 12px rgba(15, 23, 42, 0), 0 12px 25px rgba(15, 23, 42, 0.4); }
-        100% { box-shadow: 0 0 0 0 rgba(15, 23, 42, 0), 0 6px 15px rgba(15, 23, 42, 0.2); }
-    }
-
-    .order_now_btn {
-      background: var(--order-btn-bg) !important;
-      color: var(--order-btn-text) !important;
-      margin-left: 0 !important;
-      position: relative;
-      z-index: 1;
-      border: 2px solid var(--order-btn-bg) !important;
-      animation: premiumPulseGlow 2s infinite !important;
-    }
-    .order_now_btn:hover { 
-        transform: translateY(-3px) scale(1.02); 
-        box-shadow: 0 18px 38px rgba(15, 23, 42, 0.55) !important;
-        animation-play-state: paused !important;
-    }
-    .order_now_btn:active {
-        transform: translateY(-1px) scale(0.98);
-    }
-    .order_now_btn i {
-        transition: transform var(--t);
-    }
-    .order_now_btn:hover i {
-        transform: scale(1.12);
-    }
-
-    .wa_now_btn,
-    .call_now_btn {
-      height: 48px !important;
-      width: 56px !important;
-      flex: 0 0 56px;
-      padding: 0 !important;
-      border-radius: 12px !important;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: all var(--t);
-      border: none !important;
-      cursor: pointer;
-    }
-    .wa_now_btn i,
-    .call_now_btn i {
-      font-size: 18px;
-      margin: 0;
-    }
-    .wa_now_btn:hover,
-    .call_now_btn:hover {
-      transform: translateY(-3px) scale(1.02);
-      filter: brightness(1.05);
-    }
-    .wa_now_btn {
-      background: #25D366 !important;
-      color: #fff !important;
-      box-shadow: 0 8px 20px rgba(37,211,102,0.25) !important;
-    }
-    .call_now_btn {
-      background: var(--common-btn-bg) !important;
-      color: var(--common-btn-text) !important;
-      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1) !important;
-    }
-
+    /* --- kept: courier --- */
     .courier-card{
       margin-top: 20px;
       background: var(--card);
@@ -989,102 +270,7 @@
         background: #f8fafc;
     }
     .courier-card table td:last-child{ font-weight: 800; text-align:right; color: var(--text); }
-
-    .product-metas{ 
-        margin-top: 14px !important; 
-        font-size: 13px; 
-        line-height: 1.6; 
-        color: var(--muted);
-        animation: fadeInUp 0.5s ease both;
-        animation-delay: 1s;
-    }
-    .product-metas li{ 
-        margin-bottom: 4px;
-        transition: all var(--t);
-        padding-left: 0;
-    }
-    .product-metas li:hover {
-        padding-left: 6px;
-        color: var(--text);
-    }
-
-    @media (max-width: 575.98px){
-      .details_right{ padding: 16px; }
-      .product-cart .name{ font-size: 16px; }
-      .details-price{ font-size: 20px; }
-      
-      .product-code p, .product-stock-box p {
-        padding: 6px 10px;
-        font-size: 12px;
-      }
-      
-      #variantBox .size {
-        padding: 4px 10px !important;
-        font-size: 12px !important;
-        border-radius: 8px !important;
-      }
-      #variantBox label {
-        font-size: 12px !important;
-        margin-bottom: 4px !important;
-      }
-
-      .qty-cart .quantity{ width: 110px; height: 38px; margin: 0 auto 0 0; }
-      .quantity .minus, .quantity .plus { height: 34px; line-height: 34px; width: 34px; }
-      
-      .single_product{ flex-direction: row; gap: 8px; }
-      .add_cart_btn, .wa_now_btn, .call_now_btn { width: 44px !important; flex: 0 0 44px; height: 44px !important; }
-      .wa_now_btn i, .call_now_btn i { font-size: 16px; }
-      .order_now_btn{ font-size: 13px !important; height: 44px !important; padding: 0 5px !important; }
-      
-      .details-ratting-wrapper { padding: 4px 10px; font-size: 11px; }
-      .details-ratting-wrapper i{ font-size: 11px; }
-      .all-reviews-button{ font-size: 11px; }
-      
-      .nav.nav-tabs .nav-item a{ padding: 8px 12px; font-size: 12px; border-radius: 8px; }
-      .mx_0{ margin-left: -5px; margin-right: -5px; }
-      .premium-review-card { padding: 16px; }
-    }
-
-    .nav.nav-tabs{
-      border: 4px solid var(--premium-border);
-      border-radius: 16px;
-      background: var(--card);
-      padding: 8px;
-      box-shadow: var(--premium-shadow) !important;
-      gap: 8px !important;
-      animation: fadeInUp 0.6s ease both;
-    }
-    .nav.nav-tabs .nav-item a{
-      margin: 0; padding: 12px 24px; font-weight: 800; color: var(--muted); border-radius: 10px; border: none; transition: all var(--t);
-      position: relative;
-      overflow: hidden;
-    }
-    .nav.nav-tabs .nav-item a:hover{ 
-        background: #f1f5f9; 
-        color: var(--text);
-        transform: translateY(-2px);
-    }
-    .nav-tabs .nav-link.active{
-      color: var(--common-btn-text) !important;
-      background: var(--common-btn-bg) !important; 
-      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.15) !important;
-      animation: successPop 0.4s ease;
-    }
-
-    .single-desc, .single-desc * , .product-desc-wrapper, .product-desc-wrapper * ,
-    .woocommerce-tabs .tab-content, .woocommerce-tabs .tab-content * {
-      font-family: 'Hind Siliguri', sans-serif !important; color: var(--text);
-    }
-
-    .woocommerce-tabs .tab-content i, .woocommerce-tabs .tab-content .fa,
-    .woocommerce-tabs .tab-content .fas, .woocommerce-tabs .tab-content .far,
-    .woocommerce-tabs .tab-content .fab, .rating-component .stars-box i,
-    .details-ratting-wrapper i, .compliment-container i {
-      font-family: "Font Awesome 5 Free" !important; font-style: normal !important; display: inline-block !important;
-      visibility: visible !important; opacity: 1 !important; font-weight: 900; line-height: 1 !important; text-transform: none !important;
-    }
-    .woocommerce-tabs .tab-content .fab { font-family: "Font Awesome 5 Brands" !important; font-weight: 400 !important; }
-
+    /* --- kept: review --- */
     .premium-review-card { 
         background: var(--card); 
         border: 2px solid #f1f5f9; 
@@ -1176,6 +362,18 @@
     }
     .compliment-container i { font-size: 16px; animation: bounceIcon 2s infinite; color: #15803d !important; }
 
+    /* The theme's form rules inflate this form: a 60px line-height on inputs, a fixed
+       textarea height and a min-height on the (empty) feedback-tags box. */
+    .premium-review-card .feedback-tags{ min-height: 0 !important; }
+    .premium-review-card .rating-component{ display: block; }
+    .premium-review-card .rating-box-wrapper{ padding: 14px 16px !important; margin-bottom: 16px !important; }
+    .premium-review-card .rating-label{ display: block; margin-bottom: 8px; }
+    .premium-review-card .stars-box{ margin-bottom: 0 !important; }
+    .premium-review-card .premium-input-group input:not([type="file"]){ height: 46px !important; min-height: 0 !important; line-height: 1.4 !important; padding: 10px 14px !important; }
+    .premium-review-card .premium-input-group input[type="file"]{ height: auto !important; line-height: 1.4 !important; padding: 8px 10px !important; }
+    .premium-review-card .premium-input-group textarea{ height: 96px !important; min-height: 0 !important; line-height: 1.5 !important; padding: 10px 14px !important; }
+    .premium-review-card .review-header-title{ margin-bottom: 14px !important; }
+    #review .pro-desc-commnet-area .pdx-pane-title{ margin-bottom: 8px; }
     .premium-input-group label { font-weight: 800; font-size: 12px; text-transform: uppercase; color: var(--text); margin-bottom: 6px; letter-spacing: 0.5px; display: block; }
     .premium-input-group input, .premium-input-group textarea, .premium-input-group .form-control { 
         background: var(--card); 
@@ -1199,9 +397,7 @@
 
     @keyframes slideUpFade { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
     @keyframes bounceIcon { 0%, 20%, 50%, 80%, 100% {transform: translateY(0);} 40% {transform: translateY(-4px);} 60% {transform: translateY(-2px);} }
-
-    button:disabled, .btn:disabled{ opacity: .50 !important; cursor: not-allowed !important; box-shadow: none !important; transform: none !important; filter: grayscale(100%); animation: none !important; }
-
+    /* --- kept: desc --- */
     .desc-collapse-wrapper {
         position: relative;
         max-height: 250px;
@@ -1261,97 +457,14 @@
     .view-more-btn.is-open i {
         transform: rotate(180deg);
     }
-
-    .axil-product-area .col-lg-2,
-    .axil-product-area .col-md-3,
-    .axil-product-area .col-6 {
-        animation: fadeInUp 0.6s ease both;
-    }
-    .explore-product-activation > div > .row > div:nth-child(1) { animation-delay: 0.05s; }
-    .explore-product-activation > div > .row > div:nth-child(2) { animation-delay: 0.1s; }
-    .explore-product-activation > div > .row > div:nth-child(3) { animation-delay: 0.15s; }
-    .explore-product-activation > div > .row > div:nth-child(4) { animation-delay: 0.2s; }
-    .explore-product-activation > div > .row > div:nth-child(5) { animation-delay: 0.25s; }
-    .explore-product-activation > div > .row > div:nth-child(6) { animation-delay: 0.3s; }
-
-    .section-title-wrapper h2 {
-        position: relative;
-        display: inline-block;
-        animation: fadeInLeft 0.6s ease both;
-    }
-    .section-title-wrapper h2::after {
-        content: "";
-        position: absolute;
-        bottom: -2px;
-        left: 0;
-        width: 0;
-        height: 2px;
-        background: var(--common-btn-bg);
-        animation: drawLine 1s ease forwards;
-        animation-delay: 0.4s;
-    }
-    @keyframes drawLine {
-        to { width: 80px; }
-    }
-
+    /* --- kept: comments --- */
     .comment-list > li {
         animation: fadeInUp 0.5s ease both;
     }
     .comment-list > li:nth-child(1) { animation-delay: 0.1s; }
     .comment-list > li:nth-child(2) { animation-delay: 0.2s; }
     .comment-list > li:nth-child(3) { animation-delay: 0.3s; }
-
-    @media (prefers-reduced-motion: reduce) {
-        *, *::before, *::after {
-            animation-duration: 0.01ms !important;
-            animation-iteration-count: 1 !important;
-            transition-duration: 0.01ms !important;
-        }
-    }
-    /* ===== Stock out ===== */
-    .single-product-thumbnail-wrap{ position: relative; }
-    .pd-stock-out-overlay{
-        position: absolute; inset: 0; z-index: 5;
-        display: flex; align-items: center; justify-content: center;
-        overflow: hidden; pointer-events: none;
-        background: rgba(255,255,255,.18);
-    }
-    .pd-stock-out-overlay span{
-        display: block; width: 150%; flex: 0 0 auto;
-        padding: 14px 0;
-        background: rgba(232,72,85,.78);
-        color: #fff; font-weight: 700; font-size: 32px;
-        letter-spacing: 2px; line-height: 1;
-        text-align: center; text-transform: uppercase; white-space: nowrap;
-        transform: rotate(-12deg);
-        text-shadow: 0 1px 2px rgba(0,0,0,.15);
-    }
-    @media (max-width: 575px){
-        .pd-stock-out-overlay span{ font-size: 22px; padding: 10px 0; }
-    }
-    .pd-thumb-stock-out{
-        position: absolute; inset: 0; z-index: 3;
-        display: flex; align-items: center; justify-content: center;
-        overflow: hidden; pointer-events: none; border-radius: inherit;
-        background: rgba(255,255,255,.35);
-    }
-    .pd-thumb-stock-out span{
-        display: block; width: 160%; flex: 0 0 auto;
-        padding: 4px 0;
-        background: rgba(232,72,85,.85);
-        color: #fff; font-weight: 700; font-size: 8px;
-        letter-spacing: .5px; line-height: 1;
-        text-align: center; text-transform: uppercase; white-space: nowrap;
-        transform: rotate(-12deg);
-    }
-    .pd-stock-out-alert{
-        margin: 8px 0 12px; padding: 10px 14px;
-        border: 1px solid #fecaca; border-radius: 8px;
-        background: #fef2f2; color: #b91c1c;
-        font-size: 14px; font-weight: 500;
-    }
-    .pd-stock-out-alert i{ margin-right: 6px; }
-
+    /* --- kept: notify --- */
     /* ===== Notify Me When Available ===== */
     .notify-me-wrap{ margin-top: 10px; }
     .notify-me-btn{
@@ -1422,13 +535,7 @@
         .notify-modal__dialog{ max-width: 100%; border-radius: 16px 16px 0 0; padding: 18px 16px 22px; }
         .notify-modal__head h5{ font-size: 16px !important; }
     }
-
-    /* ==========================================================================
-       PREMIUM LAYOUT LAYER
-       Sits on top of the rules above: calmer surfaces, one accent colour
-       (--pd-accent = the site's brand colour), clear type hierarchy. Button
-       colours still come from the admin settings (--order-btn-*, --common-btn-*).
-       ========================================================================== */
+    /* --- kept: accentvars --- */
     :root{
         --bg: #f6f7f9;
         --pd-line: #eaecf0;
@@ -1445,230 +552,7 @@
 
     /* Order Now uses the brand colour on this page, same red as the nav. */
     :root{ --order-btn-bg: var(--pd-accent); --order-btn-text: #fff; }
-
-    /* --- surfaces: no lift-on-hover, hairline borders --- */
-    .single-product-thumbnail-wrap,
-    .details_right,
-    .woocommerce-tabs .tab-content,
-    .premium-review-card{
-        border: 1px solid var(--pd-line) !important;
-        border-radius: 22px;
-        box-shadow: var(--pd-card-shadow) !important;
-    }
-    .single-product-thumbnail-wrap:hover,
-    .details_right:hover,
-    .woocommerce-tabs .tab-content:hover,
-    .premium-review-card:hover,
-    .courier-card:hover,
-    .premium-short-description:hover,
-    .rating-box-wrapper:hover,
-    .product-code p:hover, .product-stock-box p:hover,
-    .details-ratting-wrapper:hover{
-        transform: none;
-        box-shadow: var(--pd-card-shadow) !important;
-    }
-    .courier-card:hover, .premium-short-description:hover, .rating-box-wrapper:hover,
-    .product-code p:hover, .product-stock-box p:hover, .details-ratting-wrapper:hover{ box-shadow: none !important; }
-    .single-product-thumbnail-wrap:hover img{ transform: none; }
-    /* Hover zoom (mouse devices, desktop width): a lens on the main image and an
-       enlarged pane beside it — see the script at the bottom. */
-    .pd-zoom-lens{
-        position: absolute; z-index: 4; display: none; pointer-events: none;
-        border: 1px solid var(--pd-accent); border-radius: 6px;
-        background: rgba(255,255,255,.35); box-shadow: 0 0 0 1px rgba(255,255,255,.6) inset;
-    }
-    .pd-zoom-pane{
-        position: fixed; z-index: 1010; display: none; pointer-events: none;
-        background-color: #fff; background-repeat: no-repeat;
-        border: 1px solid var(--pd-line); border-radius: 22px;
-        box-shadow: 0 24px 60px -12px rgba(16,24,40,.28);
-    }
-    .pd-zoom-on .product-large-thumbnail-3 .thumbnail{ cursor: crosshair; }
-
-    /* --- gallery --- */
-    @media (min-width: 992px){
-        .mobile_show > .row{ align-items: flex-start; }
-        .mobile_show > .row > .col-lg-6:first-child{ position: sticky; top: 96px; }
-        /* thumbnail rail is exactly as tall as the main image and scrolls inside it */
-        .mx_0 > .col-lg-2{ position: relative; }
-        .mx_0 > .col-lg-2 > .small-thumb-wrapper.custom-gallery-mode{
-            position: absolute; top: 0; bottom: 0; left: 0; right: 8px;
-            max-height: none; padding-right: 0; scrollbar-width: none;
-        }
-        .mx_0 > .col-lg-2 > .small-thumb-wrapper.custom-gallery-mode::-webkit-scrollbar{ display: none; }
-    }
-    /* the theme draws a yellow frame + padding around the main image */
-    .single-product-thumbnail.img-section{ border: none !important; padding: 0 !important; }
-    .small-thumb-wrapper.custom-gallery-mode .small-thumb-img img{ border-radius: 12px; background: #fff; border: 2px solid var(--pd-line); }
-    .small-thumb-wrapper.custom-gallery-mode .small-thumb-img.active-thumb img,
-    .small-thumb-wrapper.custom-gallery-mode .small-thumb-img:hover img{ border-color: var(--pd-accent) !important; }
-    .small-thumb-img:hover{ transform: none; box-shadow: none; }
-    .single-product-thumbnail-wrap .product-quick-view.position-view a{
-        width: 44px; height: 44px; border-radius: 50%;
-        display: flex; align-items: center; justify-content: center;
-        background: rgba(255,255,255,.94); color: var(--text) !important; font-size: 16px;
-        box-shadow: 0 6px 18px rgba(16,24,40,.16); transition: transform var(--t), color var(--t);
-    }
-    .single-product-thumbnail-wrap .product-quick-view.position-view a:hover{ transform: scale(1.06); color: var(--pd-accent) !important; }
-    .single-product-thumbnail-wrap .label-block{ animation: none; }
-    .single-product-thumbnail-wrap .label-block .product-badget{
-        background: var(--pd-accent) !important; color: #fff;
-        border-radius: 999px; padding: 6px 14px; font-weight: 700; font-size: 13px; letter-spacing: .02em;
-    }
-
-    /* --- details column --- */
-    .details_right{ height: auto; padding: 30px 32px; }
-    .pd-eyebrow{ min-height: 0; }
-    .pd-eyebrow a, .pd-eyebrow span{
-        font-size: 12px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase;
-        color: var(--pd-accent); text-decoration: none;
-    }
-    .pd-eyebrow a:hover{ text-decoration: underline; }
-    .product-cart h1.name{
-        font-size: 28px; font-weight: 700; line-height: 1.25; letter-spacing: -.015em;
-        color: var(--text); margin: 8px 0 12px; text-transform: none;
-    }
-    .details-ratting-wrapper{
-        display: flex; flex-wrap: wrap; white-space: normal; gap: 8px;
-        padding: 0; border: none; background: none; box-shadow: none;
-        font-size: 13.5px; font-weight: 500; color: var(--muted);
-    }
-    .details-ratting-wrapper .pd-stars{ display: inline-flex; gap: 2px; }
-    .details-ratting-wrapper .pd-stars i{ color: #f5a623; font-size: 14px; }
-    .details-ratting-wrapper .pd-stars i.far{ color: #d0d5dd; font-weight: 400; }
-    .pd-rating-num{ font-weight: 700; color: var(--text); }
-    .all-reviews-button{ margin-left: 2px; font-size: 13.5px; font-weight: 600; color: var(--pd-accent); }
-    .all-reviews-button:after{ background: var(--pd-accent); }
-
-    .details-price{
-        margin: 18px 0 !important; padding: 18px 0;
-        border-top: 1px solid var(--pd-line); border-bottom: 1px solid var(--pd-line);
-        align-items: center; gap: 12px;
-    }
-    .current-price-product{
-        background: none; border: none; padding: 0; box-shadow: none; border-radius: 0;
-        font-size: 34px; font-weight: 800; line-height: 1; letter-spacing: -.02em; color: var(--pd-accent);
-    }
-    @keyframes pdPriceFlash{ 0%{ opacity: .35; transform: translateY(4px); } 100%{ opacity: 1; transform: translateY(0); } }
-    .current-price-product.price-flash{ animation: pdPriceFlash .35s ease; }
-    .details-price del{ font-size: 18px; font-weight: 500; color: #98a2b3; }
-    .pd-save-badge{
-        background: var(--pd-accent); color: #fff; border-radius: 999px;
-        padding: 5px 11px; font-size: 12px; font-weight: 700; line-height: 1; letter-spacing: .02em;
-    }
-
-    .pd-sku{ margin: 0 0 10px; font-size: 14px; font-weight: 500; color: var(--muted); }
-    .pd-sku span{ font-weight: 700; color: var(--text); text-transform: uppercase; letter-spacing: .04em; }
-    .pd-price-label{
-        font-size: 14px; font-weight: 700; line-height: 1; color: var(--text);
-        text-transform: uppercase; letter-spacing: .04em;
-    }
-    .pd-save-badge{ border-radius: 6px; padding: 6px 10px; }
-
-    .meta-row.pd-meta{ justify-content: flex-start; margin: 18px 0 0; }
-    .product-stock-box p{
-        background: none; border: none; padding: 0; border-radius: 0; gap: 6px;
-        font-size: 14px; font-weight: 500; color: var(--text) !important;
-    }
-    .pd-status-label{ font-weight: 700; text-transform: uppercase; letter-spacing: .04em; }
-    .pd-status{ font-weight: 800; text-transform: uppercase; letter-spacing: .04em; }
-    .pd-status.is-in{ color: #16a34a; }
-    .pd-status.is-out{ color: #dc2626; }
-    /* how many pieces are left — a badge, urgent colours when stock is low */
-    .pd-stock-left{
-        display: inline-flex; align-items: center; gap: 6px; margin-left: 6px;
-        padding: 6px 12px; border-radius: 999px; line-height: 1;
-        font-size: 13px; font-weight: 600; color: #067647 !important;
-        background: #ecfdf3; border: 1px solid #abefc6;
-    }
-    .pd-stock-left b{ font-size: 15px; font-weight: 800; color: inherit; }
-    .pd-stock-left i{ font-size: 12px; color: inherit; }
-    .pd-stock-left.is-low{
-        color: #fff !important; background: var(--pd-accent); border-color: var(--pd-accent);
-        box-shadow: 0 6px 14px -4px var(--pd-accent-ring); animation: pdStockPulse 1.8s ease-in-out infinite;
-    }
-    @keyframes pdStockPulse{ 0%, 100%{ transform: scale(1); } 50%{ transform: scale(1.06); } }
-
-    .premium-short-description{
-        border: none; border-radius: 0; box-shadow: none; background: none;
-        padding: 0; margin: 16px 0 0; font-size: 15px; line-height: 1.7; color: #475467;
-    }
-
-    /* --- variants --- */
-    #variantBox{ margin-top: 20px !important; }
-    #variantBox .variant-group{ width: 100%; }
-    #variantBox label{
-        display: block; font-size: 14px; font-weight: 700; letter-spacing: 0; text-transform: none;
-        color: var(--text); margin-bottom: 10px !important;
-    }
-    #variantBox label .pd-variant-picked{ color: var(--pd-accent); margin-left: 4px; }
-    #variantBox .size{
-        border: 1.5px solid #e4e7ec !important; border-radius: 999px !important;
-        padding: 8px 18px !important; font-size: 13.5px !important; font-weight: 600; color: var(--text);
-    }
-    #variantBox .size:hover{ transform: none; box-shadow: none; border-color: var(--pd-accent) !important; color: var(--pd-accent); }
-    #variantBox .size.active{
-        background: var(--pd-accent) !important; border-color: var(--pd-accent) !important;
-        color: #fff !important; box-shadow: 0 6px 14px -4px var(--pd-accent-ring); animation: none;
-    }
-    #variantBox .size.is-out{ color: #98a2b3; padding-right: 40px !important; }
-    #variantBox .size.is-out.active{ background: #f2f4f7 !important; border-color: #98a2b3 !important; color: #667085 !important; box-shadow: none; }
-
-    /* --- buy block: quantity + cart, then Order Now, then contact buttons --- */
-    .pd-buy{ margin-top: 24px; }
-    .single_product{ flex-wrap: wrap; align-items: stretch; gap: 12px; margin-top: 0 !important; }
-    .single_product .qty-cart{ order: 1; flex: 0 0 136px; }
-    .qty-cart .quantity{ width: 136px; height: 52px; border: 1.5px solid #e4e7ec; border-radius: 14px; box-shadow: none; }
-    .quantity .minus, .quantity .plus{ width: 44px; height: 49px; line-height: 49px; font-weight: 600; }
-    .quantity .minus:hover, .quantity .plus:hover{ transform: none; background: #f2f4f7; }
-    .quantity input{ font-size: 16px; }
-    .single_product .add_cart_btn{
-        order: 2; flex: 1 1 0; width: auto !important; height: 52px !important;
-        padding: 0 18px !important; border-radius: 14px !important; font-size: 15px !important; letter-spacing: 0;
-    }
-    .single_product .add_cart_btn i{ font-size: 16px; }
-    .single_product .order_now_btn{
-        order: 3; flex: 1 1 100%; height: 56px !important;
-        border-radius: 14px !important; font-size: 16px !important; letter-spacing: .02em;
-    }
-    .single_product .wa_now_btn,
-    .single_product .call_now_btn{
-        order: 4; flex: 1 1 0; width: auto !important; height: 46px !important; gap: 8px;
-        border-radius: 12px !important; font-size: 14px; font-weight: 600; box-shadow: none !important;
-    }
-    .single_product .wa_now_btn{ background: #ecfdf3 !important; color: #0e7a43 !important; border: 1px solid #c6f0d6 !important; }
-    .single_product .call_now_btn{ background: #fff !important; color: var(--text) !important; border: 1px solid #e4e7ec !important; }
-    .single_product .wa_now_btn i, .single_product .call_now_btn i{ font-size: 16px; }
-    .single_product .wa_now_btn:hover, .single_product .call_now_btn:hover{ transform: translateY(-1px); filter: none; }
-    .single_product .call_now_btn:hover{ border-color: var(--pd-accent) !important; color: var(--pd-accent) !important; }
-
-    /* --- trust strip + delivery --- */
-    .pd-trust{
-        list-style: none; margin: 22px 0 0; padding: 16px 0;
-        display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;
-        border-top: 1px solid var(--pd-line); border-bottom: 1px solid var(--pd-line);
-    }
-    .pd-trust li{
-        display: flex; align-items: center; justify-content: center; gap: 8px; margin: 0;
-        font-size: 13px; font-weight: 600; color: var(--text); text-align: center;
-    }
-    .pd-trust li + li{ border-left: 1px solid var(--pd-line); }
-    .pd-trust i{ color: var(--pd-accent); font-size: 15px; }
-
-    .courier-card{ margin-top: 22px; border: 1px solid var(--pd-line); border-radius: 16px; box-shadow: none; }
-    .courier-card .courier-title{
-        text-align: left; padding: 13px 18px; background: #fafbfc;
-        border-bottom: 1px solid var(--pd-line); font-size: 14px; font-weight: 700;
-    }
-    .courier-card .courier-title i{ color: var(--pd-accent); margin-right: 6px; }
-    .courier-card table, .courier-card table > :not(caption) > *,
-    .courier-card table > :not(caption) > * > *{ border-width: 0 !important; box-shadow: none !important; }
-    .courier-card table td{ padding: 12px 18px !important; font-size: 14px; border-bottom: 1px solid var(--pd-line) !important; background: transparent !important; }
-    .courier-card table tr:last-child td{ border-bottom: 0 !important; }
-    .courier-card table td:last-child{ font-weight: 700; }
-    .product-metas li:hover{ padding-left: 0; }
-
-    /* --- share --- */
+    /* --- kept: share --- */
     .pd-share{ display: flex; align-items: center; flex-wrap: wrap; gap: 12px; margin-top: 20px; }
     .pd-share-label{ font-size: 13px; font-weight: 700; color: var(--text); }
     .pd-share-sep{ width: 1px; height: 20px; background: var(--pd-line); }
@@ -1690,29 +574,7 @@
     .pd-share-btn.is-copy:hover, .pd-share-btn.is-copy.is-done{ background: var(--pd-accent); border-color: var(--pd-accent); color: #fff; }
     /* Messenger's share link only opens the app, so show it on touch devices only */
     @media (hover: hover) and (pointer: fine){ .pd-share-btn.is-msg{ display: none; } }
-
-    /* --- tabs: underline style --- */
-    .woocommerce-tabs.wc-tabs-wrapper{ margin-top: 12px; }
-    .nav.nav-tabs{
-        border: none; border-bottom: 1px solid var(--pd-line); border-radius: 0;
-        background: none; box-shadow: none !important; padding: 0; gap: 30px !important; margin-bottom: 0 !important;
-    }
-    .nav.nav-tabs .nav-item a{
-        padding: 14px 2px; border-radius: 0; background: none !important;
-        font-size: 16px; font-weight: 700; color: var(--muted); overflow: visible;
-    }
-    .nav.nav-tabs .nav-item a:hover{ transform: none; color: var(--text); }
-    .nav-tabs .nav-link.active{ color: var(--text) !important; background: none !important; box-shadow: none !important; animation: none; }
-    .nav-tabs .nav-link.active::after{
-        content: ""; position: absolute; left: 0; right: 0; bottom: -1px; height: 3px;
-        border-radius: 3px 3px 0 0; background: var(--pd-accent);
-    }
-    .pd-tab-count{
-        display: inline-block; margin-left: 4px; padding: 2px 8px; border-radius: 999px;
-        background: #f2f4f7; color: var(--muted); font-size: 12px; font-weight: 700; vertical-align: middle;
-    }
-    .woocommerce-tabs .tab-content{ padding: 30px; margin-top: 22px; }
-    .product-desc-wrapper .title,
+    /* --- kept: reviewref --- */
     .pro-desc-commnet-area .title{ font-size: 20px; font-weight: 700; margin-bottom: 0; }
     .single-desc{ font-size: 15px; line-height: 1.8; }
     .view-more-btn{ border-width: 1.5px; }
@@ -1721,28 +583,16 @@
     #reviewFormCard{ scroll-margin-top: 100px; }
     .review-login-box{ text-align: center; padding: 18px 8px 8px; }
     /* the tab content forces one text colour on everything inside it, icons included */
-    .woocommerce-tabs .tab-content .review-login-box > i{ font-size: 40px; color: var(--pd-accent) !important; }
+    .review-login-box > i{ font-size: 40px; color: var(--pd-accent) !important; }
     .woocommerce-tabs .tab-content .review-login-box .submit-review-btn,
-    .woocommerce-tabs .tab-content .review-login-box .submit-review-btn i{ color: var(--common-btn-text) !important; }
+    .woocommerce-tabs .tab-content .review-login-box .submit-review-btn i{ color: #fff !important; }
     .review-login-title{ margin: 12px 0 4px; font-size: 17px; font-weight: 700; color: var(--text); }
     .review-login-text{ margin: 0 auto 16px; max-width: 360px; font-size: 14px; line-height: 1.6; color: var(--muted) !important; }
     .review-login-box .submit-review-btn{ display: inline-flex; width: auto; text-decoration: none; }
     .premium-input-group input:focus, .premium-input-group textarea:focus{
         border-color: var(--pd-accent); box-shadow: 0 0 0 4px var(--pd-accent-ring); transform: none;
     }
-
-    /* --- related products --- */
-    .axil-product-area .section-title-wrapper{ margin-bottom: 22px !important; }
-    .pd-section-kicker{
-        display: block; margin-bottom: 4px;
-        font-size: 12px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--pd-accent);
-    }
-    .axil-product-area .section-title-wrapper h2{
-        display: block; margin: 0; animation: none;
-        font-size: 28px; font-weight: 700; letter-spacing: -.015em; color: var(--text);
-    }
-    .axil-product-area .section-title-wrapper h2::after{ display: none; }
-
+    /* --- kept: buybar --- */
     /* --- sticky buy bar: small screens only; replaces the site's floating bottom nav on this page --- */
     .pd-buy-bar{ display: none; }
     @media (max-width: 767.98px){
@@ -1781,482 +631,692 @@
         .pd-buy-bar__btn.is-cart span{ display: none; }
     }
 
-    @media (max-width: 991px){
-        .details_right{ padding: 24px 22px; }
-        .product-cart h1.name{ font-size: 24px; }
+    /* ==========================================================================
+       PRODUCT PAGE LAYOUT (.pdx): gallery with zoom on the left, buying panel on
+       the right, then tabs beside related products. Accent = --pd-accent.
+       ========================================================================== */
+    .pdx{ --pdx-ink: #111827; --pdx-muted: #6b7280; --pdx-line: #e8eaee; --pdx-soft: #f6f7f9;
+          --pdx-accent-soft: color-mix(in srgb, var(--pd-accent) 7%, #fff);
+          --pdx-accent-dark: color-mix(in srgb, var(--pd-accent) 82%, #000);
+          background: #fff; padding-bottom: 40px; color: var(--pdx-ink); }
+    @media (min-width: 1400px){ .pdx .container{ max-width: 1360px; } }
+    body{ background: #fff; }
+
+    /* breadcrumb */
+    .pdx-crumbs{ display: flex; flex-wrap: nowrap; align-items: center; gap: 8px; margin: 0; padding: 16px 0 14px; list-style: none; font-size: 14px; color: var(--pdx-muted); min-width: 0; }
+    .pdx-crumbs li{ white-space: nowrap; flex: 0 0 auto; }
+    .pdx-crumbs li + li::before{ content: "\203A"; margin-right: 8px; color: #9ca3af; }
+    .pdx-crumbs a{ color: var(--pdx-muted); text-decoration: none; }
+    .pdx-crumbs a:hover{ color: var(--pd-accent); }
+    .pdx-crumbs li.is-current{ flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; color: var(--pdx-ink); }
+
+    .pdx-top{ display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 32px; align-items: start; }
+
+    /* ---------- gallery ---------- */
+    .pdx-gallery{ display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: 14px; position: sticky; top: 150px; }
+    /* desktop: the rail is as tall as the main picture (set by the script) and scrolls */
+    .pdx-thumbs{ display: flex; flex-direction: column; gap: 10px; max-height: var(--pdx-stage-h, 560px); overflow-y: auto; scrollbar-width: none; padding: 2px; }
+    .pdx-thumbs::-webkit-scrollbar{ display: none; }
+    .pdx-thumb{
+        position: relative; flex: 0 0 auto; width: 100%; aspect-ratio: 1; padding: 0; overflow: hidden; cursor: pointer;
+        border: 1.5px solid var(--pdx-line); border-radius: 10px; background: var(--pdx-soft); transition: border-color .2s ease, box-shadow .2s ease;
     }
-    @media (max-width: 575.98px){
-        .details_right{ padding: 20px 16px; border-radius: 18px; }
-        .single-product-thumbnail-wrap, .woocommerce-tabs .tab-content{ border-radius: 18px; }
-        .product-cart h1.name{ font-size: 21px; margin: 6px 0 10px; }
-        .current-price-product{ font-size: 28px; }
-        .details-price{ margin: 14px 0 !important; padding: 14px 0; }
-        .details-price del{ font-size: 16px; }
-        #variantBox label{ font-size: 13.5px !important; margin-bottom: 8px !important; }
-        .pd-price-label{ font-size: 13px; }
-        #variantBox .size{ padding: 7px 14px !important; font-size: 13px !important; border-radius: 999px !important; }
-        .single_product{ gap: 10px; }
-        .single_product .qty-cart{ flex: 0 0 116px; }
-        .qty-cart .quantity{ width: 116px; height: 48px; margin: 0; }
-        .quantity .minus, .quantity .plus{ width: 38px; height: 45px; line-height: 45px; }
-        .single_product .add_cart_btn{ flex: 1 1 0; width: auto !important; height: 48px !important; font-size: 14px !important; }
-        .single_product .order_now_btn{ height: 52px !important; font-size: 15px !important; padding: 0 12px !important; }
-        .single_product .wa_now_btn, .single_product .call_now_btn{ flex: 1 1 0; width: auto !important; height: 44px !important; font-size: 13.5px; }
-        .pd-trust{ gap: 4px; padding: 14px 0; }
-        .pd-trust li{ flex-direction: column; gap: 6px; font-size: 12px; }
-        .nav.nav-tabs{ gap: 22px !important; }
-        .nav.nav-tabs .nav-item a{ padding: 12px 2px; font-size: 15px; border-radius: 0; }
-        .woocommerce-tabs .tab-content{ padding: 20px 16px; margin-top: 16px; }
-        .axil-product-area .section-title-wrapper h2{ font-size: 22px; }
+    .pdx-thumb img{ width: 100%; height: 100%; object-fit: cover; display: block; }
+    .pdx-thumb:hover{ border-color: color-mix(in srgb, var(--pd-accent) 45%, var(--pdx-line)); }
+    .pdx-thumb.is-active{ border: 2px solid var(--pd-accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--pd-accent) 14%, transparent); }
+    .pdx-thumb .pdx-play{ position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(17,24,39,.35); color: #fff; font-size: 18px; }
+    .pdx-thumb-out{ position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,.6); }
+    .pdx-thumb-out span{ font-size: 9px; font-weight: 800; text-transform: uppercase; color: #fff; background: #ef4444; padding: 2px 5px; border-radius: 4px; transform: rotate(-12deg); }
+
+    .pdx-stage{
+        position: relative; aspect-ratio: 1; overflow: hidden; border-radius: 14px; background: var(--pdx-soft);
+        border: 1px solid var(--pdx-line); touch-action: pan-y; user-select: none;
+    }
+    .pdx-slide{ position: absolute; inset: 0; opacity: 0; visibility: hidden; transition: opacity .35s ease, visibility .35s; }
+    .pdx-slide.is-active{ opacity: 1; visibility: visible; }
+    .pdx-slide img{
+        width: 100%; height: 100%; object-fit: contain; display: block; cursor: zoom-in;
+        transition: transform .25s ease; transform-origin: 50% 50%; -webkit-user-drag: none;
+    }
+    .pdx-slide.is-zooming img{ transform: scale(2.3); transition: transform .12s ease-out; }
+
+    /* High-quality look on every product photo of this page, same as the product cards. */
+    .pdx-slide img, .pdx-thumb img, .pdx-lb-img img, .pdx-opt-img{
+        filter: contrast(1.06) saturate(1.12) brightness(1.02);
+        image-rendering: high-quality;
+        backface-visibility: hidden; -webkit-backface-visibility: hidden;
+    }
+
+    .pdx-slide.is-video iframe{ width: 100%; height: 100%; border: 0; }
+
+    .pdx-badges{ position: absolute; top: 14px; left: 14px; z-index: 3; display: flex; flex-direction: column; gap: 6px; align-items: flex-start; pointer-events: none; }
+    .pdx-badge{ padding: 5px 12px; border-radius: 6px; font-size: 13px; font-weight: 700; color: #fff; background: var(--pd-accent); box-shadow: 0 6px 14px -6px rgba(0,0,0,.35); }
+    .pdx-badge.is-dark{ background: #111827; }
+
+    .pdx-stage-btn{
+        position: absolute; z-index: 4; width: 44px; height: 44px; border-radius: 50%; border: 0; cursor: pointer;
+        display: flex; align-items: center; justify-content: center; background: #fff; color: var(--pdx-ink);
+        box-shadow: 0 6px 18px -6px rgba(15,23,42,.35); transition: background .2s ease, color .2s ease, opacity .2s ease, transform .2s ease;
+    }
+    .pdx-stage-btn:hover{ background: var(--pd-accent); color: #fff; }
+    .pdx-zoom-btn{ right: 14px; bottom: 14px; font-size: 17px; }
+    .pdx-nav-btn{ top: 50%; transform: translateY(-50%); opacity: 0; font-size: 14px; }
+    .pdx-nav-btn.is-prev{ left: 12px; } .pdx-nav-btn.is-next{ right: 12px; }
+    .pdx-stage:hover .pdx-nav-btn{ opacity: 1; }
+    .pdx-stage.is-zoomed-in .pdx-nav-btn, .pdx-stage.is-zoomed-in .pdx-badges{ opacity: 0; }
+    .pdx-dots{ display: none; }
+
+    .pdx-out-overlay{ position: absolute; inset: 0; z-index: 2; display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,.55); pointer-events: none; }
+    .pdx-out-overlay span{ padding: 8px 22px; border-radius: 8px; border: 3px solid #ef4444; color: #ef4444; font-size: 22px; font-weight: 900; text-transform: uppercase; letter-spacing: .06em; transform: rotate(-10deg); background: rgba(255,255,255,.85); }
+
+    /* lightbox */
+    .pdx-lightbox{ position: fixed; inset: 0; z-index: 100000; display: none; background: rgba(10,12,18,.94); }
+    .pdx-lightbox.is-open{ display: block; }
+    .pdx-lb-img{ position: absolute; inset: 56px 60px; display: flex; align-items: center; justify-content: center; overflow: hidden; touch-action: none; }
+    .pdx-lb-img img{ max-width: 100%; max-height: 100%; object-fit: contain; cursor: zoom-in; transition: transform .2s ease; transform-origin: 50% 50%; -webkit-user-drag: none; user-select: none; }
+    .pdx-lb-img.is-zoomed img{ cursor: grab; transform: scale(2.5); transition: none; }
+    .pdx-lb-btn{ position: absolute; z-index: 2; width: 46px; height: 46px; border: 0; border-radius: 50%; background: rgba(255,255,255,.12); color: #fff; font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+    .pdx-lb-btn:hover{ background: var(--pd-accent); }
+    .pdx-lb-close{ top: 12px; right: 14px; }
+    .pdx-lb-prev{ left: 10px; top: 50%; transform: translateY(-50%); }
+    .pdx-lb-next{ right: 10px; top: 50%; transform: translateY(-50%); }
+    .pdx-lb-count{ position: absolute; top: 22px; left: 20px; color: rgba(255,255,255,.8); font-size: 14px; font-weight: 600; }
+
+    /* ---------- info column ---------- */
+    .pdx-chips{ display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
+    .pdx-chip{
+        display: inline-flex; align-items: center; gap: 7px; padding: 7px 13px; border-radius: 8px;
+        border: 1px solid var(--pdx-line); background: #fff; font-size: 13.5px; font-weight: 500; color: var(--pdx-ink); text-decoration: none !important;
+    }
+    .pdx-chip i{ color: var(--pd-accent); font-size: 14px; }
+    a.pdx-chip:hover{ border-color: var(--pd-accent); color: var(--pd-accent); }
+    .pdx-title{ margin: 0 0 10px; font-size: 32px; font-weight: 800; line-height: 1.2; letter-spacing: -.015em; color: var(--pdx-ink); }
+    .pdx-meta{ display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; font-size: 15px; color: #374151; }
+    .pdx-stars{ color: #f59e0b; font-size: 15px; letter-spacing: 1px; }
+    .pdx-stars .far{ color: #d1d5db; }
+    .pdx-meta .all-reviews-button{ color: var(--pdx-muted); text-decoration: none; font-size: 14px; }
+    .pdx-meta .all-reviews-button:hover{ color: var(--pd-accent); text-decoration: underline; }
+    .pdx-meta-sep{ width: 1px; height: 16px; background: #d1d5db; }
+    .pdx-short{ margin-top: 14px; font-size: 16px; line-height: 1.65; color: #374151; }
+    .pdx-short p{ margin: 0 0 6px; } .pdx-short p:last-child{ margin: 0; }
+
+    .pdx-pricebox{
+        display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 18px; align-items: center;
+        margin-top: 18px; padding: 16px 18px; border-radius: 12px; background: var(--pdx-soft); border: 1px solid var(--pdx-line);
+    }
+    .pdx-price{ padding-right: 18px; border-right: 1px solid #dcdfe4; }
+    .pdx-price-label{ display: block; font-size: 15px; font-weight: 600; color: var(--pdx-ink); margin-bottom: 2px; }
+    .pdx-price-row{ display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; }
+    .pdx-price-now{ font-size: 34px; font-weight: 800; line-height: 1.1; color: var(--pd-accent); white-space: nowrap; }
+    .pdx-price-now.price-flash{ animation: pdxFlash .6s ease; }
+    @keyframes pdxFlash{ 0%{ transform: scale(1); } 40%{ transform: scale(1.06); } 100%{ transform: scale(1); } }
+    .pdx-price-row del{ font-size: 17px; color: #9ca3af; }
+    .pdx-save{ padding: 3px 9px; border-radius: 999px; background: #dcfce7; color: #15803d; font-size: 12.5px; font-weight: 700; }
+    .pdx-price-note{ display: block; margin-top: 3px; font-size: 13.5px; color: var(--pdx-muted); }
+    .pdx-facts{ display: grid; grid-template-columns: repeat(auto-fit, minmax(118px, 1fr)); gap: 12px; }
+    .pdx-fact{ display: flex; align-items: center; gap: 10px; min-width: 0; }
+    .pdx-fact > i{ flex: 0 0 auto; width: 38px; height: 38px; border-radius: 10px; display: flex; align-items: center; justify-content: center; background: #fff; border: 1px solid var(--pdx-line); color: var(--pd-accent); font-size: 16px; }
+    .pdx-fact small{ display: block; font-size: 12px; color: var(--pdx-muted); line-height: 1.2; }
+    .pdx-fact strong{ display: block; font-size: 14.5px; font-weight: 700; color: var(--pdx-ink); line-height: 1.3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .pdx-fact strong.is-low{ color: #ea580c; }
+    .pdx-fact strong.is-out{ color: #dc2626; }
+
+    .pdx-alert{ display: flex; align-items: center; gap: 10px; margin-top: 14px; padding: 11px 14px; border-radius: 10px; background: #fef2f2; color: #b91c1c; font-size: 14px; font-weight: 600; }
+
+    /* variants */
+    .pdx-variants{ display: flex; flex-direction: column; gap: 16px; margin-top: 20px; }
+    .pdx-vlabel{ display: block; margin-bottom: 9px; font-size: 15px; font-weight: 700; color: var(--pdx-ink); }
+    .pdx-vlabel .pd-variant-picked{ font-weight: 500; color: var(--pdx-muted); margin-left: 4px; }
+    .pdx-opts{ display: flex; flex-wrap: wrap; gap: 9px; }
+    .pdx-opt{
+        position: relative; display: inline-flex; align-items: center; gap: 9px; min-height: 42px; padding: 6px 16px;
+        border: 1.5px solid var(--pdx-line); border-radius: 10px; background: #fff; cursor: pointer; user-select: none;
+        font-size: 14.5px; font-weight: 600; color: var(--pdx-ink); transition: border-color .2s ease, box-shadow .2s ease, background .2s ease;
+    }
+    .pdx-opt:hover{ border-color: color-mix(in srgb, var(--pd-accent) 50%, var(--pdx-line)); }
+    .pdx-opt.active{ border-color: var(--pd-accent); background: var(--pdx-accent-soft); color: var(--pd-accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--pd-accent) 12%, transparent); }
+    .pdx-opt.active::after{
+        content: "\f00c"; font-family: "Font Awesome 5 Free"; font-weight: 900; position: absolute; top: -7px; right: -7px;
+        width: 18px; height: 18px; border-radius: 50%; background: var(--pd-accent); color: #fff; font-size: 9px;
+        display: flex; align-items: center; justify-content: center; border: 2px solid #fff;
+    }
+    .pdx-opt.has-img{ padding: 5px 14px 5px 5px; }
+    .pdx-opt-img{ width: 40px; height: 40px; border-radius: 7px; object-fit: cover; background: var(--pdx-soft); }
+    .pdx-opt-swatch{ width: 20px; height: 20px; border-radius: 50%; border: 1px solid rgba(0,0,0,.12); }
+    .pdx-opt.is-out{ color: #9ca3af; background: repeating-linear-gradient(135deg, #fff, #fff 6px, #f6f7f9 6px, #f6f7f9 12px); }
+    .pdx-opt.is-out .pdx-opt-name{ text-decoration: line-through; }
+    .pdx-opt.is-out .pdx-opt-img{ opacity: .45; filter: grayscale(1); }
+    .pdx-opt.is-out.active{ color: #9ca3af; }
+
+    /* quantity + note */
+    .pdx-qty-row{ display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 16px; align-items: end; margin-top: 20px; }
+    .pdx-qty-label{ display: block; margin-bottom: 8px; font-size: 15px; font-weight: 700; }
+    .pdx-qty{ display: inline-flex; align-items: center; height: 48px; border: 1.5px solid var(--pdx-line); border-radius: 10px; overflow: hidden; background: #fff; }
+    .pdx-qty button{ width: 46px; height: 100%; border: 0; background: var(--pdx-soft); color: var(--pdx-ink); font-size: 20px; cursor: pointer; transition: background .2s ease, color .2s ease; }
+    .pdx-qty button:hover{ background: var(--pd-accent); color: #fff; }
+    /* the theme pads every input on its sides, which squeezed the number out of view */
+    .pdx-qty input{
+        width: 76px; min-width: 76px; height: 100% !important; padding: 0 4px !important; margin: 0; border: 0 !important;
+        box-sizing: border-box; text-align: center; font-size: 17px; font-weight: 700; line-height: 1;
+        color: var(--pdx-ink); background: #fff; box-shadow: none !important; -moz-appearance: textfield;
+    }
+    .pdx-qty input::-webkit-outer-spin-button, .pdx-qty input::-webkit-inner-spin-button{ -webkit-appearance: none; margin: 0; }
+    .pdx-qty input.qty-bump{ animation: pdxFlash .3s ease; }
+    .pdx-qty.is-disabled{ opacity: .5; pointer-events: none; }
+    .pdx-qty-note{ display: flex; align-items: center; gap: 12px; padding: 10px 14px; border-radius: 10px; background: var(--pdx-accent-soft); border: 1px solid color-mix(in srgb, var(--pd-accent) 14%, transparent); font-size: 13.5px; color: #374151; line-height: 1.4; }
+    .pdx-qty-note i{ font-size: 20px; color: var(--pd-accent); }
+    .pdx-qty-note strong{ display: block; color: var(--pd-accent); font-weight: 700; }
+
+    /* buttons */
+    .pdx-actions{ display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-top: 20px; }
+    .pdx-btn{
+        display: inline-flex; align-items: center; justify-content: center; gap: 10px; height: 54px; padding: 0 16px;
+        border-radius: 10px; border: 2px solid var(--pd-accent); font-size: 17px; font-weight: 700; cursor: pointer;
+        text-decoration: none !important; white-space: nowrap; transition: background .2s ease, color .2s ease, transform .15s ease, box-shadow .2s ease;
+    }
+    .pdx-btn i{ font-size: 18px; }
+    .pdx-btn.is-solid{ background: var(--pd-accent); color: #fff !important; }
+    .pdx-btn.is-solid:hover{ background: var(--pdx-accent-dark); border-color: var(--pdx-accent-dark); box-shadow: 0 10px 22px -10px var(--pd-accent); }
+    .pdx-btn.is-outline{ background: #fff; color: var(--pd-accent) !important; }
+    .pdx-btn.is-outline:hover{ background: var(--pdx-accent-soft); }
+    .pdx-btn.is-wa{ border-color: #16a34a; color: #16a34a !important; }
+    .pdx-btn.is-wa:hover{ background: #f0fdf4; }
+    .pdx-btn.is-dark{ border-color: #111827; color: #111827 !important; }
+    .pdx-btn.is-dark:hover{ background: #f3f4f6; }
+    .pdx-btn:active{ transform: scale(.98); }
+    .pdx-btn:disabled{ opacity: .5; cursor: not-allowed; filter: grayscale(.6); box-shadow: none; }
+    .pdx-btn.cart-success{ animation: pdxFlash .5s ease; }
+    .pdx-actions .is-span{ grid-column: 1 / -1; }
+
+    .pdx .notify-me-wrap{ margin-top: 12px; }
+
+    /* trust row */
+    .pdx-trust{ display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin: 22px 0 0; padding: 16px 0; border-top: 1px solid var(--pdx-line); border-bottom: 1px solid var(--pdx-line); list-style: none; }
+    .pdx-trust li{ display: flex; align-items: center; gap: 10px; min-width: 0; }
+    .pdx-trust i{ flex: 0 0 auto; font-size: 24px; color: var(--pd-accent); }
+    .pdx-trust strong{ display: block; font-size: 14px; font-weight: 700; line-height: 1.25; }
+    .pdx-trust small{ display: block; font-size: 12.5px; color: var(--pdx-muted); line-height: 1.3; }
+    .pdx .pd-share{ margin-top: 16px; }
+
+    /* ---------- bottom: tabs + related ---------- */
+    .pdx-bottom{ display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 24px; align-items: start; margin-top: 40px; }
+    .pdx-card{ border: 1px solid var(--pdx-line); border-radius: 14px; background: #fff; }
+    .pdx-tabs{ display: flex; gap: 6px; margin: 0; padding: 0 12px; list-style: none; border-bottom: 1px solid var(--pdx-line); overflow-x: auto; scrollbar-width: none; }
+    .pdx-tabs::-webkit-scrollbar{ display: none; }
+    .pdx-tabs .nav-link{
+        position: relative; display: block; padding: 15px 14px; border: 0; background: none !important; white-space: nowrap;
+        font-size: 15.5px; font-weight: 600; color: #374151 !important; text-decoration: none;
+    }
+    .pdx-tabs .nav-link::after{ content: ""; position: absolute; left: 10px; right: 10px; bottom: -1px; height: 3px; border-radius: 3px 3px 0 0; background: var(--pd-accent); transform: scaleX(0); transition: transform .25s ease; }
+    .pdx-tabs .nav-link:hover{ color: var(--pd-accent) !important; }
+    .pdx-tabs .nav-link.active{ color: var(--pd-accent) !important; }
+    .pdx-tabs .nav-link.active::after{ transform: scaleX(1); }
+    .pdx-tabs .pd-tab-count{ margin-left: 2px; color: inherit; }
+    .pdx-pane{ padding: 22px 24px 26px; }
+    .pdx-pane-title{ margin: 0 0 12px; font-size: 22px; font-weight: 800; color: var(--pdx-ink); }
+    .pdx .single-desc{ font-size: 15px; line-height: 1.75; color: #374151; }
+    .pdx .single-desc img{ max-width: 100%; height: auto; }
+    .pdx-features{ margin: 16px 0 0; padding: 0; list-style: none; }
+    .pdx-features ul{ margin: 0; padding: 0; list-style: none; }
+    .pdx-features li{ position: relative; padding: 4px 0 4px 30px; font-size: 15px; color: #374151; line-height: 1.55; }
+    .pdx-features li::before{
+        content: "\f00c"; font-family: "Font Awesome 5 Free"; font-weight: 900; position: absolute; left: 0; top: 6px;
+        width: 20px; height: 20px; border-radius: 50%; background: var(--pd-accent); color: #fff; font-size: 10px;
+        display: flex; align-items: center; justify-content: center;
+    }
+    .pdx-ship-list{ margin: 16px 0 0; padding: 0; list-style: none; }
+    .pdx-ship-list li{ display: flex; gap: 12px; align-items: flex-start; padding: 10px 0; border-top: 1px dashed var(--pdx-line); font-size: 14.5px; color: #374151; }
+    .pdx-ship-list li i{ margin-top: 3px; color: var(--pd-accent); width: 18px; text-align: center; }
+    .pdx .reviews-wrapper .row > [class*=col]{ flex: 0 0 100%; max-width: 100%; }
+
+    .pdx-related{ padding: 18px 18px 20px; }
+    .pdx-related-head{ display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 14px; }
+    .pdx-related-head h2{ margin: 0; font-size: 22px; font-weight: 800; color: var(--pdx-ink); }
+    .pdx-related-head a{ font-size: 14.5px; font-weight: 700; color: var(--pd-accent); text-decoration: none; white-space: nowrap; }
+    .pdx-related-head a i{ font-size: 12px; margin-left: 3px; }
+    .pdx-related-grid{ display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+    @media (max-width: 1399.98px){ .pdx-related-grid{ grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+    /* ---------- responsive ---------- */
+    @media (max-width: 1199.98px){
+        .pdx-top{ gap: 24px; }
+        .pdx-title{ font-size: 27px; }
+        .pdx-pricebox{ grid-template-columns: 1fr; }
+        .pdx-price{ padding: 0 0 14px; border-right: 0; border-bottom: 1px solid #dcdfe4; }
+        .pdx-trust{ grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+    @media (max-width: 991.98px){
+        .pdx-top, .pdx-bottom{ grid-template-columns: 1fr; }
+        .pdx-gallery{ position: static; grid-template-columns: 1fr; }
+        .pdx-thumbs{ order: 2; flex-direction: row; max-height: none; overflow-x: auto; overflow-y: hidden; }
+        .pdx-thumb{ width: 72px; }
+        .pdx-nav-btn{ opacity: 1; width: 38px; height: 38px; }
+        .pdx-related-grid{ grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    }
+    @media (max-width: 767.98px){
+        .pdx-crumbs{ font-size: 13px; padding: 12px 0 10px; }
+        .pdx-crumbs li:not(:first-child):not(.is-current){ max-width: 110px; overflow: hidden; text-overflow: ellipsis; }
+        .pdx-title{ font-size: 22px; }
+        .pdx-meta-sep{ display: none; }
+        .pdx-stage{ border-radius: 12px; }
+        .pdx-nav-btn{ display: none; }
+        .pdx-dots{ display: flex; position: absolute; left: 0; right: 0; bottom: 12px; z-index: 3; justify-content: center; gap: 6px; pointer-events: none; }
+        .pdx-dots span{ width: 7px; height: 7px; border-radius: 7px; background: rgba(17,24,39,.25); transition: width .25s ease, background .25s ease; }
+        .pdx-dots span.is-active{ width: 20px; background: var(--pd-accent); }
+        .pdx-zoom-btn{ width: 38px; height: 38px; font-size: 15px; right: 10px; bottom: 10px; }
+        .pdx-thumb{ width: 62px; border-radius: 8px; }
+        .pdx-chips{ gap: 6px; }
+        .pdx-chip{ padding: 5px 10px; font-size: 12.5px; }
+        .pdx-short{ font-size: 14.5px; }
+        .pdx-price-now{ font-size: 28px; }
+        .pdx-facts{ grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .pdx-qty-row{ grid-template-columns: 1fr; gap: 12px; }
+        .pdx-btn{ height: 50px; font-size: 15px; padding: 0 10px; gap: 8px; }
+        .pdx-btn i{ font-size: 16px; }
+        .pdx-trust strong{ font-size: 13px; } .pdx-trust small{ font-size: 11.5px; } .pdx-trust i{ font-size: 20px; }
+        .pdx-pane{ padding: 18px 16px 20px; }
+        .pdx-pane-title{ font-size: 19px; }
+        .pdx-tabs .nav-link{ padding: 13px 10px; font-size: 14.5px; }
+        .pdx-related-grid{ grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+        .pdx-lb-img{ inset: 56px 0 20px; }
+        .pdx-lb-prev, .pdx-lb-next{ display: none; }
+    }
+    @media (prefers-reduced-motion: reduce){
+        .pdx-slide, .pdx-slide img, .pdx-btn, .pdx-opt{ transition: none; }
     }
 </style>
 @endpush
 
 @section('content')
-<main class="main-wrapper">
-    <div class="axil-single-product-area p pb--0 bg-color-white">
-        <div class="single-product-thumb mb--5">
-            @php
-                $crumbCategory = $singleProduct->category;
-                $crumbSubCategory = $singleProduct->sub_category_id
-                    ? \App\Models\Category::find($singleProduct->sub_category_id)
-                    : null;
-            @endphp
-            <div class="container">
-                <nav class="pd-breadcrumb" aria-label="Breadcrumb">
-                    <ol>
-                        <li><a href="{{ route('front.home') }}"><i class="fas fa-home"></i> Home</a></li>
-                        @if($crumbCategory && $crumbCategory->url)
-                            <li><a href="{{ route('front.category', [$crumbCategory->url]) }}">{{ $crumbCategory->name }}</a></li>
+@php
+    $crumbCategory    = $singleProduct->category;
+    $crumbSubCategory = $singleProduct->sub_category_id ? \App\Models\Category::find($singleProduct->sub_category_id) : null;
+
+    // Gallery: the main picture first, then the extra pictures. A variant with its own
+    // picture swaps it into the first slide (see applyVariation()).
+    $mainImage = getImage('products', $singleProduct->image);
+    $gallery   = collect([$mainImage])->concat($singleProduct->images->map(fn ($im) => getImage('products', $im->image)))->values();
+    $hasVideo  = $singleProduct->video_link && $singleProduct->is_video_active == 1;
+
+    // Colour chips show the variant's own picture when it has one, else a swatch when the colour code is a hex value.
+    $colorThumbs = [];
+    $colorHex    = [];
+    foreach ($singleProduct->variations as $v) {
+        $cid = (int) ($v->color_id ?? 0);
+        if ($cid && empty($colorThumbs[$cid]) && $v->image) $colorThumbs[$cid] = getImage('products', $v->image);
+        $code = (string) optional($v->color)->code;
+        if ($cid && preg_match('/^#([0-9a-f]{3}|[0-9a-f]{6})$/i', $code)) $colorHex[$cid] = $code;
+    }
+
+    $isNew      = $singleProduct->created_at && $singleProduct->created_at->gt(now()->subDays(30));
+    $isWholesale = $minOrderQty > 1;
+    $perVariant = $singleProduct->type === 'variable' ? ' per variant' : '';
+    $relatedUrl = $crumbCategory && $crumbCategory->url ? route('front.category', [$crumbCategory->url]) : route('front.products.index');
+@endphp
+<main class="main-wrapper pdx">
+<div class="container">
+
+    <nav aria-label="Breadcrumb">
+        <ol class="pdx-crumbs">
+            <li><a href="{{ route('front.home') }}">Home</a></li>
+            @if($crumbCategory && $crumbCategory->url)
+                <li><a href="{{ route('front.category', [$crumbCategory->url]) }}">{{ $crumbCategory->name }}</a></li>
+            @endif
+            @if($crumbSubCategory && $crumbSubCategory->url)
+                <li><a href="{{ route('front.category', [$crumbSubCategory->url]) }}">{{ $crumbSubCategory->name }}</a></li>
+            @endif
+            <li class="is-current" aria-current="page" title="{{ $singleProduct->name }}">{{ $singleProduct->name }}</li>
+        </ol>
+    </nav>
+
+    <div class="pdx-top">
+
+        {{-- ===== GALLERY ===== --}}
+        <div class="pdx-gallery" id="pdxGallery">
+            <div class="pdx-thumbs" role="tablist" aria-label="Product pictures">
+                @php $slideNo = 0; @endphp
+                @if($hasVideo)
+                    <button type="button" class="pdx-thumb is-active" data-slide="{{ $slideNo++ }}" aria-label="Product video">
+                        <img src="{{ $mainImage }}" alt="" id="video-thumb-image">
+                        <span class="pdx-play"><i class="fas fa-play"></i></span>
+                    </button>
+                @endif
+                @foreach($gallery as $i => $src)
+                    <button type="button" class="pdx-thumb {{ !$hasVideo && $i === 0 ? 'is-active' : '' }}" data-slide="{{ $slideNo++ }}" aria-label="Picture {{ $i + 1 }}">
+                        <img src="{{ $src }}" alt="" @if($i === 0) id="thumb-image" @else loading="lazy" @endif>
+                        @if($i === 0)
+                            <span class="pdx-thumb-out" id="pdThumbStockOut" style="{{ $inStock ? 'display:none;' : '' }}"><span>Out</span></span>
                         @endif
-                        @if($crumbSubCategory && $crumbSubCategory->url)
-                            <li><a href="{{ route('front.category', [$crumbSubCategory->url]) }}">{{ $crumbSubCategory->name }}</a></li>
-                        @endif
-                        <li class="is-current" aria-current="page" title="{{ $singleProduct->name }}">{{ $singleProduct->name }}</li>
-                    </ol>
-                </nav>
+                    </button>
+                @endforeach
             </div>
-            <div class="container mt-2 mobile_show">
-                <div class="row">
-                    <div class="col-lg-6 mb--10">
-                        <div class="row mx_0">
-                            <div class="col-lg-10 order-lg-2">
-                                <div class="single-product-thumbnail-wrap zoom-gallery overflow-hidden">
-                                    <div class="single-product-thumbnail product-large-thumbnail-3 img-section axil-product">
-                                        
-                                        @if($singleProduct->video_link && $singleProduct->is_video_active == 1)
-                                            <div class="thumbnail h-100 overflow-hidden video-slide">
-                                                @php
-                                                    $video_iframe = $singleProduct->video_link;
-                                                    $video_iframe = preg_replace_callback('/src="([^"]+)"/', function($m) {
-                                                        $url = $m[1];
-                                                        $sep = strpos($url, '?') !== false ? '&' : '?';
-                                                        return 'src="' . $url . $sep . 'autoplay=1&mute=1"';
-                                                    }, $video_iframe);
-                                                @endphp
-                                                {!! str_replace(['<iframe', 'width=', 'height='], ['<iframe allow="autoplay; encrypted-media" style="width:100%; height:100%; border:none;"', 'data-w=', 'data-h='], $video_iframe) !!}
-                                            </div>
-                                        @endif
 
-                                        <div class="thumbnail h-100 overflow-hidden">
-                                            <a href="{{ getImage('products', $singleProduct->image)}}" class="popup-zoom" id="main-image-link">
-                                                <img src="{{ getImage('products', $singleProduct->image)}}" alt="{{ $singleProduct->name}} Images" id="main-image">
-                                            </a>
-                                        </div>
-                                        @foreach($singleProduct->images as $im)
-                                        <div class="thumbnail h-100 overflow-hidden">
-                                            <a href="{{ getImage('products', $im->image)}}" class="popup-zoom">
-                                                <img src="{{ getImage('products', $im->image)}}" alt="{{ $singleProduct->name}} Images">
-                                            </a>
-                                        </div>
-                                        @endforeach
-                                    </div>
-
-                                    @if($singleProduct->after_discount > 0)
-                                        @php
-                                            $price = $singleProduct->sell_price;
-                                            $afterDiscount = $singleProduct->after_discount;
-                                            $discountAmount = $price - $afterDiscount;
-                                            $discountPercent = $price > 0 ? round(($discountAmount / $price) * 100, 0) : 0;
-                                        @endphp
-                                        <div class="label-block">
-                                            <div class="product-badget" style="background: #0f172a;">
-                                                {{$discountPercent}}% Off
-                                            </div>
-                                        </div>
-                                    @endif
-
-                                    <div class="pd-stock-out-overlay" id="pdStockOutOverlay" style="{{ $inStock ? 'display:none;' : '' }}"><span>Out of Stock</span></div>
-
-                                    <div class="product-quick-view position-view">
-                                        <a href="{{ getImage('products', $singleProduct->image)}}" class="popup-zoom">
-                                            <i class="fas fa-search-plus"></i>
-                                        </a>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="col-lg-2 order-lg-1 px-lg-0">
-                                <div class="product-small-thumb-3 small-thumb-wrapper">
-
-                                    @if($singleProduct->video_link && $singleProduct->is_video_active == 1)
-                                        <div class="small-thumb-img mt-2 video-thumb-container">
-                                            <div class="video-play-icon">
-                                                <i class="fas fa-play" style="margin-left: 3px;"></i>
-                                            </div>
-                                            <img src="{{ getImage('products', $singleProduct->image)}}" alt="Video Thumbnail" style="opacity: 0.7;" id="video-thumb-image">
-                                        </div>
-                                    @endif
-
-                                    <div class="small-thumb-img mt-2">
-                                        <img src="{{ getImage('products', $singleProduct->image)}}" alt="{{ $singleProduct->name}} image" id="thumb-image">
-                                        {{-- Same "Out of Stock" stamp the product cards use, on the variant's own image --}}
-                                        <div class="pd-thumb-stock-out" id="pdThumbStockOut" style="{{ $inStock ? 'display:none;' : '' }}"><span>Out of Stock</span></div>
-                                    </div>
-                                    @foreach($singleProduct->images as $im)
-                                    <div class="small-thumb-img mt-2">
-                                        <img src="{{ getImage('products', $im->image)}}" alt="{{ $singleProduct->name}} image">
-                                    </div>
-                                    @endforeach
-                                </div>
-                            </div>
-                        </div>
+            <div class="pdx-stage" id="pdxStage">
+                @php $slideNo = 0; @endphp
+                @if($hasVideo)
+                    @php
+                        $video_iframe = preg_replace_callback('/src="([^"]+)"/', function ($m) {
+                            $sep = strpos($m[1], '?') !== false ? '&' : '?';
+                            return 'src="' . $m[1] . $sep . 'autoplay=1&mute=1"';
+                        }, $singleProduct->video_link);
+                    @endphp
+                    <div class="pdx-slide is-video is-active" data-slide="{{ $slideNo++ }}">
+                        {!! str_replace(['<iframe', 'width=', 'height='], ['<iframe allow="autoplay; encrypted-media"', 'data-w=', 'data-h='], $video_iframe) !!}
                     </div>
-
-                    <div class="col-sm-6 mb--30">
-                        <div class="details_right">
-                            <div class="product">
-                                <div class="product-cart">
-                                    <div class="pd-eyebrow">
-                                        @if($crumbCategory && $crumbCategory->url)
-                                            <a href="{{ route('front.category', [$crumbCategory->url]) }}">{{ $crumbCategory->name }}</a>
-                                        @elseif($crumbCategory)
-                                            <span>{{ $crumbCategory->name }}</span>
-                                        @endif
-                                    </div>
-                                    <h1 class="name">{{ $singleProduct->name}}</h1>
-                                    @if(!empty($singleProduct->sku))
-                                        <p class="pd-sku"><span>SKU:</span> {{ $singleProduct->sku }}</p>
-                                    @endif
-
-                                    <div class="details-ratting-wrapper">
-                                        <span class="pd-stars" aria-hidden="true">
-                                            @for($st = 1; $st <= 5; $st++)
-                                                <i class="{{ $averageRating >= $st ? 'fas fa-star' : ($averageRating >= $st - 0.5 ? 'fas fa-star-half-alt' : 'far fa-star') }}"></i>
-                                            @endfor
-                                        </span>
-                                        @if($totalReviews > 0)
-                                            <span class="pd-rating-num">{{ number_format($averageRating, 1) }}</span>
-                                            <span class="pd-rating-count">({{ $totalReviews }} {{ $totalReviews === 1 ? 'Review' : 'Reviews' }})</span>
-                                            <a class="all-reviews-button" href="#writeReview">See Reviews</a>
-                                        @else
-                                            <span class="pd-rating-count">No reviews yet</span>
-                                            <a class="all-reviews-button" href="#writeReview">Write a review</a>
-                                        @endif
-                                    </div>
-                                    @if($minOrderQty > 1)
-                                        <div class="pd-wholesale">
-                                            <span class="pd-wholesale-badge"><i class="fas fa-boxes"></i> Wholesale</span>
-                                            <span class="pd-wholesale-text">Minimum order: <strong>{{ $minOrderQty }}</strong> pcs{{ $singleProduct->type === 'variable' ? ' per variant' : '' }}</span>
-                                        </div>
-                                    @endif
-
-                                    <p class="details-price">
-                                        <span class="pd-price-label">Price:</span>
-                                        <span class="current-price-product">{{ biz_format_currency($initFinal) }}</span>
-
-                                        @if($initSavePct > 0)
-                                          <del id="product-old-price" class="price old-price">
-                                              {{ biz_format_currency($initRaw) }}
-                                          </del>
-                                        @else
-                                          <del id="product-old-price" class="price old-price" style="display:none;"></del>
-                                        @endif
-
-                                        <span class="pd-save-badge" id="pdSaveBadge" style="{{ $initSavePct > 0 ? '' : 'display:none;' }}">{{ $fmtOff($initOff) }} {{ $currSymbol }} off</span>
-                                    </p>
-
-                                    <div class="pd-stock-out-alert" id="pdStockOutAlert" style="{{ $inStock ? 'display:none;' : '' }}">
-                                        <i class="fas fa-exclamation-circle"></i>
-                                        <span id="pdStockOutAlertText">{{ $productOut ? 'This product is currently out of stock.' : 'This variant is currently out of stock. Please choose another option.' }}</span>
-                                    </div>
-
-                                    <form action="{{ route('front.carts.storeCart') }}" id="cart_submit" method="POST">
-                                        @csrf
-                                        <input type="hidden" name="product_id" value="{{ $singleProduct->id }}">
-                                        <input type="hidden" name="product_name" value="{{ $singleProduct->name }}">
-                                        <input type="hidden" name="category_id" value="{{ $singleProduct->category->name??'' }}">
-
-                                        <input type="hidden" name="variation_id" id="variation_id" value="{{ $initialVar['id'] ?? '' }}">
-                                        <input type="hidden" name="variant_name" id="variant_name" value="">
-
-                                        <input type="hidden" id="size_value"  name="size_value"  value="">
-                                        <input type="hidden" id="size_value1" name="size_value1" value="">
-                                        <input type="hidden" id="price_val"   name="price_val"   value="{{ $initialVar['price'] ?? ($singleProduct->after_discount > 0 ? $singleProduct->after_discount : $singleProduct->sell_price) }}">
-                                        <input type="hidden" id="price_val1"  name="price_val1"  value="{{ $initialVar['price'] ?? ($singleProduct->after_discount > 0 ? $singleProduct->after_discount : $singleProduct->sell_price) }}">
-
-                                        <input type="hidden" name="action_type" id="input_action_type" value="cart">
-
-                                        @if(!empty($singleProduct->short_description))
-                                            <div class="premium-short-description">
-                                                {!! $singleProduct->short_description !!}
-                                            </div>
-                                        @endif
-
-                                        @if(isset($singleProduct->variations) && $singleProduct->variations->count() > 0 && ($showSize || $showColor))
-                                          <div class="mt-3 d-flex flex-column gap-3" id="variantBox">
-
-                                            @if($showSize)
-                                              <div class="variant-group">
-                                                  <label class="mb-2">Select Your Size: <span class="pd-variant-picked" id="pdPickedSize">{{ $sizesMap[$defaultSizeId] ?? '' }}</span></label>
-                                                  <div class="d-flex flex-wrap gap-2" id="sizeOptions">
-                                                    @foreach($sizesMap as $sid => $slabel)
-                                                      <div class="size size-opt {{ ((int)$sid === (int)$defaultSizeId) ? 'active' : '' }}"
-                                                           data-size-id="{{ (int)$sid }}">
-                                                        {{ $slabel }}
-                                                      </div>
-                                                    @endforeach
-                                                  </div>
-                                              </div>
-                                            @endif
-
-                                            @if($showColor)
-                                              <div class="variant-group">
-                                                  <label class="mb-2">Select Your Color: <span class="pd-variant-picked" id="pdPickedColor">{{ $colorsMap[$defaultColorId] ?? '' }}</span></label>
-                                                  <div class="d-flex flex-wrap gap-2" id="colorOptions">
-                                                    @foreach($colorsMap as $cid => $clabel)
-                                                      <div class="size color-opt {{ ((int)$cid === (int)$defaultColorId) ? 'active' : '' }}"
-                                                           data-color-id="{{ (int)$cid }}">
-                                                        {{ $clabel }}
-                                                      </div>
-                                                    @endforeach
-                                                  </div>
-                                              </div>
-                                            @endif
-
-                                            <span class="size_name mt-2 d-none"></span>
-
-                                            <script>
-                                              window.__VAR_MAP__ = @json($varMap);
-                                              window.__VAR_DEFAULT__ = {
-                                                size_id: {{ (int)$defaultSizeId }},
-                                                color_id: {{ (int)$defaultColorId }},
-                                                default_size_id: {{ (int)$DEFAULT_SIZE_ID }},
-                                                default_color_id: {{ (int)$DEFAULT_COLOR_ID }},
-                                                show_size: {{ $showSize ? 'true' : 'false' }},
-                                                show_color: {{ $showColor ? 'true' : 'false' }},
-                                              };
-                                            </script>
-                                          </div>
-                                        @else
-                                          <script>
-                                            window.__VAR_MAP__ = @json($varMap);
-                                            window.__VAR_DEFAULT__ = {
-                                              size_id: {{ (int)$defaultSizeId }},
-                                              color_id: {{ (int)$defaultColorId }},
-                                              default_size_id: {{ (int)$DEFAULT_SIZE_ID }},
-                                              default_color_id: {{ (int)$DEFAULT_COLOR_ID }},
-                                              show_size: false,
-                                              show_color: false,
-                                            };
-                                          </script>
-                                        @endif
-
-                                        <div class="meta-row pd-meta">
-                                            <div class="product-stock-box">
-                                                <p id="stock-text-element">
-                                                    <span class="pd-status-label">Status:</span>
-                                                    @if($inStock)
-                                                        <strong class="pd-status is-in">Stock In</strong>
-                                                        <span class="pd-stock-left {{ (int)$initialStock <= $lowStockLimit ? 'is-low' : '' }}"><i class="fas fa-{{ (int)$initialStock <= $lowStockLimit ? 'fire' : 'box-open' }}"></i> {{ (int)$initialStock <= $lowStockLimit ? 'Only ' : '' }}<b>{{ (int)$initialStock }}</b> left</span>
-                                                    @else
-                                                        <strong class="pd-status is-out">Stock Out</strong>
-                                                    @endif
-                                                </p>
-                                            </div>
-                                        </div>
-
-                                        <div class="pd-buy">
-                                            <div class="d-flex single_product col-sm-12">
-                                                <div class="qty-cart m-0">
-                                                    <div class="quantity" style="margin: 0;">
-                                                        <span class="minus" aria-label="Decrease quantity">&minus;</span>
-                                                        <input type="number" name="quantity" value="{{ $minOrderQty }}" min="{{ $minOrderQty }}" readonly aria-label="Quantity">
-                                                        <span class="plus" aria-label="Increase quantity">+</span>
-                                                    </div>
-                                                </div>
-                                                @if(!empty($info->whats_num) && ($info->whats_active ?? 0) == 1)
-                                                    <a href="https://wa.me/+88{{ $info->whats_num }}?text={{ urlencode($singleProduct->name.' - এই পণ্যটি সম্পর্কে জানতে চাই।') }}"
-                                                       target="_blank" class="btn wa_now_btn" title="WhatsApp">
-                                                        <i class="fab fa-whatsapp"></i> <span>WhatsApp</span>
-                                                    </a>
-                                                @endif
-                                                @if(!empty($info->owner_phone))
-                                                    <a href="tel:{{ $info->owner_phone }}" class="btn call_now_btn" title="Call Now">
-                                                        <i class="fas fa-phone-alt"></i> <span>Call Now</span>
-                                                    </a>
-                                                @endif
-                                                <button type="submit"
-                                                        class="btn add_cart_btn"
-                                                        {{ $inStock ? '' : 'disabled' }} title="Add to Cart">
-                                                    <i class="fas fa-shopping-cart"></i> <span>Add to Cart</span>
-                                                </button>
-
-                                                <template id="orderNowLabel">@if(($singleProduct->is_free_shipping ?? 0) == 1)<i class="fas fa-shipping-fast"></i> &nbsp; {{ $bangla_text->fshipping_text ?? 'Free Shipping' }}@else<i class="fas fa-shopping-bag"></i> {{ $dt->order_now_text ?? 'Order Now' }}@endif</template>
-                                                <button type="submit"
-                                                        class="btn px-4 order_now_btn order_now_btn_m"
-                                                        {{ $inStock ? '' : 'disabled' }}>
-                                                    @if(!$inStock)
-                                                        Out of Stock
-                                                    @elseif(($singleProduct->is_free_shipping ?? 0) == 1)
-                                                        <i class="fas fa-shipping-fast"></i> &nbsp; {{ $bangla_text->fshipping_text ?? 'Free Shipping' }}
-                                                    @else
-                                                        <i class="fas fa-shopping-bag"></i> {{ $dt->order_now_text ?? 'Order Now' }}
-                                                    @endif
-                                                </button>
-                                            </div>
-                                        </div>
-
-                                        <div class="notify-me-wrap" id="notifyMeWrap" style="{{ $inStock ? 'display:none;' : '' }}">
-                                            <button type="button" class="notify-me-btn" id="notifyMeOpen">
-                                                <i class="far fa-bell"></i> Notify Me When Available
-                                            </button>
-                                        </div>
-
-                                        <ul class="pd-trust">
-                                            <li><i class="fas fa-shipping-fast"></i><span>Fast Delivery</span></li>
-                                            <li><i class="fas fa-shield-alt"></i><span>Safe Payment</span></li>
-                                            <li><i class="fas fa-headset"></i><span>Live Support</span></li>
-                                        </ul>
-
-                                        @if(($singleProduct->is_free_shipping ?? 0) == 0)
-                                            <div class="courier-card" style="font-family: 'Hind Siliguri', sans-serif;">
-                                                <div class="courier-title"><i class="fas fa-truck"></i> {{ $dt->courier_delivery_cost_text ?? 'Delivery Cost' }}</div>
-                                                <table class="table table-bordered border-0">
-                                                    <tbody>
-                                                        @foreach($charges as $charge)
-                                                        <tr>
-                                                            <td>{{ $charge->title }}</td>
-                                                            <td>{{ biz_format_currency($charge->amount) }}</td>
-                                                        </tr>
-                                                        @endforeach
-                                                    </tbody>
-                                                </table>
-                                            </div>
-                                        @else
-                                            <div class="courier-card" style="font-family: 'Hind Siliguri', sans-serif;">
-                                                <div class="courier-title"><i class="fas fa-truck"></i> {{ $dt->courier_delivery_cost_text ?? 'Delivery Cost' }}</div>
-                                                <div class="text-center text-success" style="padding: 14px; font-weight: 800; font-size: 16px;">
-                                                    <i class="fas fa-shipping-fast"></i> {{ $bangla_text->fshipping_text ?? 'Free Shipping' }}
-                                                </div>
-                                            </div>
-                                        @endif
-
-                                        @php
-                                            $shareUrl  = route('front.products.show', ['product' => $singleProduct->slug ?: $singleProduct->id]);
-                                            $shareText = $singleProduct->name;
-                                        @endphp
-                                        <div class="pd-share">
-                                            <button type="button" class="wl-toggle wl-btn {{ inWishlist($singleProduct->id) ? 'is-saved' : '' }}"
-                                                    data-product="{{ $singleProduct->id }}" aria-pressed="{{ inWishlist($singleProduct->id) ? 'true' : 'false' }}">
-                                                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20.5s-7.5-4.4-9.6-9.1C1 8.1 2.9 4.5 6.5 4.5c2 0 3.6 1 4.6 2.5.3.4.6.4.9 0 1-1.5 2.6-2.5 4.6-2.5 3.6 0 5.5 3.6 4.1 6.9-2.1 4.7-9.6 9.1-9.6 9.1z"/></svg>
-                                                <span data-wl-label>{{ inWishlist($singleProduct->id) ? 'Saved to Wishlist' : 'Add to Wishlist' }}</span>
-                                            </button>
-                                            <span class="pd-share-sep"></span>
-                                            <span class="pd-share-label"><i class="fas fa-share-alt"></i> Share</span>
-                                            <div class="pd-share-links">
-                                                <a class="pd-share-btn is-fb" target="_blank" rel="noopener" title="Share on Facebook" aria-label="Share on Facebook"
-                                                   href="https://www.facebook.com/sharer/sharer.php?u={{ urlencode($shareUrl) }}"><i class="fab fa-facebook-f"></i></a>
-                                                <a class="pd-share-btn is-msg" target="_blank" rel="noopener" title="Share on Messenger" aria-label="Share on Messenger"
-                                                   href="fb-messenger://share/?link={{ urlencode($shareUrl) }}"><i class="fab fa-facebook-messenger"></i></a>
-                                                <a class="pd-share-btn is-wa" target="_blank" rel="noopener" title="Share on WhatsApp" aria-label="Share on WhatsApp"
-                                                   href="https://wa.me/?text={{ urlencode($shareText.' '.$shareUrl) }}"><i class="fab fa-whatsapp"></i></a>
-                                                <a class="pd-share-btn is-tg" target="_blank" rel="noopener" title="Share on Telegram" aria-label="Share on Telegram"
-                                                   href="https://t.me/share/url?url={{ urlencode($shareUrl) }}&text={{ urlencode($shareText) }}"><i class="fab fa-telegram-plane"></i></a>
-                                                <a class="pd-share-btn is-x" target="_blank" rel="noopener" title="Share on X" aria-label="Share on X"
-                                                   href="https://twitter.com/intent/tweet?url={{ urlencode($shareUrl) }}&text={{ urlencode($shareText) }}"><i class="fab fa-twitter"></i></a>
-                                                <button type="button" class="pd-share-btn is-copy" id="pdShareCopy" title="Copy link" aria-label="Copy link"
-                                                        data-url="{{ $shareUrl }}" data-title="{{ $shareText }}"><i class="fas fa-link"></i></button>
-                                            </div>
-                                        </div>
-
-                                        @if(!empty(trim(strip_tags((string) $singleProduct->feature))))
-                                            <ul class="product-metas mt-4" style="font-family: 'Hind Siliguri', sans-serif;">
-                                              {!! $singleProduct->feature !!}
-                                            </ul>
-                                        @endif
-                                    </form>
-
-                                </div>
-                            </div>
-                        </div>
+                @endif
+                @foreach($gallery as $i => $src)
+                    <div class="pdx-slide {{ !$hasVideo && $i === 0 ? 'is-active' : '' }}" data-slide="{{ $slideNo++ }}">
+                        <img src="{{ $src }}" alt="{{ $singleProduct->name }}" @if($i === 0) id="main-image" @else loading="lazy" @endif draggable="false">
                     </div>
+                @endforeach
+
+                <div class="pdx-badges">
+                    @if($isNew)<span class="pdx-badge">New Arrival</span>@endif
+                    <span class="pdx-badge is-dark" id="pdxOffBadge" style="{{ $initSavePct > 0 ? '' : 'display:none;' }}">{{ $initSavePct }}% Off</span>
+                </div>
+                <div class="pdx-out-overlay" id="pdStockOutOverlay" style="{{ $inStock ? 'display:none;' : '' }}"><span>Out of Stock</span></div>
+
+                <button type="button" class="pdx-stage-btn pdx-nav-btn is-prev" aria-label="Previous picture"><i class="fas fa-chevron-left"></i></button>
+                <button type="button" class="pdx-stage-btn pdx-nav-btn is-next" aria-label="Next picture"><i class="fas fa-chevron-right"></i></button>
+                <button type="button" class="pdx-stage-btn pdx-zoom-btn" aria-label="View full screen"><i class="fas fa-search-plus"></i></button>
+                <div class="pdx-dots" aria-hidden="true">
+                    @for($d = 0; $d < $slideNo; $d++)<span class="{{ $d === 0 ? 'is-active' : '' }}"></span>@endfor
                 </div>
             </div>
         </div>
 
-        <div class="woocommerce-tabs wc-tabs-wrapper">
-            <div class="container">
-            <ul class="nav nav-tabs mb-4 gap-3" id="myTab" role="tablist">
-              <li class="nav-item" role="presentation">
-                <a class="nav-link active" id="home-tab" data-bs-toggle="tab" href="#home" role="tab" aria-controls="home" aria-selected="true">
-                    {{ $dt->details_tab_text ?? 'Details' }}
-                </a>
-              </li>
-              <li class="nav-item" role="presentation">
-                <a class="nav-link" id="review-tab" data-bs-toggle="tab" href="#review" role="tab" aria-controls="review" aria-selected="false">
-                    {{ $dt->reviews_tab_text ?? 'Reviews' }} <span class="pd-tab-count">{{ $totalReviews }}</span>
-                </a>
-              </li>
-            </ul>
-            <div class="tab-content" id="myTabContent">
-              <div class="tab-pane fade show active" id="home" role="tabpanel" aria-labelledby="home-tab">
-                  <div class="product-desc-wrapper">
-                    <div class="">
-                        <div class="col-lg-12 mb--20">
-                            <h5 class="title">{{ $dt->short_description_text ?? 'Description' }}</h5>
-                            
-                            <div class="single-desc pt-4 desc-collapse-wrapper" id="descWrapper">
-                                {!! $singleProduct->body !!}
-                            </div>
-                            <button type="button" class="view-more-btn" id="viewMoreBtn" style="display: none;">View More <i class="fas fa-chevron-down ms-1"></i></button>
+        {{-- ===== DETAILS ===== --}}
+        <div class="pdx-info">
+            <div class="pdx-chips">
+                @if($crumbCategory)
+                    <a class="pdx-chip" href="{{ $relatedUrl }}"><i class="fas fa-tag"></i> {{ $crumbCategory->name }}</a>
+                @endif
+                @if($isWholesale)
+                    <span class="pdx-chip"><i class="fas fa-boxes"></i> Wholesale</span>
+                @endif
+                @if(($singleProduct->is_free_shipping ?? 0) == 1)
+                    <span class="pdx-chip"><i class="fas fa-shipping-fast"></i> Free Shipping</span>
+                @endif
+                <span class="pdx-chip"><i class="fas fa-shield-alt"></i> Quality Assured</span>
+                <span class="pdx-chip"><i class="far fa-star"></i> Premium Quality</span>
+            </div>
 
+            <h1 class="pdx-title">{{ $singleProduct->name }}</h1>
+
+            <div class="pdx-meta">
+                <span class="pdx-stars" aria-label="Rated {{ number_format($averageRating, 1) }} out of 5">
+                    @for($st = 1; $st <= 5; $st++)
+                        <i class="{{ $averageRating >= $st ? 'fas fa-star' : ($averageRating >= $st - 0.5 ? 'fas fa-star-half-alt' : 'far fa-star') }}"></i>
+                    @endfor
+                </span>
+                @if($totalReviews > 0)
+                    <a class="all-reviews-button" href="#writeReview">{{ number_format($averageRating, 1) }} ({{ $totalReviews }} {{ $totalReviews === 1 ? 'Review' : 'Reviews' }})</a>
+                @else
+                    <a class="all-reviews-button" href="#writeReview">No reviews yet &middot; Write one</a>
+                @endif
+                @if(!empty($singleProduct->sku))
+                    <span class="pdx-meta-sep" aria-hidden="true"></span>
+                    <span>SKU: {{ $singleProduct->sku }}</span>
+                @endif
+            </div>
+
+            @if(!empty($singleProduct->short_description))
+                <div class="pdx-short">{!! $singleProduct->short_description !!}</div>
+            @endif
+
+            <div class="pdx-pricebox" id="pdxPriceBox">
+                <div class="pdx-price">
+                    <span class="pdx-price-label">{{ $isWholesale ? 'Wholesale Price' : 'Price' }}</span>
+                    <div class="pdx-price-row">
+                        <span class="pdx-price-now" id="pdxPriceNow">{{ biz_format_currency($initFinal) }}</span>
+                        <del id="product-old-price" style="{{ $initSavePct > 0 ? '' : 'display:none;' }}">{{ $initSavePct > 0 ? biz_format_currency($initRaw) : '' }}</del>
+                        <span class="pdx-save" id="pdSaveBadge" style="{{ $initSavePct > 0 ? '' : 'display:none;' }}">{{ $fmtOff($initOff) }} {{ $currSymbol }} off</span>
+                    </div>
+                    <span class="pdx-price-note">Price per piece</span>
+                </div>
+                <div class="pdx-facts">
+                    @if($isWholesale)
+                        <div class="pdx-fact"><i class="fas fa-shield-alt"></i><div><small>Minimum Order</small><strong>{{ $minOrderQty }} Pcs</strong></div></div>
+                    @endif
+                    <div class="pdx-fact"><i class="fas fa-cubes"></i><div><small>Stock Available</small><strong id="stock-text-element" class="{{ !$inStock ? 'is-out' : ((int) $initialStock <= $lowStockLimit ? 'is-low' : '') }}">{{ $inStock ? ((int) $initialStock).' Pcs' : 'Out of stock' }}</strong></div></div>
+                    @if(!empty($singleProduct->sku))
+                        <div class="pdx-fact"><i class="fas fa-barcode"></i><div><small>SKU</small><strong title="{{ $singleProduct->sku }}">{{ $singleProduct->sku }}</strong></div></div>
+                    @endif
+                </div>
+            </div>
+
+            <div class="pdx-alert" id="pdStockOutAlert" style="{{ $inStock ? 'display:none;' : '' }}">
+                <i class="fas fa-exclamation-circle"></i>
+                <span id="pdStockOutAlertText">{{ $productOut ? 'This product is currently out of stock.' : 'This variant is currently out of stock. Please choose another option.' }}</span>
+            </div>
+
+            <form action="{{ route('front.carts.storeCart') }}" id="cart_submit" method="POST">
+                @csrf
+                <input type="hidden" name="product_id" value="{{ $singleProduct->id }}">
+                <input type="hidden" name="product_name" value="{{ $singleProduct->name }}">
+                <input type="hidden" name="category_id" value="{{ $singleProduct->category->name ?? '' }}">
+                <input type="hidden" name="variation_id" id="variation_id" value="{{ $initialVar['id'] ?? '' }}">
+                <input type="hidden" name="variant_name" id="variant_name" value="">
+                <input type="hidden" id="size_value"  name="size_value"  value="">
+                <input type="hidden" id="size_value1" name="size_value1" value="">
+                <input type="hidden" id="price_val"   name="price_val"   value="{{ $initialVar['price'] ?? ($singleProduct->after_discount > 0 ? $singleProduct->after_discount : $singleProduct->sell_price) }}">
+                <input type="hidden" id="price_val1"  name="price_val1"  value="{{ $initialVar['price'] ?? ($singleProduct->after_discount > 0 ? $singleProduct->after_discount : $singleProduct->sell_price) }}">
+                <input type="hidden" name="action_type" id="input_action_type" value="cart">
+
+                <script>
+                    window.__VAR_MAP__ = @json($varMap);
+                    window.__VAR_DEFAULT__ = {
+                        size_id: {{ (int) $defaultSizeId }},
+                        color_id: {{ (int) $defaultColorId }},
+                        default_size_id: {{ (int) $DEFAULT_SIZE_ID }},
+                        default_color_id: {{ (int) $DEFAULT_COLOR_ID }},
+                        show_size: {{ $showSize ? 'true' : 'false' }},
+                        show_color: {{ $showColor ? 'true' : 'false' }},
+                    };
+                </script>
+
+                @if($showSize || $showColor)
+                    <div class="pdx-variants">
+                        @if($showColor)
+                            <div>
+                                <span class="pdx-vlabel">Color: <span class="pd-variant-picked" id="pdPickedColor">{{ $colorsMap[$defaultColorId] ?? '' }}</span></span>
+                                <div class="pdx-opts" id="colorOptions" role="radiogroup" aria-label="Color">
+                                    @foreach($colorsMap as $cid => $clabel)
+                                        <div class="pdx-opt color-opt {{ !empty($colorThumbs[$cid]) ? 'has-img' : '' }} {{ (int) $cid === (int) $defaultColorId ? 'active' : '' }}"
+                                             data-color-id="{{ (int) $cid }}" role="radio" tabindex="0" title="{{ $clabel }}">
+                                            @if(!empty($colorThumbs[$cid]))
+                                                <img class="pdx-opt-img" src="{{ $colorThumbs[$cid] }}" alt="" loading="lazy">
+                                            @elseif(!empty($colorHex[$cid]))
+                                                <span class="pdx-opt-swatch" style="background: {{ $colorHex[$cid] }};"></span>
+                                            @endif
+                                            <span class="pdx-opt-name">{{ $clabel }}</span>
+                                        </div>
+                                    @endforeach
+                                </div>
+                            </div>
+                        @endif
+                        @if($showSize)
+                            <div>
+                                <span class="pdx-vlabel">Size: <span class="pd-variant-picked" id="pdPickedSize">{{ $sizesMap[$defaultSizeId] ?? '' }}</span></span>
+                                <div class="pdx-opts" id="sizeOptions" role="radiogroup" aria-label="Size">
+                                    @foreach($sizesMap as $sid => $slabel)
+                                        <div class="pdx-opt size-opt {{ (int) $sid === (int) $defaultSizeId ? 'active' : '' }}"
+                                             data-size-id="{{ (int) $sid }}" role="radio" tabindex="0">
+                                            <span class="pdx-opt-name">{{ $slabel }}</span>
+                                        </div>
+                                    @endforeach
+                                </div>
+                            </div>
+                        @endif
+                        <span class="size_name d-none"></span>
+                    </div>
+                @endif
+
+                <div class="pdx-qty-row">
+                    <div>
+                        <span class="pdx-qty-label">Quantity (Pcs)</span>
+                        <div class="pdx-qty">
+                            <button type="button" class="pdx-qty-minus" aria-label="Decrease quantity">&minus;</button>
+                            <input type="number" name="quantity" value="{{ $minOrderQty }}" min="{{ $minOrderQty }}" readonly aria-label="Quantity">
+                            <button type="button" class="pdx-qty-plus" aria-label="Increase quantity">+</button>
                         </div>
                     </div>
+                    @if($isWholesale)
+                        <div class="pdx-qty-note">
+                            <i class="fas fa-shield-alt"></i>
+                            <div><strong>Minimum order {{ $minOrderQty }} pcs{{ $perVariant }}</strong>Wholesale orders only.</div>
+                        </div>
+                    @endif
                 </div>
-              </div>
 
-              <div class="tab-pane fade" id="review" role="tabpanel" aria-labelledby="review-tab">
-                <div class="woocommerce-tabs wc-tabs-wrapper" id="writeReview">
-                    <div class="container">
-                        <div class="reviews-wrapper pt-4">
+                <template id="orderNowLabel">@if(($singleProduct->is_free_shipping ?? 0) == 1)<i class="fas fa-shipping-fast"></i> {{ $bangla_text->fshipping_text ?? 'Free Shipping' }}@else<i class="fas fa-bolt"></i> {{ $dt->order_now_text ?? 'Order Now' }}@endif</template>
+                <div class="pdx-actions">
+                    <button type="submit" class="pdx-btn is-outline pdx-cart-btn" {{ $inStock ? '' : 'disabled' }}>
+                        <i class="fas fa-shopping-cart"></i> <span>Add to Cart</span>
+                    </button>
+                    <button type="submit" class="pdx-btn is-solid pdx-order-btn" {{ $inStock ? '' : 'disabled' }}>
+                        @if(!$inStock)
+                            Out of Stock
+                        @elseif(($singleProduct->is_free_shipping ?? 0) == 1)
+                            <i class="fas fa-shipping-fast"></i> {{ $bangla_text->fshipping_text ?? 'Free Shipping' }}
+                        @else
+                            <i class="fas fa-bolt"></i> {{ $dt->order_now_text ?? 'Order Now' }}
+                        @endif
+                    </button>
+                    @php
+                        $hasWa   = !empty($info->whats_num) && ($info->whats_active ?? 0) == 1;
+                        $hasCall = !empty($info->owner_phone);
+                    @endphp
+                    @if($hasWa)
+                        <a href="https://wa.me/+88{{ $info->whats_num }}?text={{ urlencode($singleProduct->name.' - এই পণ্যটি সম্পর্কে জানতে চাই।') }}"
+                           target="_blank" rel="noopener" class="pdx-btn is-outline is-wa {{ $hasCall ? '' : 'is-span' }}">
+                            <i class="fab fa-whatsapp"></i> <span>WhatsApp Order</span>
+                        </a>
+                    @endif
+                    @if($hasCall)
+                        <a href="tel:{{ $info->owner_phone }}" class="pdx-btn is-outline is-dark {{ $hasWa ? '' : 'is-span' }}">
+                            <i class="fas fa-phone-alt"></i> <span>Call Now</span>
+                        </a>
+                    @endif
+                </div>
+
+                <div class="notify-me-wrap" id="notifyMeWrap" style="{{ $inStock ? 'display:none;' : '' }}">
+                    <button type="button" class="notify-me-btn" id="notifyMeOpen">
+                        <i class="far fa-bell"></i> Notify Me When Available
+                    </button>
+                </div>
+            </form>
+
+            <ul class="pdx-trust">
+                <li><i class="fas fa-shipping-fast"></i><div><strong>Direct Import</strong><small>China | India | Dubai</small></div></li>
+                <li><i class="fas fa-box-open"></i><div><strong>Wide Range</strong><small>Wholesale Products</small></div></li>
+                <li><i class="fas fa-users"></i><div><strong>Best Wholesale Price</strong><small>For Resellers</small></div></li>
+                <li><i class="fas fa-shield-alt"></i><div><strong>Genuine Quality</strong><small>Trusted Supplier</small></div></li>
+            </ul>
+
+            @php
+                $shareUrl  = route('front.products.show', ['product' => $singleProduct->slug ?: $singleProduct->id]);
+                $shareText = $singleProduct->name;
+            @endphp
+            <div class="pd-share">
+                <button type="button" class="wl-toggle wl-btn {{ inWishlist($singleProduct->id) ? 'is-saved' : '' }}"
+                        data-product="{{ $singleProduct->id }}" aria-pressed="{{ inWishlist($singleProduct->id) ? 'true' : 'false' }}">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20.5s-7.5-4.4-9.6-9.1C1 8.1 2.9 4.5 6.5 4.5c2 0 3.6 1 4.6 2.5.3.4.6.4.9 0 1-1.5 2.6-2.5 4.6-2.5 3.6 0 5.5 3.6 4.1 6.9-2.1 4.7-9.6 9.1-9.6 9.1z"/></svg>
+                    <span data-wl-label>{{ inWishlist($singleProduct->id) ? 'Saved to Wishlist' : 'Add to Wishlist' }}</span>
+                </button>
+                <span class="pd-share-sep"></span>
+                <span class="pd-share-label"><i class="fas fa-share-alt"></i> Share</span>
+                <div class="pd-share-links">
+                    <a class="pd-share-btn is-fb" target="_blank" rel="noopener" title="Share on Facebook" aria-label="Share on Facebook"
+                       href="https://www.facebook.com/sharer/sharer.php?u={{ urlencode($shareUrl) }}"><i class="fab fa-facebook-f"></i></a>
+                    <a class="pd-share-btn is-msg" target="_blank" rel="noopener" title="Share on Messenger" aria-label="Share on Messenger"
+                       href="fb-messenger://share/?link={{ urlencode($shareUrl) }}"><i class="fab fa-facebook-messenger"></i></a>
+                    <a class="pd-share-btn is-wa" target="_blank" rel="noopener" title="Share on WhatsApp" aria-label="Share on WhatsApp"
+                       href="https://wa.me/?text={{ urlencode($shareText.' '.$shareUrl) }}"><i class="fab fa-whatsapp"></i></a>
+                    <a class="pd-share-btn is-tg" target="_blank" rel="noopener" title="Share on Telegram" aria-label="Share on Telegram"
+                       href="https://t.me/share/url?url={{ urlencode($shareUrl) }}&text={{ urlencode($shareText) }}"><i class="fab fa-telegram-plane"></i></a>
+                    <a class="pd-share-btn is-x" target="_blank" rel="noopener" title="Share on X" aria-label="Share on X"
+                       href="https://twitter.com/intent/tweet?url={{ urlencode($shareUrl) }}&text={{ urlencode($shareText) }}"><i class="fab fa-twitter"></i></a>
+                    <button type="button" class="pd-share-btn is-copy" id="pdShareCopy" title="Copy link" aria-label="Copy link"
+                            data-url="{{ $shareUrl }}" data-title="{{ $shareText }}"><i class="fas fa-link"></i></button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {{-- ===== TABS + RELATED ===== --}}
+    <div class="pdx-bottom">
+        <div class="pdx-card">
+            <ul class="nav pdx-tabs" id="myTab" role="tablist">
+                <li role="presentation"><a class="nav-link active" id="home-tab" data-bs-toggle="tab" href="#home" role="tab" aria-controls="home" aria-selected="true">{{ $dt->details_tab_text ?? 'Product Details' }}</a></li>
+                <li role="presentation"><a class="nav-link" id="shipping-tab" data-bs-toggle="tab" href="#shipping" role="tab" aria-controls="shipping" aria-selected="false">Shipping &amp; Delivery</a></li>
+                <li role="presentation"><a class="nav-link" id="review-tab" data-bs-toggle="tab" href="#review" role="tab" aria-controls="review" aria-selected="false">{{ $dt->reviews_tab_text ?? 'Reviews' }} <span class="pd-tab-count">({{ $totalReviews }})</span></a></li>
+            </ul>
+            <div class="tab-content" id="myTabContent">
+                <div class="tab-pane fade show active pdx-pane" id="home" role="tabpanel" aria-labelledby="home-tab">
+                    <h3 class="pdx-pane-title">{{ $dt->short_description_text ?? 'Product Details' }}</h3>
+                    <div class="single-desc desc-collapse-wrapper" id="descWrapper">
+                        {!! $singleProduct->body !!}
+                    </div>
+                    <button type="button" class="view-more-btn" id="viewMoreBtn" style="display: none;">View More <i class="fas fa-chevron-down ms-1"></i></button>
+                    @if(!empty(trim(strip_tags((string) $singleProduct->feature))))
+                        <div class="pdx-features">{!! $singleProduct->feature !!}</div>
+                    @endif
+                </div>
+
+                <div class="tab-pane fade pdx-pane" id="shipping" role="tabpanel" aria-labelledby="shipping-tab">
+                    <h3 class="pdx-pane-title">Shipping &amp; Delivery</h3>
+                    @if(($singleProduct->is_free_shipping ?? 0) == 0)
+                        <div class="courier-card">
+                            <div class="courier-title"><i class="fas fa-truck"></i> {{ $dt->courier_delivery_cost_text ?? 'Delivery Cost' }}</div>
+                            <table class="table table-bordered border-0">
+                                <tbody>
+                                    @foreach($charges as $charge)
+                                        <tr><td>{{ $charge->title }}</td><td>{{ biz_format_currency($charge->amount) }}</td></tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                    @else
+                        <div class="courier-card">
+                            <div class="courier-title"><i class="fas fa-truck"></i> {{ $dt->courier_delivery_cost_text ?? 'Delivery Cost' }}</div>
+                            <div class="text-center text-success" style="padding: 14px; font-weight: 800; font-size: 16px;">
+                                <i class="fas fa-shipping-fast"></i> {{ $bangla_text->fshipping_text ?? 'Free Shipping' }}
+                            </div>
+                        </div>
+                    @endif
+                    <ul class="pdx-ship-list">
+                        @if($isWholesale)<li><i class="fas fa-boxes"></i><span>Minimum order is {{ $minOrderQty }} pcs{{ $perVariant }}.</span></li>@endif
+                        <li><i class="fas fa-shipping-fast"></i><span>We deliver all over Bangladesh through trusted courier partners.</span></li>
+                        <li><i class="fas fa-headset"></i><span>Questions about delivery? Call{{ !empty($info->owner_phone) ? ' '.$info->owner_phone : ' us' }} and we will help.</span></li>
+                    </ul>
+                </div>
+
+                <div class="tab-pane fade pdx-pane" id="review" role="tabpanel" aria-labelledby="review-tab">
+                    <div id="writeReview">
+                        <div class="reviews-wrapper">
                             <div class="row">
                                 <div class="col-lg-6 mb--20">
-                                    <div class="axil-comment-area pro-desc-commnet-area pt-3">
-                                        <h5 class="title">Customer Reviews ({{ $totalReviews }})</h5>
+                                    <div class="axil-comment-area pro-desc-commnet-area">
+                                        <h3 class="pdx-pane-title">Customer Reviews ({{ $totalReviews }})</h3>
                                         <ul class="comment-list">
                                             @include("frontend.products.partials.reviewList")
                                         </ul>
                                     </div>
                                 </div>
-
                                 <div class="col-lg-6 mb--20">
                                     <div class="premium-review-card" id="reviewFormCard">
                                         <div class="comment-respond pro-des-commend-respond mt--0">
                                             <h5 class="review-header-title">Add a Review</h5>
-                                            
                                             @auth
                                             <form action="{{ route('front.product-reviews.store')}}" method="POST" id="ajax_form2" enctype="multipart/form-data">
                                                 @csrf
                                                 <input type="hidden" name="product_id" value="{{$singleProduct->id}}" />
                                                 <input type="hidden" name="review" id="review" value="" />
-                                                
                                                 <div class="rating-box-wrapper">
                                                     <span class="rating-label">How was your experience?</span>
                                                     <div class="rating-component">
-                                                        <div class="status-msg">
-                                                            <input class="rating_msg" type="hidden" name="rating_msg" value="" />
-                                                        </div>
+                                                        <div class="status-msg"><input class="rating_msg" type="hidden" name="rating_msg" value="" /></div>
                                                         <div class="stars-box">
                                                             <i class="star fa fa-star" title="1 star" data-message="Poor" data-value="1"></i>
                                                             <i class="star fa fa-star" title="2 stars" data-message="Too bad" data-value="2"></i>
@@ -2264,58 +1324,38 @@
                                                             <i class="star fa fa-star" title="4 stars" data-message="Nice" data-value="4"></i>
                                                             <i class="star fa fa-star" title="5 stars" data-message="Very good quality" data-value="5"></i>
                                                         </div>
-                                                        <div class="starrate">
-                                                            <input class="ratevalue" type="hidden" name="rate_value" value="" />
-                                                        </div>
+                                                        <div class="starrate"><input class="ratevalue" type="hidden" name="rate_value" value="" /></div>
                                                     </div>
-
                                                     <div class="feedback-tags">
-                                                        <div class="tags-container" data-tag-set="1">
-                                                            <div class="question-tag">Why was your experience so bad?</div>
-                                                        </div>
-                                                        <div class="tags-container" data-tag-set="2">
-                                                            <div class="question-tag">Why was your experience so bad?</div>
-                                                        </div>
-                                                        <div class="tags-container" data-tag-set="3">
-                                                            <div class="question-tag">Why was your average rating experience?</div>
-                                                        </div>
-                                                        <div class="tags-container" data-tag-set="4">
-                                                            <div class="question-tag">Why was your experience good?</div>
-                                                        </div>
+                                                        <div class="tags-container" data-tag-set="1"><div class="question-tag">Why was your experience so bad?</div></div>
+                                                        <div class="tags-container" data-tag-set="2"><div class="question-tag">Why was your experience so bad?</div></div>
+                                                        <div class="tags-container" data-tag-set="3"><div class="question-tag">Why was your average rating experience?</div></div>
+                                                        <div class="tags-container" data-tag-set="4"><div class="question-tag">Why was your experience good?</div></div>
                                                         <div class="tags-container" data-tag-set="5">
-                                                            <div class="make-compliment">
-                                                                <div class="compliment-container">
-                                                                    <span class="compliment-text">Give a compliment</span>
-                                                                    <i class="fas fa-smile-wink"></i>
-                                                                </div>
-                                                            </div>
+                                                            <div class="make-compliment"><div class="compliment-container"><span class="compliment-text">Give a compliment</span><i class="fas fa-smile-wink"></i></div></div>
                                                         </div>
                                                     </div>
                                                 </div>
-
                                                 <div class="row">
-                                                    <div class="col-lg-6 col-md-6 col-12 mb-3">
+                                                    <div class="col-md-6 col-12 mb-3">
                                                         <div class="premium-input-group">
                                                             <label>Name <span class="text-danger">*</span></label>
                                                             <input id="name" type="text" name="name" required placeholder="Your Name" value="{{ auth()->user()->name ?? '' }}"/>
                                                         </div>
                                                     </div>
-
-                                                    <div class="col-lg-6 col-md-6 col-12 mb-3">
+                                                    <div class="col-md-6 col-12 mb-3">
                                                         <div class="premium-input-group">
                                                             <label>Image (optional)</label>
                                                             <input type="file" class="form-control" name="image">
                                                         </div>
                                                     </div>
-
                                                     <div class="col-12 mb-4">
                                                         <div class="premium-input-group">
                                                             <label>Other Notes (optional)</label>
                                                             <textarea name="message" rows="3" placeholder="Write your feedback here..."></textarea>
                                                         </div>
                                                     </div>
-
-                                                    <div class="col-lg-12">
+                                                    <div class="col-12">
                                                         <div class="button-box form-submit">
                                                             <button type="submit" class="btn submit-review-btn w-100 py-3 fw-bold" style="border-radius:12px;">
                                                                 {{ $dt->submit_review_btn_text ?? 'Submit Review' }} <i class="fas fa-paper-plane ms-2"></i>
@@ -2341,36 +1381,35 @@
                         </div>
                     </div>
                 </div>
-              </div>
             </div>
-          </div>
         </div>
 
-    </div>
-
-    <style>.row>[class*=col]{ padding-left:8px; padding-right:8px; }</style>
-
-    <div class="axil-product-area bg-color-white pt--20 pb--40">
-        <div class="container">
-            <div class="section-title-wrapper mb-4">
-                <span class="pd-section-kicker">You may also like</span>
+        @if($products->isNotEmpty())
+        <aside class="pdx-card pdx-related" aria-label="Related products">
+            <div class="pdx-related-head">
                 <h2>Related Products</h2>
+                <a href="{{ $relatedUrl }}">View All <i class="fas fa-arrow-right"></i></a>
             </div>
-            <div class="explore-product-activation slick-layout-wrapper slick-layout-wrapper--15 axil-slick-arrow arrow-top-slide">
-                <div class="slick-single-layout" id="relative_data">
-                    <div class="row row--15">
-                        @foreach($products as $product)
-                        <div class="col-lg-2 col-md-3 col-6 mb--30">
-                            @include('frontend.products.partials.product_section')
-                        </div>
-                        @endforeach
-                    </div>
-                </div>
+            <div class="pdx-related-grid" id="relative_data">
+                @foreach($products->take(6) as $product)
+                    @include('frontend.products.partials.product_section')
+                @endforeach
             </div>
-
-        </div>
+        </aside>
+        @endif
     </div>
+
+</div>
 </main>
+
+{{-- ===== Full-screen picture viewer ===== --}}
+<div class="pdx-lightbox" id="pdxLightbox" role="dialog" aria-modal="true" aria-label="Product pictures" aria-hidden="true">
+    <span class="pdx-lb-count" id="pdxLbCount"></span>
+    <button type="button" class="pdx-lb-btn pdx-lb-close" aria-label="Close"><i class="fas fa-times"></i></button>
+    <button type="button" class="pdx-lb-btn pdx-lb-prev" aria-label="Previous picture"><i class="fas fa-chevron-left"></i></button>
+    <button type="button" class="pdx-lb-btn pdx-lb-next" aria-label="Next picture"><i class="fas fa-chevron-right"></i></button>
+    <div class="pdx-lb-img" id="pdxLbStage"><img src="" alt="{{ $singleProduct->name }}" draggable="false"></div>
+</div>
 {{-- ===== Sticky buy bar (small screens only) — mirrors the price and buttons above ===== --}}
 <div class="pd-buy-bar {{ $inStock ? '' : 'is-out' }}" id="pdBuyBar">
     <div class="pd-buy-bar__price">
@@ -2689,11 +1728,11 @@ window.__PRODUCT_OUT__ = @json($productOut);
     }
 
     const MIN_QTY = {{ $minOrderQty }};
-    const qtyWrap = document.querySelector('.quantity');
+    const qtyWrap = document.querySelector('.pdx-qty');
     if(qtyWrap && !qtyWrap.dataset.bound){
       qtyWrap.dataset.bound = "1";
-      const minus = qtyWrap.querySelector('.minus');
-      const plus  = qtyWrap.querySelector('.plus');
+      const minus = qtyWrap.querySelector('.pdx-qty-minus');
+      const plus  = qtyWrap.querySelector('.pdx-qty-plus');
       const input = qtyWrap.querySelector('input[name="quantity"]');
 
       function bumpQty(){
@@ -2758,10 +1797,10 @@ window.__PRODUCT_OUT__ = @json($productOut);
     });
 
   $(document)
-    .off('click.cartaction', '.add_cart_btn, .order_now_btn')
-    .on('click.cartaction', '.add_cart_btn, .order_now_btn', function(){
-      if($(this).hasClass('add_cart_btn')) $('#input_action_type').val('cart');
-      else if($(this).hasClass('order_now_btn')) $('#input_action_type').val('order');
+    .off('click.cartaction', '.pdx-cart-btn, .pdx-order-btn')
+    .on('click.cartaction', '.pdx-cart-btn, .pdx-order-btn', function(){
+      if($(this).hasClass('pdx-cart-btn')) $('#input_action_type').val('cart');
+      else if($(this).hasClass('pdx-order-btn')) $('#input_action_type').val('order');
 
       const $btn = $(this);
       $btn.addClass('cart-success');
@@ -2901,13 +1940,13 @@ window.__PRODUCT_OUT__ = @json($productOut);
     val = Math.round(parseFloat(val || 0) * 100) / 100;
     return val.toLocaleString('en-US', { minimumFractionDigits: Number.isInteger(val) ? 0 : 2, maximumFractionDigits: 2 }) + ' {{ $info->currency_symbol ?? "৳" }} off';
   }
-  function statusHtml(stock){
-    return '<span class="pd-status-label">Status:</span> ' + (stock > 0
-      ? '<strong class="pd-status is-in">Stock In</strong> '
-        + (stock <= {{ $lowStockLimit }}
-            ? '<span class="pd-stock-left is-low"><i class="fas fa-fire"></i> Only <b>' + stock + '</b> left</span>'
-            : '<span class="pd-stock-left"><i class="fas fa-box-open"></i> <b>' + stock + '</b> left</span>')
-      : '<strong class="pd-status is-out">Stock Out</strong>');
+  // "Stock Available" value in the price box: pieces left, orange when low, red when out.
+  function renderStock(stock){
+    const el = document.getElementById('stock-text-element');
+    if(!el) return;
+    el.classList.toggle('is-out', stock <= 0);
+    el.classList.toggle('is-low', stock > 0 && stock <= {{ $lowStockLimit }});
+    el.textContent = stock > 0 ? stock + ' Pcs' : 'Out of stock';
   }
 
   function resolveVariation(sizeId, colorId){
@@ -2916,7 +1955,7 @@ window.__PRODUCT_OUT__ = @json($productOut);
   }
 
   function flashPrice(){
-    const $p = $('.current-price-product');
+    const $p = $('#pdxPriceNow');
     $p.removeClass('price-flash');
     void $p[0]?.offsetWidth;
     $p.addClass('price-flash');
@@ -2940,34 +1979,28 @@ window.__PRODUCT_OUT__ = @json($productOut);
     $('#pdPickedSize').text(v.size && v.size !== 'Default' ? v.size : '');
     $('#pdPickedColor').text(v.color && v.color !== 'Default' ? v.color : '');
 
-    $('.current-price-product').text(moneyText(v.price));
+    $('#pdxPriceNow').text(moneyText(v.price));
     if(!isFirstLoad) flashPrice();
 
     if (v.raw > v.price && v.raw > 0) {
       $('#product-old-price').show().text(moneyText(v.raw));
       $('#pdSaveBadge').text(offText(v.raw - v.price)).show();
+      $('#pdxOffBadge').text(Math.round((v.raw - v.price) / v.raw * 100) + '% Off').show();
     } else {
       $('#product-old-price').hide();
       $('#pdSaveBadge').hide();
+      $('#pdxOffBadge').hide();
     }
 
     if (v.image) {
       $('#main-image, #thumb-image, #video-thumb-image').attr('src', v.image);
-      $('#main-image-link').attr('href', v.image);
     } else {
       let defaultImg = "{{ getImage('products', $singleProduct->image) }}";
       $('#main-image, #thumb-image, #video-thumb-image').attr('src', defaultImg);
-      $('#main-image-link').attr('href', defaultImg);
     }
 
-    // ✅ Only force slider back when variation has its own image
-    if (!isFirstLoad && v.image) {
-        let sliderClass = $('.product-large-thumbnail-3');
-        if(sliderClass.hasClass('slick-initialized')) {
-            let targetIndex = $('.video-slide').length > 0 ? 1 : 0;
-            sliderClass.slick('slickGoTo', targetIndex);
-        }
-    }
+    // only jump the gallery back when the variant has its own picture
+    if (!isFirstLoad && v.image && window.pdxGallery) window.pdxGallery.showFirstImage();
 
     $('#variation_id').val(v.id);
     $('#variant_name').val(label);
@@ -2977,10 +2010,7 @@ window.__PRODUCT_OUT__ = @json($productOut);
     if($('#price_val1').length) $('#price_val1').val(v.price);
 
     const stock = parseInt(v.stock || 0);
-    const stockEl = document.querySelector('#stock-text-element');
-    if(stockEl){
-      stockEl.innerHTML = statusHtml(window.__PRODUCT_OUT__ ? 0 : stock);
-    }
+    renderStock(window.__PRODUCT_OUT__ ? 0 : stock);
 
     setStockState(stock <= 0 || window.__PRODUCT_OUT__);
     if(window.toggleNotifyMe) window.toggleNotifyMe(stock <= 0 || window.__PRODUCT_OUT__);
@@ -2990,16 +2020,16 @@ window.__PRODUCT_OUT__ = @json($productOut);
   // Selected variant out of stock → same look as a stock-out product:
   // image badge, warning, "Out of Stock" button, everything disabled.
   function setStockState(isOut){
-    $('.add_cart_btn, .order_now_btn').prop('disabled', isOut);
+    $('.pdx-cart-btn, .pdx-order-btn').prop('disabled', isOut);
     $('#pdStockOutOverlay, #pdThumbStockOut').toggle(isOut);
     $('#pdStockOutAlert').toggle(isOut);
     $('#pdStockOutAlertText').text(window.__PRODUCT_OUT__
       ? 'This product is currently out of stock.'
       : 'This variant is currently out of stock. Please choose another option.');
-    $('.quantity').toggleClass('is-disabled', isOut);
-    if(isOut) $('.quantity input[name="quantity"]').val({{ $minOrderQty }});
+    $('.pdx-qty').toggleClass('is-disabled', isOut);
+    if(isOut) $('.pdx-qty input[name="quantity"]').val({{ $minOrderQty }});
 
-    const $order = $('.order_now_btn');
+    const $order = $('.pdx-order-btn');
     if(isOut){
       $order.text('Out of Stock');
     }else{
@@ -3035,12 +2065,9 @@ window.__PRODUCT_OUT__ = @json($productOut);
     window.__ACTIVE_VAR__ = null;
     $('span.size_name').text('(Not available)').show();
     
-    const stockEl = document.querySelector('#stock-text-element');
-    if(stockEl){
-      stockEl.innerHTML = statusHtml(0);
-    }
+    renderStock(0);
     
-    $('.add_cart_btn, .order_now_btn').prop('disabled', true);
+    $('.pdx-cart-btn, .pdx-order-btn').prop('disabled', true);
     if(window.toggleNotifyMe) window.toggleNotifyMe(!!window.__PRODUCT_OUT__);
     markOutOfStockOptions();
   }
@@ -3115,6 +2142,10 @@ window.__PRODUCT_OUT__ = @json($productOut);
       if(v) applyVariation(v); else setInvalidState();
     });
 
+  $(document).off('keydown.optpick').on('keydown.optpick', '.pdx-opt', function(e){
+    if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); $(this).trigger(this.classList.contains('size-opt') ? 'click.sizepick' : 'click.colorpick'); }
+  });
+
   $(function(){
     const cfg = window.__VAR_DEFAULT__ || {};
 
@@ -3133,86 +2164,6 @@ window.__PRODUCT_OUT__ = @json($productOut);
     setTimeout(function() {
         isFirstLoad = false;
     }, 500);
-  });
-
-  // ✅ CUSTOM GALLERY: Replace slick on small thumb with custom code
-  // Solves: Desktop hide bug + Mobile last-to-first double click
-  $(document).ready(function() {
-      let attempt = 0;
-      let waitInterval = setInterval(function() {
-          attempt++;
-          if (attempt > 30) { clearInterval(waitInterval); return; }
-
-          let $largeSlider = $('.product-large-thumbnail-3');
-          let $smallThumbs = $('.product-small-thumb-3');
-
-          if (!$largeSlider.length || !$smallThumbs.length) return;
-          if (!$largeSlider.hasClass('slick-initialized')) return;
-
-          clearInterval(waitInterval);
-
-          // Destroy slick on small thumbs (if initialized)
-          if ($smallThumbs.hasClass('slick-initialized')) {
-              try { $smallThumbs.slick('unslick'); } catch(e) {}
-          }
-
-          // Add custom class for our styles
-          $smallThumbs.addClass('custom-gallery-mode');
-
-          // Set initial active thumb
-          let initialIdx = $largeSlider.slick('slickCurrentSlide') || 0;
-          $smallThumbs.find('.small-thumb-img').removeClass('active-thumb slick-current').eq(initialIdx).addClass('active-thumb slick-current');
-
-          // Sync thumb active state with main slider
-          $largeSlider.off('beforeChange.thumbsync').on('beforeChange.thumbsync', function(e, slick, currentSlide, nextSlide) {
-              $smallThumbs.find('.small-thumb-img').removeClass('active-thumb slick-current').eq(nextSlide).addClass('active-thumb slick-current');
-
-              // Auto-scroll thumb container to keep active thumb visible
-              let $activeThumb = $smallThumbs.find('.small-thumb-img').eq(nextSlide);
-              if ($activeThumb.length) {
-                  let thumbPos = $activeThumb.position();
-                  if (thumbPos) {
-                      if (window.innerWidth >= 992) {
-                          // Desktop: vertical scroll
-                          let scrollTop = $smallThumbs.scrollTop() + thumbPos.top - 100;
-                          $smallThumbs.stop().animate({ scrollTop: scrollTop }, 300);
-                      } else {
-                          // Mobile: horizontal scroll
-                          let scrollLeft = $smallThumbs.scrollLeft() + thumbPos.left - 80;
-                          $smallThumbs.stop().animate({ scrollLeft: scrollLeft }, 300);
-                      }
-                  }
-              }
-          });
-
-          // Custom click handler on small thumbs — ALWAYS instant jump
-          // Solves: double-click issue when main slider is mid-animation
-          let isThumbClicking = false;
-          $(document).off('click.customthumb touchend.customthumb').on('click.customthumb touchend.customthumb', '.small-thumb-wrapper .small-thumb-img', function(e) {
-              e.preventDefault();
-              e.stopPropagation();
-
-              // Debounce rapid double-fires (touch + click events)
-              if (isThumbClicking) return;
-              isThumbClicking = true;
-              setTimeout(function() { isThumbClicking = false; }, 250);
-
-              let $thumbs = $('.small-thumb-wrapper .small-thumb-img');
-              let idx = $thumbs.index(this);
-              if (idx < 0) return;
-
-              let currentIdx = $largeSlider.slick('slickCurrentSlide');
-              if (currentIdx === idx) return; // already on this slide
-
-              // Update active class immediately for instant visual feedback
-              $thumbs.removeClass('active-thumb slick-current');
-              $(this).addClass('active-thumb slick-current');
-
-              // ALWAYS instant jump — no animation queue, no double-click needed
-              $largeSlider.slick('slickGoTo', idx, true);
-          });
-
-      }, 150);
   });
 
   $(".rating-component .star").off('.rate')
@@ -3245,74 +2196,156 @@ window.__PRODUCT_OUT__ = @json($productOut);
 
 })();
 
-// Hover zoom on the main product image, marketplace style: a lens follows the
-// cursor on the image and the enlarged area shows in a pane beside it (over the
-// details column). Mouse devices at desktop width only — touch keeps swipe + tap-to-open.
+// Gallery: thumbnails, arrows, swipe, hover zoom (mouse) and a full-screen viewer
+// where a click / tap zooms in and the pointer pans around the picture.
 (function(){
-  if(!window.matchMedia || !window.matchMedia('(hover: hover) and (pointer: fine)').matches) return;
-  const gallery = document.querySelector('.product-large-thumbnail-3');
-  const wrap = document.querySelector('.single-product-thumbnail-wrap');
-  if(!gallery || !wrap) return;
+  const stage = document.getElementById('pdxStage');
+  if(!stage) return;
+  const slides = Array.prototype.slice.call(stage.querySelectorAll('.pdx-slide'));
+  const thumbs = Array.prototype.slice.call(document.querySelectorAll('#pdxGallery .pdx-thumb'));
+  const dots   = Array.prototype.slice.call(stage.querySelectorAll('.pdx-dots span'));
+  const rail   = document.querySelector('#pdxGallery .pdx-thumbs');
+  const isVideo = s => s.classList.contains('is-video');
+  const firstImage = Math.max(0, slides.findIndex(s => !isVideo(s)));
+  let cur = Math.max(0, slides.findIndex(s => s.classList.contains('is-active')));
+  if(slides.length < 2) stage.querySelectorAll('.pdx-nav-btn, .pdx-dots').forEach(el => el.style.display = 'none');
+  const gallery = document.getElementById('pdxGallery');
+  function fitRail(){ gallery.style.setProperty('--pdx-stage-h', stage.offsetHeight + 'px'); }
+  fitRail();
+  window.addEventListener('resize', fitRail);
 
-  const ZOOM = 2.5, GAP = 18;
-  const lens = document.createElement('div'); lens.className = 'pd-zoom-lens';
-  const pane = document.createElement('div'); pane.className = 'pd-zoom-pane';
-  wrap.appendChild(lens);
-  document.body.appendChild(pane);
-
-  function hide(){
-    lens.style.display = 'none';
-    pane.style.display = 'none';
-    wrap.classList.remove('pd-zoom-on');
+  function unzoom(){
+    slides.forEach(s => s.classList.remove('is-zooming'));
+    stage.classList.remove('is-zoomed-in');
+  }
+  function keepThumbVisible(t){
+    if(!t || !rail) return;
+    const horizontal = rail.scrollWidth > rail.clientWidth;
+    if(horizontal) rail.scrollTo({ left: t.offsetLeft - (rail.clientWidth - t.offsetWidth) / 2, behavior: 'smooth' });
+    else rail.scrollTo({ top: t.offsetTop - (rail.clientHeight - t.offsetHeight) / 2, behavior: 'smooth' });
+  }
+  function show(i){
+    i = (i + slides.length) % slides.length;
+    if(i === cur) return;
+    unzoom();
+    const leaving = slides[cur];
+    if(isVideo(leaving)){ const f = leaving.querySelector('iframe'); if(f) f.src = f.src; }   // stop playback
+    leaving.classList.remove('is-active');
+    slides[i].classList.add('is-active');
+    thumbs.forEach((t, k) => t.classList.toggle('is-active', k === i));
+    dots.forEach((d, k) => d.classList.toggle('is-active', k === i));
+    cur = i;
+    keepThumbVisible(thumbs[i]);
   }
 
-  // Where the picture itself sits inside the <img> box (object-fit may letterbox or crop it).
-  function contentRect(img, box){
-    const nw = img.naturalWidth, nh = img.naturalHeight;
-    const fit = getComputedStyle(img).objectFit;
-    if(!nw || !nh || (fit !== 'contain' && fit !== 'cover')) return { x: 0, y: 0, w: box.width, h: box.height };
-    const scale = fit === 'contain' ? Math.min(box.width / nw, box.height / nh) : Math.max(box.width / nw, box.height / nh);
-    const w = nw * scale, h = nh * scale;
-    return { x: (box.width - w) / 2, y: (box.height - h) / 2, w: w, h: h };
-  }
+  thumbs.forEach((t, k) => t.addEventListener('click', () => show(k)));
+  stage.querySelector('.pdx-nav-btn.is-prev').addEventListener('click', () => show(cur - 1));
+  stage.querySelector('.pdx-nav-btn.is-next').addEventListener('click', () => show(cur + 1));
 
-  gallery.addEventListener('mousemove', function(e){
-    const slide = e.target.closest ? e.target.closest('.thumbnail') : null;
-    const img = slide && !slide.classList.contains('video-slide') ? slide.querySelector('img') : null;
-    // no zoom while dragging the slider, on the video, or when there is no room beside the image
-    if(!img || e.buttons || window.innerWidth < 992){ hide(); return; }
-
-    const box  = img.getBoundingClientRect();
-    const wbox = wrap.getBoundingClientRect();
-    const paneW = Math.min(box.width, window.innerWidth - wbox.right - GAP - 16);
-    const paneH = Math.min(box.height, window.innerHeight - 16);
-    if(paneW < 260 || !box.width || !box.height){ hide(); return; }
-
-    const lensW = paneW / ZOOM, lensH = paneH / ZOOM;
-    const lx = Math.min(box.width  - lensW, Math.max(0, e.clientX - box.left - lensW / 2));
-    const ly = Math.min(box.height - lensH, Math.max(0, e.clientY - box.top  - lensH / 2));
-
-    lens.style.width  = lensW + 'px';
-    lens.style.height = lensH + 'px';
-    lens.style.left   = (box.left - wbox.left - wrap.clientLeft + lx) + 'px';
-    lens.style.top    = (box.top  - wbox.top  - wrap.clientTop  + ly) + 'px';
-    lens.style.display = 'block';
-
-    const c = contentRect(img, box);
-    const src = img.currentSrc || img.src;
-    if(pane.dataset.src !== src){ pane.dataset.src = src; pane.style.backgroundImage = 'url("' + src.replace(/"/g, '%22') + '")'; }
-    pane.style.width  = paneW + 'px';
-    pane.style.height = paneH + 'px';
-    pane.style.left   = (wbox.right + GAP) + 'px';
-    pane.style.top    = Math.max(8, Math.min(wbox.top, window.innerHeight - paneH - 8)) + 'px';
-    pane.style.backgroundSize = (c.w * ZOOM) + 'px ' + (c.h * ZOOM) + 'px';
-    pane.style.backgroundPosition = ((c.x - lx) * ZOOM) + 'px ' + ((c.y - ly) * ZOOM) + 'px';
-    pane.style.display = 'block';
-    wrap.classList.add('pd-zoom-on');
+  // hover zoom: the picture enlarges inside its frame and follows the cursor
+  const finePointer = window.matchMedia && window.matchMedia('(hover: hover) and (pointer: fine)');
+  stage.addEventListener('mousemove', function(e){
+    if(!finePointer || !finePointer.matches) return;
+    const s = slides[cur];
+    if(isVideo(s) || e.target.closest('.pdx-stage-btn')){ unzoom(); return; }
+    const img = s.querySelector('img');
+    const r = img.getBoundingClientRect();
+    img.style.transformOrigin = ((e.clientX - r.left) / r.width * 100) + '% ' + ((e.clientY - r.top) / r.height * 100) + '%';
+    s.classList.add('is-zooming');
+    stage.classList.add('is-zoomed-in');
   });
-  gallery.addEventListener('mouseleave', hide);
-  gallery.addEventListener('mousedown', hide);
-  window.addEventListener('scroll', hide, { passive: true });
+  stage.addEventListener('mouseleave', unzoom);
+
+  // swipe between pictures on touch screens
+  let sx = null, sy = null, swiped = false;
+  stage.addEventListener('pointerdown', e => { if(e.pointerType !== 'mouse'){ sx = e.clientX; sy = e.clientY; swiped = false; } });
+  stage.addEventListener('pointerup', e => {
+    if(sx === null) return;
+    const dx = e.clientX - sx, dy = e.clientY - sy;
+    if(Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy)){ swiped = true; show(cur + (dx < 0 ? 1 : -1)); }
+    sx = sy = null;
+  });
+  stage.addEventListener('pointercancel', () => { sx = sy = null; });
+
+  // ---------- full-screen viewer ----------
+  const lb = document.getElementById('pdxLightbox');
+  const lbStage = document.getElementById('pdxLbStage');
+  const lbImg = lbStage.querySelector('img');
+  const lbCount = document.getElementById('pdxLbCount');
+  let items = [], li = 0, lastFocus = null;
+
+  function lbRender(){
+    lbStage.classList.remove('is-zoomed');
+    lbImg.style.transformOrigin = '50% 50%';
+    lbImg.src = items[li];
+    lbCount.textContent = items.length > 1 ? (li + 1) + ' / ' + items.length : '';
+    lb.querySelectorAll('.pdx-lb-prev, .pdx-lb-next').forEach(b => b.style.display = items.length > 1 ? '' : 'none');
+  }
+  function lbOpen(slideIndex){
+    const imageSlides = slides.filter(s => !isVideo(s));
+    if(!imageSlides.length) return;
+    items = imageSlides.map(s => s.querySelector('img').src);   // read now: a variant may have swapped the first picture
+    li = Math.max(0, imageSlides.indexOf(slides[slideIndex]));
+    lbRender();
+    lastFocus = document.activeElement;
+    lb.classList.add('is-open');
+    lb.setAttribute('aria-hidden', 'false');
+    document.body.style.overflow = 'hidden';
+    lb.querySelector('.pdx-lb-close').focus();
+  }
+  function lbClose(){
+    lb.classList.remove('is-open');
+    lb.setAttribute('aria-hidden', 'true');
+    document.body.style.overflow = '';
+    if(lastFocus) lastFocus.focus();
+  }
+  function lbGo(step){ if(items.length > 1){ li = (li + step + items.length) % items.length; lbRender(); } }
+
+  stage.addEventListener('click', function(e){
+    if(e.target.closest('.pdx-stage-btn') || swiped || isVideo(slides[cur])) return;
+    lbOpen(cur);
+  });
+  stage.querySelector('.pdx-zoom-btn').addEventListener('click', () => lbOpen(isVideo(slides[cur]) ? firstImage : cur));
+  lb.querySelector('.pdx-lb-close').addEventListener('click', lbClose);
+  lb.querySelector('.pdx-lb-prev').addEventListener('click', () => lbGo(-1));
+  lb.querySelector('.pdx-lb-next').addEventListener('click', () => lbGo(1));
+  lbStage.addEventListener('click', function(e){
+    if(e.target !== lbImg){ lbClose(); return; }               // click on the dark area closes
+    if(lbMoved) return;
+    const zoom = !lbStage.classList.contains('is-zoomed');
+    lbStage.classList.toggle('is-zoomed', zoom);
+    if(zoom) panTo(e);
+  });
+  function panTo(e){
+    const r = lbImg.getBoundingClientRect();
+    const x = Math.min(100, Math.max(0, (e.clientX - r.left) / r.width * 100));
+    const y = Math.min(100, Math.max(0, (e.clientY - r.top) / r.height * 100));
+    lbImg.style.transformOrigin = x + '% ' + y + '%';
+  }
+  // zoomed: the pointer (mouse or finger) pans; not zoomed: swipe changes picture
+  let lx = null, ly = null, lbMoved = false;
+  lbStage.addEventListener('pointerdown', e => { lx = e.clientX; ly = e.clientY; lbMoved = false; });
+  lbStage.addEventListener('pointermove', e => {
+    if(lbStage.classList.contains('is-zoomed') && (e.pointerType === 'mouse' || lx !== null)) panTo(e);
+    if(lx !== null && Math.hypot(e.clientX - lx, e.clientY - ly) > 8) lbMoved = true;
+  });
+  lbStage.addEventListener('pointerup', e => {
+    if(lx !== null && !lbStage.classList.contains('is-zoomed')){
+      const dx = e.clientX - lx, dy = e.clientY - ly;
+      if(Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy)) lbGo(dx < 0 ? 1 : -1);
+    }
+    lx = ly = null;
+    setTimeout(() => { lbMoved = false; }, 0);
+  });
+  document.addEventListener('keydown', function(e){
+    if(!lb.classList.contains('is-open')) return;
+    if(e.key === 'Escape') lbClose();
+    else if(e.key === 'ArrowLeft') lbGo(-1);
+    else if(e.key === 'ArrowRight') lbGo(1);
+  });
+
+  // used by applyVariation(): bring the (swapped) first picture into view
+  window.pdxGallery = { showFirstImage: function(){ show(firstImage); } };
 })();
 
 // Share row: "copy link" button (falls back to a hidden textarea on older browsers / http).
@@ -3348,14 +2381,14 @@ window.__PRODUCT_OUT__ = @json($productOut);
 (function(){
   const bar = document.getElementById('pdBuyBar');
   if(!bar) return;
-  const realCart   = document.querySelector('.single_product .add_cart_btn');
-  const realOrder  = document.querySelector('.single_product .order_now_btn');
+  const realCart   = document.querySelector('.pdx-cart-btn');
+  const realOrder  = document.querySelector('.pdx-order-btn');
   const notifyWrap = document.getElementById('notifyMeWrap');
-  const priceBox   = document.querySelector('.details_right .details-price');
+  const priceBox   = document.getElementById('pdxPriceBox');
   const barCart = document.getElementById('pdBarCart'), barBuy = document.getElementById('pdBarBuy');
 
   function sync(){
-    const now = priceBox && priceBox.querySelector('.current-price-product');
+    const now = document.getElementById('pdxPriceNow');
     const old = document.getElementById('product-old-price');
     if(now) document.getElementById('pdBarPrice').textContent = now.textContent.trim();
     const barOld = document.getElementById('pdBarOld');

@@ -1,8 +1,10 @@
 @php
 use App\Models\Information;
 use App\Models\Category;
-$information = Information::first();
-$categories  = Category::whereNull('parent_id')->where('is_menu', 1)->with('subcats')->get();
+// Same row the admin Settings page edits (newest), so toggles like the announcement bar take effect.
+$information = Information::orderBy('id', 'desc')->first();
+// Every top-level category, for the "All Categories" menu (desktop) and the mobile menu.
+$allCategories = Category::whereNull('parent_id')->with('subcats')->get();
 $brandGradient = $information->gradient_code ?? 'linear-gradient(90deg,#0d6efd,#00276C)';
 $brandText     = $information->primary_color ?? '#ffffff';
 $topbarBg      = $information->topbar_bg_color ?? '#000000';
@@ -73,21 +75,6 @@ body { font-family: 'Hind Siliguri', sans-serif; }
     .topbar.is-scrolling .topbar-notice { overflow-x: auto; -webkit-mask-image: none; mask-image: none; }
 }
 @keyframes noticeScroll { from { transform: translateX(0); } to { transform: translateX(-50%); } }
-.axil-mainmenu-desktop {
-transition: all 0.3s ease;
-width: 100%;
-border-bottom: none;
-box-shadow: 0 4px 10px rgba(0,0,0,0.05);
-}
-.header-navbar-clean {
-display: flex;
-align-items: center;
-justify-content: space-between;
-height: 75px;
-width: 100%;
-}
-.desktop-logo-clean { flex: 0 0 15%; display: flex; align-items: center; }
-.desktop-logo-clean img { max-height: 40px; object-fit: contain; }
 /* Logo with its subtitle underneath (header and footer share .logo-tagline) */
 .logo-lockup { display: inline-flex; flex-direction: column; align-items: center; gap: 3px; text-decoration: none !important; }
 .logo-tagline {
@@ -95,51 +82,131 @@ width: 100%;
     font-size: 9.5px; font-weight: 800; letter-spacing: .2em; text-transform: uppercase;
     color: {{ themeAccent('#1f2937') }} !important; -webkit-font-smoothing: antialiased;
 }
-/* Many menu items: the bar scrolls sideways instead of overflowing the header.
-   margin:auto (not justify-content:center) keeps the first items reachable. */
-.desktop-menu-clean {
-flex: 1; min-width: 0; display: flex; margin: 0 15px;
-overflow-x: auto; overflow-y: hidden;
-scrollbar-width: none; -ms-overflow-style: none;
+
+/* ===========================================================
+   DESKTOP HEADER (992px+): a top row with logo, search, help, account,
+   wishlist and cart, then a nav row led by the "All Categories" menu.
+   =========================================================== */
+.hx { --hx-accent: {{ themeAccent('#be1e30') }}; --hx-accent-dark: color-mix(in srgb, var(--hx-accent) 80%, #000);
+      --hx-soft: color-mix(in srgb, var(--hx-accent) 8%, #fff); --hx-ink: #111827; --hx-muted: #6b7280; --hx-line: #e5e7eb;
+      background: #fff; box-shadow: 0 2px 14px rgba(15,23,42,.06); }
+.hx a { text-decoration: none !important; }
+.hx-top { display: flex; align-items: center; gap: 28px; height: 86px; }
+.hx-logo { flex: 0 0 auto; }
+.hx-logo img { max-height: 54px; max-width: 230px; object-fit: contain; }
+
+.hx-search { flex: 1 1 auto; max-width: 600px; position: relative; }
+.hx-search .search-box { display: flex; }
+.hx-search .search-box input {
+    height: 48px; padding: 0 64px 0 18px; border-radius: 8px; background: #fff;
+    border: 1.5px solid var(--hx-line); font-size: 14.5px;
 }
-.desktop-menu-clean::-webkit-scrollbar { display: none; }
-.nav-menu-clean { display: flex; gap: 25px; list-style: none; margin: 0 auto; padding: 0; align-items: center; }
-.nav-item-clean { position: relative; flex-shrink: 0; }
-.nav-link-clean {
-font-size: 14px; font-weight: 600; text-transform: uppercase;
-color: var(--brand-text) !important;
-text-decoration: none !important; letter-spacing: 0.5px; padding: 27px 0;
-display: inline-flex; align-items: center; transition: opacity 0.3s ease;
-white-space: nowrap;
+.hx-search .search-box input:focus { border-color: var(--hx-accent); box-shadow: 0 0 0 4px color-mix(in srgb, var(--hx-accent) 12%, transparent); }
+.hx-search .search-box button[type="submit"] {
+    right: 0; top: 0; transform: none; height: 48px; width: 58px; border-radius: 0 8px 8px 0;
+    background: var(--hx-accent); color: #fff; font-size: 18px; box-shadow: none;
 }
-.nav-link-clean:hover { opacity: 0.7; }
-.nav-item-clean.has-sub > .nav-link-clean::after {
-content: "\f107"; font-family: "Font Awesome 5 Free", "Font Awesome 5 Pro", sans-serif; font-weight: 900;
-font-size: 12px; margin-left: 6px; opacity: 0.8; color: var(--brand-text) !important;
+.hx-search .search-box button[type="submit"]:hover { transform: none; background: var(--hx-accent-dark); }
+.hx-search .search-box .ls-spinner { right: 70px; }
+.hx-search .ls-results {
+    position: absolute; left: 0; right: 0; top: calc(100% + 8px); margin: 0; padding: 8px;
+    background: #fff; border-radius: 12px; border: 1px solid var(--hx-line);
+    box-shadow: 0 22px 44px -12px rgba(15,23,42,.25); z-index: 99999;
 }
 
-.axil-submenu-clean {
-position: absolute; top: 100%; left: 0; min-width: 220px;
-background: var(--brand-gradient) !important;
-border: 1px solid rgba(255, 255, 255, 0.1); 
-box-shadow: 0 10px 30px rgba(0,0,0,0.15);
-list-style: none; padding: 10px 0; margin: 0;
-opacity: 0; visibility: hidden; transform: translateY(10px);
-transition: all 0.3s ease; z-index: 99999;
+.hx-actions { flex: 0 0 auto; margin-left: auto; display: flex; align-items: center; gap: 22px; }
+.hx-info { display: flex; align-items: center; gap: 10px; color: var(--hx-ink); }
+.hx-info > .nav-ico { width: 32px; height: 32px; stroke: var(--hx-accent); stroke-width: 1.8; flex: 0 0 auto; }
+.hx-info span { display: flex; flex-direction: column; line-height: 1.25; }
+.hx-info small { font-size: 13px; color: var(--hx-muted); }
+.hx-info strong { font-size: 15px; font-weight: 700; color: var(--hx-accent); white-space: nowrap; }
+.hx-info.is-account strong { color: var(--hx-ink); font-weight: 600; font-size: 13.5px; }
+.hx-info.is-account small { color: var(--hx-ink); font-size: 14px; font-weight: 600; }
+.hx-info:hover strong { text-decoration: underline; }
+.hx-divider { width: 1px; height: 38px; background: var(--hx-line); }
+.hx-icon { position: relative; display: inline-flex; line-height: 1; transition: transform .2s ease; }
+.hx-icon .nav-ico { width: 27px; height: 27px; stroke: var(--hx-accent); stroke-width: 2; }
+.hx-icon:hover { transform: translateY(-2px); }
+.hx .hx-icon .custom-cart-badge { background: var(--hx-accent) !important; border: 2px solid #fff; width: 20px !important; height: 20px !important; top: -9px !important; right: -11px !important; }
+
+.hx-nav { border-top: 1px solid #f1f2f4; }
+.hx-nav .container { display: flex; align-items: center; gap: 26px; height: 58px; }
+.hx-cats { position: relative; flex: 0 0 auto; align-self: stretch; display: flex; align-items: center; }
+.hx-cats-btn {
+    display: inline-flex; align-items: center; gap: 12px; height: 50px; min-width: 240px; padding: 0 20px;
+    border: 0; border-radius: 6px; background: var(--hx-accent); color: #fff;
+    font-size: 17px; font-weight: 700; cursor: pointer; transition: background .2s ease;
 }
-.nav-item-clean:hover .axil-submenu-clean { opacity: 1; visibility: visible; transform: translateY(0); }
-.axil-submenu-clean li a { 
-display: block; padding: 10px 20px; 
-color: var(--brand-text) !important;
-font-size: 14px; font-weight: 500; text-decoration: none; transition: 0.3s; 
-border-bottom: 1px solid rgba(255, 255, 255, 0.1); 
-text-transform: capitalize; 
+.hx-cats-btn:hover, .hx-cats.is-open .hx-cats-btn { background: var(--hx-accent-dark); }
+.hx-cats-btn .fa-chevron-down { margin-left: auto; font-size: 12px; transition: transform .25s ease; }
+.hx-cats.is-open .hx-cats-btn .fa-chevron-down { transform: rotate(180deg); }
+/* Panel > scrolling list. Items are position:static, so each flyout is placed
+   against the panel (outside the scroller) and is not clipped by it. */
+.hx-cats-menu {
+    position: absolute; left: 0; top: calc(100% + 4px); width: 280px; z-index: 99999;
+    display: flex; flex-direction: column; padding: 8px 0; background: #fff; border-radius: 10px;
+    border: 1px solid var(--hx-line); box-shadow: 0 24px 48px -14px rgba(15,23,42,.28);
+    opacity: 0; visibility: hidden; transform: translateY(8px); transition: opacity .2s ease, transform .2s ease, visibility .2s;
 }
-.axil-submenu-clean li:last-child a { border-bottom: none; }
-.axil-submenu-clean li a:hover { 
-color: var(--brand-text) !important; 
-background: rgba(0, 0, 0, 0.1); 
-padding-left: 25px; font-weight: 600; 
+.hx-cats.is-open .hx-cats-menu { opacity: 1; visibility: visible; transform: translateY(0); }
+.hx-cats-list { list-style: none; margin: 0; padding: 0; max-height: min(64vh, 480px); overflow-y: auto; scrollbar-width: thin; }
+.hx-cats-list > li > a {
+    display: flex; align-items: center; gap: 12px; padding: 8px 18px;
+    color: var(--hx-ink); font-size: 14.5px; font-weight: 500; transition: background .15s ease, color .15s ease;
+}
+.hx-cats-list img { width: 30px; height: 30px; border-radius: 6px; object-fit: cover; background: #f3f4f6; flex: 0 0 auto; }
+.hx-cat-dot { width: 30px; height: 30px; border-radius: 6px; background: var(--hx-soft); color: var(--hx-accent); display: flex; align-items: center; justify-content: center; font-size: 12px; flex: 0 0 auto; }
+.hx-cat-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hx-cats-list .fa-chevron-right { margin-left: auto; font-size: 11px; color: #9ca3af; }
+.hx-cats-list > li:hover > a { background: var(--hx-soft); color: var(--hx-accent); }
+.hx-sub {
+    position: absolute; left: calc(100% - 1px); top: -1px; bottom: -1px; width: 250px; padding: 8px 0; overflow-y: auto;
+    background: #fff; border-radius: 0 10px 10px 0; border: 1px solid var(--hx-line); box-shadow: 18px 24px 48px -18px rgba(15,23,42,.25);
+    opacity: 0; visibility: hidden; transition: opacity .15s ease, visibility .15s;
+}
+.hx-cats-list > li:hover > .hx-sub { opacity: 1; visibility: visible; }
+.hx-sub a { display: block; padding: 8px 20px; color: var(--hx-ink); font-size: 14px; }
+.hx-sub a:hover { background: var(--hx-soft); color: var(--hx-accent); }
+.hx-sub .hx-sub-head { font-weight: 700; color: var(--hx-accent); border-bottom: 1px solid #f1f2f4; margin-bottom: 4px; padding-bottom: 10px; }
+.hx-sub .hx-sub-head i { font-size: 11px; margin-left: 4px; }
+.hx-cats-all { display: block; margin: 8px 12px 2px; padding: 9px; border-radius: 8px; text-align: center; font-weight: 700; font-size: 13.5px; background: var(--hx-soft); color: var(--hx-accent) !important; }
+.hx-cats-all i { font-size: 11px; margin-left: 4px; }
+
+.hx-links { display: flex; align-items: center; gap: 30px; list-style: none; margin: 0; padding: 0; min-width: 0; }
+.hx-links a {
+    position: relative; display: inline-flex; align-items: center; height: 58px;
+    font-size: 15.5px; font-weight: 600; color: var(--hx-ink); white-space: nowrap; transition: color .2s ease;
+}
+.hx-links a::after {
+    content: ""; position: absolute; left: 0; right: 0; bottom: 10px; height: 2.5px; border-radius: 2px;
+    background: var(--hx-accent); transform: scaleX(0); transition: transform .25s ease;
+}
+.hx-links a:hover, .hx-links a.is-active { color: var(--hx-accent); }
+.hx-links a:hover::after, .hx-links a.is-active::after { transform: scaleX(1); }
+
+.hx-badge {
+    margin-left: auto; flex: 0 0 auto; display: flex; align-items: center; gap: 12px;
+    padding: 8px 18px; border-radius: 6px; background: var(--hx-soft); border: 1px solid color-mix(in srgb, var(--hx-accent) 14%, transparent);
+}
+.hx-badge .nav-ico { width: 28px; height: 28px; stroke: var(--hx-accent); stroke-width: 1.8; flex: 0 0 auto; }
+.hx-badge span { display: flex; flex-direction: column; line-height: 1.2; }
+.hx-badge strong { font-size: 15px; color: var(--hx-accent); }
+.hx-badge small { font-size: 12px; color: var(--hx-accent); }
+
+@media (max-width: 1399.98px) {
+    .hx-top { gap: 20px; }
+    .hx-actions { gap: 16px; }
+    .hx-links { gap: 22px; }
+    .hx-cats-btn { min-width: 220px; }
+}
+@media (max-width: 1199.98px) {
+    .hx-help, .hx-divider, .hx-badge { display: none !important; }
+    .hx-links { gap: 18px; }
+    .hx-links a { font-size: 14.5px; }
+    .hx-cats-btn { min-width: 0; font-size: 15.5px; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .hx-cats-menu, .hx-sub, .hx-links a::after, .hx-icon { transition: none; }
 }
 
 /* Header (desktop + mobile) stays pinned to the top while scrolling, below
@@ -183,15 +250,6 @@ header.axil-header { position: -webkit-sticky; position: sticky; top: 0; z-index
     background: {{ themeAccent('#e11d2e') }};
     transform: scaleX(0); transform-origin: left center; will-change: transform;
 }
-.desktop-icons-clean { flex: 0 0 auto; min-width: 20%; display: flex; justify-content: flex-end; align-items: center; }
-.action-list-clean { display: flex; gap: 18px; list-style: none; margin: 0; padding: 0; align-items: center; }
-.action-list-clean a {
-background: transparent !important; border: none !important; box-shadow: none !important;
-color: var(--brand-text) !important; font-size: 20px !important; text-decoration: none !important;
-position: relative !important; display: flex !important; align-items: center !important; justify-content: center !important;
-transition: transform 0.3s ease !important;
-}
-.action-list-clean a:hover { opacity: 0.7; transform: translateY(-2px) !important; }
 .nav-ico { width: 22px; height: 22px; display: block; fill: none; stroke: #e11d2e; stroke-width: 2.3; stroke-linecap: round; stroke-linejoin: round; }
 .custom-cart-badge {
 position: absolute !important; top: -6px !important; right: -8px !important;
@@ -200,8 +258,6 @@ font-size: 11px !important; font-weight: 800 !important; width: 18px !important;
 display: flex !important; align-items: center !important; justify-content: center !important;
 border-radius: 50% !important; box-shadow: 0 2px 5px rgba(0,0,0,0.2) !important; line-height: 1 !important; z-index: 10 !important;
 }
-.desktop-search-wrapper { position: absolute; top: 100%; right: 15px; width: 420px; max-width: calc(100vw - 30px); background: #fff; padding: 14px; box-shadow: 0 18px 40px rgba(0,0,0,0.16); border-radius: 0 0 14px 14px; z-index: 99999; display: none; border-top: 3px solid var(--brand-gradient); }
-.desktop-search-wrapper.active { display: block; animation: fadeIn 0.3s ease; }
 @keyframes fadeIn { from { opacity:0; transform:translateY(-10px); } to { opacity:1; transform:translateY(0); } }
 
 @media (max-width: 991px) {
@@ -212,6 +268,8 @@ border-radius: 50% !important; box-shadow: 0 2px 5px rgba(0,0,0,0.2) !important;
 .mobile-logo .logo-tagline { font-size: 8px; letter-spacing: .16em; }
 .mobile-nav-toggler { background: transparent !important; border: none !important; font-size: 24px !important; padding: 5px !important; color: var(--brand-text) !important; box-shadow: none !important; margin: 0 !important; outline: none;}
 .mobile-icons a { background: transparent !important; border: none !important; box-shadow: none !important; color: var(--brand-text) !important; font-size: 20px; padding: 5px !important; margin: 0 !important;}
+/* search, track, dashboard (logged in) and cart must still fit beside the logo on small phones */
+@media (max-width: 400px) { .mobile-icons { gap: 4px !important; } .mobile-icons a { padding: 3px !important; } .mobile-icons .nav-ico { width: 20px; height: 20px; } }
 .mobile-top-search-outside { display: none; position: absolute; top: 100%; left: 0; width: 100%; padding: 12px 15px; background: #fff; box-shadow: 0 5px 15px rgba(0,0,0,0.1); z-index: 99999; border-top: 2px solid var(--brand-gradient); }
 .mobile-top-search-outside.active { display: block; animation: fadeIn 0.3s ease; }
 .custom-back-top { display: none !important; }
@@ -878,72 +936,114 @@ body.hide-header .topbar {
 </div>
 @endif
 
-<header class="desktop header axil-header">
-<div class="axil-mainmenu-desktop position-relative main-bg">
+<header class="desktop header axil-header hx">
 <div class="container">
-<div class="header-navbar-clean">
-<div class="desktop-logo-clean">
-<a href="{{ route('front.home')}}" class="logo-lockup">
-<img src="{{ asset('uploads/img/'.$information->site_logo)}}" alt="Site Logo">
-<span class="logo-tagline">Importer &amp; Wholesaler</span>
-</a>
-</div>
-<div class="desktop-menu-clean">
-<ul class="nav-menu-clean">
-<li class="nav-item-clean"><a href="{{ route('front.home') }}" class="nav-link-clean">Home</a></li>
-@foreach($categories as $cat)
-<li class="nav-item-clean {{ $cat->subcats->count() ? 'has-sub' : '' }}">
-<a href="{{ route('front.category',[$cat->url])}}" class="nav-link-clean">{{ $cat->name }}</a>
-@if($cat->subcats->count())
-<ul class="axil-submenu-clean">
-@foreach($cat->subcats as $sub)
-<li><a href="{{ route('front.category',[$sub->url])}}">{{ $sub->name }}</a></li>
-@endforeach
-</ul>
-@endif
-</li>
-@endforeach
-<li class="nav-item-clean"><a href="{{ route('front.products.index') }}" class="nav-link-clean">Shop</a></li>
-</ul>
-</div>
-<div class="desktop-icons-clean">
-<ul class="action-list-clean">
-<li><a href="javascript:void(0)" onclick="document.getElementById('desktop-search-dropdown').classList.toggle('active'); $('#desktop-search-input').focus();"><svg class="nav-ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6"/></svg></a></li>
-<li><a href="{{ route('front.order.track') }}"><svg class="nav-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M1.5 5.5h12v10.5h-12z"/><path d="M13.5 9h4.2l3.8 3.8V16h-8z"/><circle cx="6" cy="18" r="2"/><circle cx="17.5" cy="18" r="2"/></svg></a></li>
-<li><a href="tel:{{ $information->owner_phone }}"><svg class="nav-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8.1 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.8.7a2 2 0 0 1 1.7 2z"/></svg></a></li>
-@guest
-<li><a href="{{ route('login') }}"><svg class="nav-ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21v-1a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v1"/></svg></a></li>
-@else
-<li><a href="{{ route('front.dashboard.index') }}"><svg class="nav-ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="9.5" cy="8" r="4"/><path d="M2 21v-1a6 6 0 0 1 6-6h3a6 6 0 0 1 4.5 2"/><path d="M16 18.5l2.2 2.2 4.3-4.6"/></svg></a></li>
-@endguest
-<li>
-<a href="{{ route('front.wishlist.index') }}" title="Wishlist" aria-label="Wishlist">
-<svg class="nav-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20.5s-7.5-4.4-9.6-9.1C1 8.1 2.9 4.5 6.5 4.5c2 0 3.6 1 4.6 2.5.3.4.6.4.9 0 1-1.5 2.6-2.5 4.6-2.5 3.6 0 5.5 3.6 4.1 6.9-2.1 4.7-9.6 9.1-9.6 9.1z"/></svg>
-<span class="custom-cart-badge wl-count" @if(wishlistCount() === 0) hidden @endif>{{ wishlistCount() }}</span>
-</a>
-</li>
-<li>
-<a href="{{ route('front.carts.index')}}?segment={{request()->segment(1)}}" class="cart-dropdown-btn">
-<svg class="nav-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7.5h14l1.2 13.5H3.8z"/><path d="M8.5 10.5V6.5a3.5 3.5 0 0 1 7 0v4"/></svg>
-<span class="custom-cart-badge cart-count">{{ getTotalCart()}}</span>
-</a>
-</li>
-</ul>
-</div>
-</div>
-<div id="desktop-search-dropdown" class="desktop-search-wrapper">
-<form action="{{ route('front.products.index') }}" class="search-form m-0">
-<div class="search-box">
-<svg class="ls-lead" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6"/></svg>
-<input type="search" id="desktop-search-input" name="q" value="{{ request('q') ?? '' }}" placeholder="Search by product name or SKU..." autocomplete="off" aria-label="Search products">
-<span class="ls-spinner"></span>
-<button type="submit" aria-label="Search"><i class="fas fa-search"></i></button>
-</div>
-<div class="ls-results" aria-live="polite"></div>
-</form>
+<div class="hx-top">
+    <div class="hx-logo">
+        <a href="{{ route('front.home') }}" class="logo-lockup">
+            <img src="{{ asset('uploads/img/'.$information->site_logo) }}" alt="{{ $information->site_name ?: 'Site Logo' }}">
+            <span class="logo-tagline">Importer &amp; Wholesaler</span>
+        </a>
+    </div>
+
+    <div class="hx-search">
+        <form action="{{ route('front.products.index') }}" class="search-form m-0" role="search">
+            <div class="search-box">
+                <input type="search" id="desktop-search-input" name="q" value="{{ request('q') ?? '' }}" placeholder="Search for products, categories, brands..." autocomplete="off" aria-label="Search products">
+                <span class="ls-spinner"></span>
+                <button type="submit" aria-label="Search"><i class="fas fa-search"></i></button>
+            </div>
+            <div class="ls-results" aria-live="polite"></div>
+        </form>
+    </div>
+
+    <div class="hx-actions">
+        @if(!empty($information->owner_phone))
+        <a href="tel:{{ $information->owner_phone }}" class="hx-info hx-help">
+            <svg class="nav-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 14v-2a8.5 8.5 0 0 1 17 0v2"/><path d="M3.5 14.5a2 2 0 0 1 2-2h1v6h-1a2 2 0 0 1-2-2z"/><path d="M20.5 14.5a2 2 0 0 0-2-2h-1v6h1a2 2 0 0 0 2-2z"/><path d="M18.5 18.5c0 1.7-2 2.5-5 2.5"/></svg>
+            <span><small>Need Help?</small><strong>{{ $information->owner_phone }}</strong></span>
+        </a>
+        <span class="hx-divider" aria-hidden="true"></span>
+        @endif
+
+        @guest
+        <a href="{{ route('login') }}" class="hx-info is-account">
+            <svg class="nav-ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9.5"/><circle cx="12" cy="10" r="3.2"/><path d="M6.2 18.6a6.5 6.5 0 0 1 11.6 0"/></svg>
+            <span><small>My Account</small><strong>Login / Register</strong></span>
+        </a>
+        <span class="hx-divider" aria-hidden="true"></span>
+        @endguest
+
+        <a href="{{ route('front.order.track') }}" class="hx-icon" title="Track Order" aria-label="Track Order">
+            <svg class="nav-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M1.5 5.5h12v10.5h-12z"/><path d="M13.5 9h4.2l3.8 3.8V16h-8z"/><circle cx="6" cy="18" r="2"/><circle cx="17.5" cy="18" r="2"/></svg>
+        </a>
+        @auth
+        <a href="{{ route('front.dashboard.index') }}" class="hx-icon" title="My Dashboard" aria-label="My Dashboard">
+            <svg class="nav-ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="9.5" cy="8" r="4"/><path d="M2 21v-1a6 6 0 0 1 6-6h3a6 6 0 0 1 4.5 2"/><path d="M16 18.5l2.2 2.2 4.3-4.6"/></svg>
+        </a>
+        @endauth
+        <a href="{{ route('front.wishlist.index') }}" class="hx-icon" title="Wishlist" aria-label="Wishlist">
+            <svg class="nav-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20.5s-7.5-4.4-9.6-9.1C1 8.1 2.9 4.5 6.5 4.5c2 0 3.6 1 4.6 2.5.3.4.6.4.9 0 1-1.5 2.6-2.5 4.6-2.5 3.6 0 5.5 3.6 4.1 6.9-2.1 4.7-9.6 9.1-9.6 9.1z"/></svg>
+            <span class="custom-cart-badge wl-count" @if(wishlistCount() === 0) hidden @endif>{{ wishlistCount() }}</span>
+        </a>
+        <a href="{{ route('front.carts.index') }}?segment={{ request()->segment(1) }}" class="hx-icon cart-dropdown-btn" title="Cart" aria-label="Cart">
+            <svg class="nav-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7.5h14l1.2 13.5H3.8z"/><path d="M8.5 10.5V6.5a3.5 3.5 0 0 1 7 0v4"/></svg>
+            <span class="custom-cart-badge cart-count">{{ getTotalCart() }}</span>
+        </a>
+    </div>
 </div>
 </div>
+
+<nav class="hx-nav" aria-label="Main">
+<div class="container">
+    <div class="hx-cats" id="hxCats">
+        <button type="button" class="hx-cats-btn" aria-expanded="false" aria-controls="hxCatsMenu">
+            <i class="fas fa-bars" aria-hidden="true"></i> All Categories <i class="fas fa-chevron-down" aria-hidden="true"></i>
+        </button>
+        <div class="hx-cats-menu" id="hxCatsMenu">
+            <ul class="hx-cats-list">
+            @foreach($allCategories as $cat)
+                <li>
+                    <a href="{{ route('front.category', [$cat->url]) }}">
+                        @if(!empty($cat->image) && file_exists(public_path('categories/'.$cat->image)))
+                            <img src="{{ asset('categories/'.$cat->image) }}" alt="" loading="lazy">
+                        @else
+                            <span class="hx-cat-dot"><i class="fas fa-tag"></i></span>
+                        @endif
+                        <span class="hx-cat-name">{{ $cat->name }}</span>
+                        @if($cat->subcats->count())<i class="fas fa-chevron-right" aria-hidden="true"></i>@endif
+                    </a>
+                    @if($cat->subcats->count())
+                    <div class="hx-sub">
+                        <a href="{{ route('front.category', [$cat->url]) }}" class="hx-sub-head">{{ $cat->name }} <i class="fas fa-arrow-right"></i></a>
+                        @foreach($cat->subcats as $sub)
+                            <a href="{{ route('front.category', [$sub->url]) }}">{{ $sub->name }}</a>
+                        @endforeach
+                    </div>
+                    @endif
+                </li>
+            @endforeach
+            </ul>
+            <a href="{{ route('front.categories') }}" class="hx-cats-all">View All Categories <i class="fas fa-arrow-right"></i></a>
+        </div>
+    </div>
+
+    <ul class="hx-links">
+        <li><a href="{{ route('front.home') }}" class="{{ request()->routeIs('front.home') ? 'is-active' : '' }}">Home</a></li>
+        <li><a href="{{ route('front.products.index') }}" class="{{ request()->routeIs('front.products.index') && !request('sort') ? 'is-active' : '' }}">Shop</a></li>
+        <li><a href="{{ route('front.products.index', ['sort' => 'latest']) }}" class="{{ request('sort') === 'latest' ? 'is-active' : '' }}">New Arrivals</a></li>
+        <li><a href="{{ route('front.products.index', ['sort' => 'best_selling']) }}" class="{{ request('sort') === 'best_selling' ? 'is-active' : '' }}">Best Sellers</a></li>
+        <li><a href="{{ route('front.aboutUs') }}" class="{{ request()->routeIs('front.aboutUs') ? 'is-active' : '' }}">Wholesale Info</a></li>
+        <li><a href="{{ route('front.order.track') }}" class="{{ request()->routeIs('front.order.track') ? 'is-active' : '' }}">Track Order</a></li>
+        <li><a href="{{ route('front.contactUs') }}" class="{{ request()->routeIs('front.contactUs') ? 'is-active' : '' }}">Contact</a></li>
+    </ul>
+
+    <div class="hx-badge">
+        <svg class="nav-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 7.5 12 3l8.5 4.5v9L12 21l-8.5-4.5z"/><path d="M3.5 7.5 12 12l8.5-4.5"/><path d="M12 12v9"/><path d="M7.8 5.3l8.4 4.5"/></svg>
+        <span><strong>Wholesale Only</strong><small>Minimum Order Applicable</small></span>
+    </div>
 </div>
+</nav>
 <div class="scroll-progress" aria-hidden="true"><span></span></div>
 </header>
 
@@ -963,6 +1063,14 @@ body.hide-header .topbar {
 <a href="javascript:void(0)" class="mobile-search-toggle-btn">
 <svg class="nav-ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6"/></svg>
 </a>
+<a href="{{ route('front.order.track') }}" title="Track Order" aria-label="Track Order">
+<svg class="nav-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M1.5 5.5h12v10.5h-12z"/><path d="M13.5 9h4.2l3.8 3.8V16h-8z"/><circle cx="6" cy="18" r="2"/><circle cx="17.5" cy="18" r="2"/></svg>
+</a>
+@auth
+<a href="{{ route('front.dashboard.index') }}" title="My Dashboard" aria-label="My Dashboard">
+<svg class="nav-ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="9.5" cy="8" r="4"/><path d="M2 21v-1a6 6 0 0 1 6-6h3a6 6 0 0 1 4.5 2"/><path d="M16 18.5l2.2 2.2 4.3-4.6"/></svg>
+</a>
+@endauth
 <a href="{{ route('front.carts.index')}}?segment={{request()->segment(1)}}" class="cart-dropdown-btn" style="position: relative;">
 <svg class="nav-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7.5h14l1.2 13.5H3.8z"/><path d="M8.5 10.5V6.5a3.5 3.5 0 0 1 7 0v4"/></svg>
 <span class="custom-cart-badge cart-count">{{ getTotalCart()}}</span>
@@ -1060,7 +1168,7 @@ body.hide-header .topbar {
     {{-- Scrollable Body --}}
     <div class="pmm-body">
         <ul class="pmm-cat-list">
-            @foreach($categories as $key => $cat)
+            @foreach($allCategories as $key => $cat)
                 <li class="pmm-cat-item">
                     <div class="pmm-cat-row">
                         <div class="pmm-cat-icon">
@@ -1149,9 +1257,6 @@ $('.mobile-search-toggle-btn').on('click', function(e) {
 });
 
 $(document).on('click', function(e) {
-    if (!$(e.target).closest('.desktop-icons-clean li, .desktop-search-wrapper').length) {
-        $('#desktop-search-dropdown').removeClass('active');
-    }
     if (!$(e.target).closest('.mobile-search-toggle-btn, #mobile-search-dropdown').length) {
         $('#mobile-search-dropdown').removeClass('active');
     }
@@ -1342,37 +1447,16 @@ $('#mobileMenu').on('click', '.pmm-cat-link, .pmm-quick-item, .pmm-subcat-list a
 });
 });
 
-// Desktop nav scrolls horizontally. A scroll container clips its children,
-// so dropdowns are switched to fixed positioning under their menu item.
+// "All Categories" menu: opens on hover (mouse) and on click (touch / keyboard), closes on outside click or Escape.
 (function(){
-    var menu = document.querySelector('.desktop-menu-clean');
-    if (!menu) return;
-
-    function placeSub(item){
-        var sub = item.querySelector('.axil-submenu-clean');
-        if (!sub) return;
-        var r = item.getBoundingClientRect();
-        var left = Math.max(8, Math.min(r.left, window.innerWidth - sub.offsetWidth - 8));
-        sub.style.position = 'fixed';
-        sub.style.top = r.bottom + 'px';
-        sub.style.left = left + 'px';
-    }
-    function placeHovered(){
-        menu.querySelectorAll('.nav-item-clean.has-sub:hover').forEach(placeSub);
-    }
-
-    menu.querySelectorAll('.nav-item-clean.has-sub').forEach(function(item){
-        item.addEventListener('mouseenter', function(){ placeSub(item); });
-    });
-    menu.addEventListener('scroll', placeHovered, { passive: true });
-    window.addEventListener('scroll', placeHovered, { passive: true });
-    window.addEventListener('resize', placeHovered);
-
-    // Mouse wheel scrolls the bar sideways when it overflows.
-    menu.addEventListener('wheel', function(e){
-        if (menu.scrollWidth <= menu.clientWidth || Math.abs(e.deltaY) <= Math.abs(e.deltaX)) return;
-        e.preventDefault();
-        menu.scrollLeft += e.deltaY;
-    }, { passive: false });
+    var box = document.getElementById('hxCats');
+    if (!box) return;
+    var btn = box.querySelector('.hx-cats-btn'), timer = null;
+    function set(open){ clearTimeout(timer); box.classList.toggle('is-open', open); btn.setAttribute('aria-expanded', open ? 'true' : 'false'); }
+    btn.addEventListener('click', function(){ set(!box.classList.contains('is-open')); });
+    box.addEventListener('mouseenter', function(){ if (window.matchMedia('(hover: hover)').matches) set(true); });
+    box.addEventListener('mouseleave', function(){ if (window.matchMedia('(hover: hover)').matches) timer = setTimeout(function(){ set(false); }, 180); });
+    document.addEventListener('click', function(e){ if (!box.contains(e.target)) set(false); });
+    document.addEventListener('keydown', function(e){ if (e.key === 'Escape' && box.classList.contains('is-open')) { set(false); btn.focus(); } });
 })();
 </script>

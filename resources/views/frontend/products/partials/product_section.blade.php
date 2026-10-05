@@ -34,554 +34,153 @@
 
     // ✅ Free Shipping check
     $isFreeShipping = (int)($product->is_free_shipping ?? 0) === 1;
+
+    // "New" badge for products added in the last 30 days (when there is no discount to show)
+    $isNew = $product->created_at && $product->created_at->gt(now()->subDays(30));
+    $minQty = method_exists($product, 'minOrderQty') ? (int) $product->minOrderQty() : 1;
+    $cartIcon = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 4h2.2l2.2 10.5a1.6 1.6 0 0 0 1.6 1.3h8.2a1.6 1.6 0 0 0 1.6-1.2L20.5 8H6.2"/><circle cx="9.5" cy="19.5" r="1.4"/><circle cx="17" cy="19.5" r="1.4"/></svg>';
 @endphp
 
 @once
 <style>
-    /* Card accent = the site's brand colour (themeAccent()); the tints and the darker
-       shade are mixed from it so the whole card follows one theme colour. */
+    /* ============================================================
+       PRODUCT CARD — one design for every page (home, shop, category,
+       product page, wishlist...). Picture on top, then name, price and
+       an outlined cart button. Accent = the site's brand colour.
+       ============================================================ */
     :root{
-        --pc-accent: {{ themeAccent() }};
-        --pc-accent-dark: color-mix(in srgb, var(--pc-accent) 72%, #000);
-        --pc-accent-tint: color-mix(in srgb, var(--pc-accent) 6%, #fff);
-        --pc-accent-tint2: color-mix(in srgb, var(--pc-accent) 13%, #fff);
+        --pc-accent: {{ themeAccent('#be1e30') }};
+        --pc-accent-dark: color-mix(in srgb, var(--pc-accent) 80%, #000);
+        --pc-accent-tint: color-mix(in srgb, var(--pc-accent) 7%, #fff);
+        --pc-line: #e8eaee;
+        --pc-ink: #111827;
+        --pc-muted: #6b7280;
     }
-    /* ============================================================
-       ✨ PREMIUM CARD
-       ============================================================ */
-    .axil-product.product-style-one {
-        position: relative;
-        height: 100%;
-        display: flex;
-        flex-direction: column;
-        background: #ffffff !important;
-        border: 1px solid rgba(15,23,42,.06) !important;
-        border-radius: 14px !important;
-        overflow: hidden !important;
-        box-shadow:
-            0 1px 2px rgba(15,23,42,.03),
-            0 0 0 1px rgba(15,23,42,.02) !important;
-        transition:
-            transform .45s cubic-bezier(.22,.61,.36,1),
-            box-shadow .45s cubic-bezier(.22,.61,.36,1),
-            border-color .35s ease !important;
-        isolation: isolate;
+    .axil-product.product-style-one{
+        position: relative; display: flex; flex-direction: column; height: 100%;
+        margin: 0 !important; padding: 0 !important; overflow: hidden;
+        background: #fff; border: 1px solid var(--pc-line); border-radius: 10px; box-shadow: none;
+        transition: border-color .25s ease, box-shadow .25s ease, transform .25s ease;
     }
-    .axil-product.product-style-one::before{
-        content:"";
-        position: absolute; inset: 0;
-        border-radius: 14px;
-        padding: 1.5px;
-        background: linear-gradient(135deg,
-            color-mix(in srgb, var(--pc-accent) 0%, transparent) 0%,
-            color-mix(in srgb, var(--pc-accent) 45%, transparent) 35%,
-            color-mix(in srgb, var(--pc-accent-dark) 45%, transparent) 65%,
-            color-mix(in srgb, var(--pc-accent) 0%, transparent) 100%);
-        -webkit-mask:
-            linear-gradient(#fff 0 0) content-box,
-            linear-gradient(#fff 0 0);
-        -webkit-mask-composite: xor;
-                mask-composite: exclude;
-        opacity: 0;
-        transition: opacity .4s ease;
-        pointer-events: none;
-        z-index: 3;
-    }
-    .axil-product.product-style-one:hover {
-        transform: translateY(-6px) !important;
-        border-color: transparent !important;
-        box-shadow:
-            0 22px 40px -18px color-mix(in srgb, var(--pc-accent-dark) 22%, transparent),
-            0 8px 18px -8px rgba(15,23,42,.08) !important;
-    }
-    .axil-product.product-style-one:hover::before{ opacity: 1; }
-
-    /* ============================================================
-       ✨ THUMBNAIL
-       ============================================================ */
-    .axil-product .thumbnail {
-        position: relative !important;
-        background: linear-gradient(180deg, #fbfcfe 0%, #f4f6fa 100%) !important;
-        border-radius: 0 !important;
-        overflow: hidden !important;
-        padding: 0 !important;
-        aspect-ratio: 1 / 1;
-    }
-    .axil-product .thumbnail a{
-        display: block; width: 100%; height: 100%;
-        position: relative; z-index: 2;
-    }
-    .axil-product .thumbnail::before{
-        content:"";
-        position: absolute;
-        width: 220%; height: 220%;
-        top: -60%; left: -60%;
-        background: radial-gradient(circle at 30% 30%, color-mix(in srgb, var(--pc-accent) 10%, transparent), transparent 45%);
-        opacity: 0;
-        transition: opacity .5s ease;
-        pointer-events: none;
-        z-index: 1;
-    }
-    .axil-product.product-style-one:hover .thumbnail::before{ opacity: 1; }
-
-    .axil-product .thumbnail img.product_img {
-        width: 100% !important;
-        height: 100% !important;
-        aspect-ratio: 1 / 1;
-        object-fit: cover !important;
-        transition:
-            transform .9s cubic-bezier(.22,.61,.36,1),
-            filter .35s ease !important;
-        display: block;
-    }
-    .axil-product.product-style-one:hover .thumbnail img.product_img {
-        transform: scale(1.08) !important;
+    .axil-product.product-style-one:hover{
+        border-color: color-mix(in srgb, var(--pc-accent) 35%, var(--pc-line));
+        box-shadow: 0 14px 30px -16px rgba(15,23,42,.28); transform: translateY(-3px);
     }
 
-    /* Hover photo: sits on top of the main image and fades in once loaded */
-    .axil-product .thumbnail img.product_img_hover {
-        position: absolute; inset: 0;
-        width: 100% !important; height: 100% !important;
-        object-fit: cover !important;
-        opacity: 0;
-        transition: opacity .3s ease;
-        pointer-events: none;
+    /* picture */
+    .axil-product.product-style-one .thumbnail{
+        position: relative; margin: 0 !important; padding: 0 !important; border-radius: 0 !important;
+        aspect-ratio: 1 / 1; overflow: hidden; background: #f6f7f9;
     }
-    .axil-product .thumbnail img.product_img_hover:not([src]) { display: none; }
-    @media (hover: hover) {
-        .axil-product.product-style-one:hover .thumbnail img.product_img_hover.is-loaded { opacity: 1; }
+    .axil-product.product-style-one .thumbnail::before, .axil-product.product-style-one .thumbnail::after{ display: none !important; }
+    .axil-product.product-style-one .thumbnail > a{ position: relative; display: block; width: 100%; height: 100%; overflow: hidden; }
+    .axil-product.product-style-one .thumbnail img.product_img,
+    .axil-product.product-style-one .thumbnail img.product_img_hover{
+        position: absolute; inset: 0; width: 100% !important; height: 100% !important; max-height: none !important;
+        object-fit: cover; border-radius: 0 !important; transition: transform .5s ease, opacity .35s ease;
+    }
+    .axil-product.product-style-one .thumbnail img.product_img_hover{ opacity: 0; }
+
+    /* High-quality look: crisp, vivid photos (a little more contrast and colour). Sharp
+       screens get the full-size photo through srcset, so nothing is blurry from upscaling. */
+    .axil-product.product-style-one .thumbnail img.product_img,
+    .axil-product.product-style-one .thumbnail img.product_img_hover{
+        filter: contrast(1.06) saturate(1.12) brightness(1.02);
+        image-rendering: high-quality;
+        backface-visibility: hidden; -webkit-backface-visibility: hidden;
     }
 
-    /* ============================================================
-       ✨ BADGES (LEFT — Discount / Stock Out)
-       ============================================================ */
-    .axil-product .label-block.label-left {
-        position: absolute !important;
-        top: 6px !important;
-        left: 6px !important;
-        z-index: 6 !important;
-        display: flex !important;
-        flex-direction: column !important;
-        gap: 4px !important;
-    }
-    .axil-product .product-badget {
-        position: relative;
-        display: inline-flex;
-        align-items: center;
-        padding: 3px 7px !important;
-        border-radius: 999px !important;
-        font-weight: 800 !important;
-        font-size: 9.5px !important;
-        letter-spacing: .2px;
-        text-transform: uppercase;
-        line-height: 1 !important;
-        background: linear-gradient(135deg, var(--pc-accent), var(--pc-accent-dark)) !important;
-        color: #ffffff !important;
-        border: 1px solid rgba(255,255,255,.10) !important;
-        box-shadow: 0 4px 10px color-mix(in srgb, var(--pc-accent) 28%, transparent) !important;
-        font-family: 'Hind Siliguri', sans-serif !important;
-        overflow: hidden;
-        animation: badgeIn .5s cubic-bezier(.22,.61,.36,1) both;
-    }
-    .axil-product .product-badget::before{
-        content:""; position: absolute; top:0; left:-150%;
-        width: 60%; height: 100%;
-        background: linear-gradient(90deg, transparent, rgba(255,255,255,.55), transparent);
-        transform: skewX(-20deg);
-        animation: badgeShine 3.5s ease-in-out infinite;
-        animation-delay: 1.5s;
-    }
-    @keyframes badgeIn{
-        from{ opacity:0; transform: translateX(-8px) scale(.92); }
-        to  { opacity:1; transform: translateX(0) scale(1); }
-    }
-    @keyframes badgeShine{
-        0%, 60% { left:-150%; }
-        80%, 100% { left: 150%; }
-    }
-    .axil-product .product-badget.is-out{
-        background: linear-gradient(135deg, #ef4444, #b91c1c) !important;
-        box-shadow: 0 4px 10px rgba(239,68,68,.30) !important;
-        animation: badgeIn .5s cubic-bezier(.22,.61,.36,1) both, outPulse 2.2s ease-in-out infinite;
-    }
-    @keyframes outPulse{
-        0%, 100%{ box-shadow: 0 0 0 0 rgba(239,68,68,.45), 0 4px 10px rgba(239,68,68,.30) !important; }
-        50%    { box-shadow: 0 0 0 7px rgba(239,68,68,0),    0 4px 10px rgba(239,68,68,.30) !important; }
+    .axil-product.product-style-one .thumbnail img.product_img_hover:not([src]){ display: none; }
+    .axil-product.product-style-one:hover .thumbnail img.product_img{ transform: scale(1.05); }
+    @media (hover: hover){
+        .axil-product.product-style-one:hover .thumbnail img.product_img_hover.is-loaded{ opacity: 1; }
     }
 
-    /* ============================================================
-       ✨ FREE SHIPPING BADGE (RIGHT — Top corner)
-       ============================================================ */
-    .axil-product .label-block.label-right {
-        position: absolute !important;
-        top: 6px !important;
-        right: 6px !important;
-        z-index: 6 !important;
-        display: flex !important;
-        flex-direction: column !important;
-        gap: 4px !important;
+    /* badges: discount or "New" on the left, free shipping on the right */
+    .axil-product.product-style-one .label-block{ position: absolute; top: 8px; z-index: 3; margin: 0; padding: 0; }
+    .axil-product.product-style-one .label-block.label-left{ left: 8px; }
+    .axil-product.product-style-one .label-block.label-right{ right: 8px; }
+    .axil-product.product-style-one .product-badget,
+    .axil-product.product-style-one .free-shipping-badge{
+        display: inline-flex; align-items: center; gap: 4px; padding: 3px 9px; border-radius: 5px;
+        font-size: 12px !important; font-weight: 700; line-height: 1.4; color: #fff !important; background: var(--pc-accent) !important;
+        box-shadow: 0 4px 10px -4px rgba(0,0,0,.35); animation: none;
     }
-    .axil-product .free-shipping-badge {
-        position: relative;
-        display: inline-flex;
-        align-items: center;
-        gap: 4px;
-        padding: 3px 8px;
-        border-radius: 999px;
-        font-weight: 800;
-        font-size: 9.5px;
-        letter-spacing: .3px;
-        text-transform: uppercase;
-        line-height: 1;
-        background: linear-gradient(135deg, #10b981, #059669);
-        color: #ffffff;
-        border: 1px solid rgba(255,255,255,.15);
-        box-shadow:
-            0 4px 12px rgba(16,185,129,.32),
-            inset 0 1px 0 rgba(255,255,255,.18);
-        font-family: 'Hind Siliguri', sans-serif;
-        overflow: hidden;
-        animation:
-            badgeInRight .5s cubic-bezier(.22,.61,.36,1) both,
-            freeShipPulse 2.4s ease-in-out infinite;
-    }
-    .axil-product .free-shipping-badge i {
-        font-size: 9px;
-        animation: truckMove 2.5s ease-in-out infinite;
-    }
-    .axil-product .free-shipping-badge::before{
-        content:""; position: absolute; top:0; left:-150%;
-        width: 55%; height: 100%;
-        background: linear-gradient(90deg, transparent, rgba(255,255,255,.6), transparent);
-        transform: skewX(-20deg);
-        animation: badgeShine 3.5s ease-in-out infinite;
-        animation-delay: 2.5s;
-    }
-    @keyframes badgeInRight{
-        from{ opacity:0; transform: translateX(10px) scale(.9); }
-        to  { opacity:1; transform: translateX(0) scale(1); }
-    }
-    @keyframes freeShipPulse{
-        0%, 100%{
-            box-shadow:
-                0 0 0 0 rgba(16,185,129,.40),
-                0 4px 12px rgba(16,185,129,.32),
-                inset 0 1px 0 rgba(255,255,255,.18);
-        }
-        50%{
-            box-shadow:
-                0 0 0 7px rgba(16,185,129,0),
-                0 4px 12px rgba(16,185,129,.32),
-                inset 0 1px 0 rgba(255,255,255,.18);
-        }
-    }
-    @keyframes truckMove{
-        0%, 100% { transform: translateX(0); }
-        50%      { transform: translateX(2px); }
-    }
-    /* Greyed out when out of stock */
-    .axil-product.product-style-one[data-is-out="1"] .free-shipping-badge{
-        background: #94a3b8 !important;
-        box-shadow: none !important;
-        animation: badgeInRight .5s cubic-bezier(.22,.61,.36,1) both !important;
-    }
-    .axil-product.product-style-one[data-is-out="1"] .free-shipping-badge i{
-        animation: none !important;
-    }
+    .axil-product.product-style-one .product-badget::before{ display: none; }
+    .axil-product.product-style-one .free-shipping-badge{ background: #16a34a !important; font-size: 11px !important; }
+    .axil-product.product-style-one .free-shipping-badge i{ font-size: 10px; }
 
-    /* ============================================================
-       ✨ CONTENT — TIGHT SPACING
-       ============================================================ */
-    .axil-product .product-content {
-        padding: 12px 14px 12px !important;
-        text-align: left !important;
-        display: flex;
-        flex-direction: column;
-        justify-content: flex-start !important;
-        flex-grow: 1;
-        background: #ffffff;
-        gap: 0; 
+    /* out of stock: soft veil and a stamp */
+    .axil-product.product-style-one .stock-out-overlay{
+        position: absolute; inset: 0; z-index: 2; display: flex; align-items: center; justify-content: center;
+        background: rgba(255,255,255,.55); pointer-events: none;
     }
+    .axil-product.product-style-one .stock-out-stamp{
+        padding: 4px 12px; border: 2px solid #ef4444; border-radius: 6px; background: rgba(255,255,255,.9);
+        color: #ef4444; font-size: 13px; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; transform: rotate(-8deg);
+    }
+    .axil-product.product-style-one[data-is-out="1"] .thumbnail img.product_img{ filter: grayscale(.6) contrast(1.02); }
 
-    .product-type-indicator {
-        display: inline-flex;
-        align-items: center;
-        gap: 5px;
-        align-self: flex-start;
-        font-size: 10px;
-        font-weight: 800;
-        text-transform: uppercase;
-        letter-spacing: .5px;
-        color: #475569;
-        background: linear-gradient(135deg, #f1f5f9, #e2e8f0);
-        padding: 3px 9px;
-        border-radius: 999px;
-        border: 1px solid rgba(15,23,42,.05);
-        margin: 0 0 6px 0 !important;
-        transition: background .3s ease, color .3s ease, transform .3s ease;
+    /* text */
+    .axil-product.product-style-one .product-content{
+        display: flex; flex-direction: column; flex: 1 1 auto; gap: 2px;
+        margin: 0 !important; padding: 10px 12px 12px !important; text-align: left; background: #fff;
     }
-    .product-type-indicator i{ font-size: 9px; }
-    .product-type-indicator.is-variable{
-        color: var(--pc-accent);
-        background: linear-gradient(135deg, var(--pc-accent-tint), var(--pc-accent-tint2));
-        border-color: color-mix(in srgb, var(--pc-accent) 18%, transparent);
+    .axil-product.product-style-one .product-content .title{
+        margin: 0 !important; font-size: 14.5px !important; font-weight: 600 !important; line-height: 1.35 !important; color: var(--pc-ink);
+        min-height: 0 !important; height: auto !important; display: block !important;
+        white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     }
-    .axil-product.product-style-one:hover .product-type-indicator{
-        transform: translateY(-1px);
-    }
+    .axil-product.product-style-one .product-content .title a{ color: var(--pc-ink) !important; text-decoration: none !important; }
+    .axil-product.product-style-one:hover .product-content .title a{ color: var(--pc-accent) !important; }
+    .axil-product.product-style-one .pc-sub{ font-size: 12.5px; color: var(--pc-muted); line-height: 1.35; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-    /* ============================================================
-       ✨ TITLE
-       ============================================================ */
-    .axil-product .product-content .title {
-        margin: 0 0 4px 0 !important;
-        line-height: 1.3 !important;
-        font-weight: 600 !important;
-        font-size: 14px !important;
-        min-height: unset !important;
-        height: auto !important;
+    .axil-product.product-style-one .product-price-variant{
+        display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: auto 0 0 !important; padding-top: 6px;
     }
-    .axil-product .product-content .title a {
-        color: #0f172a !important;
-        text-decoration: none !important;
-        display: block !important;
-        overflow: hidden !important;
-        white-space: nowrap !important;
-        text-overflow: ellipsis !important;
-        max-width: 100%;
-        font-family: 'Hind Siliguri', sans-serif !important;
-        transition: color .25s ease;
+    .axil-product.product-style-one .price-wrap{ display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 6px; min-width: 0; }
+    /* the theme styles span.price with stronger selectors, hence !important */
+    .axil-product.product-style-one .product-price-variant span.current-price{
+        margin: 0 !important; font-size: 16px !important; font-weight: 800 !important; line-height: 1.2 !important; color: var(--pc-accent) !important; white-space: nowrap;
     }
-    .axil-product.product-style-one:hover .product-content .title a {
-        color: var(--pc-accent) !important;
+    .axil-product.product-style-one .product-price-variant span.old-price{
+        margin: 0 !important; font-size: 12px !important; font-weight: 500 !important; color: #9ca3af !important; text-decoration: line-through; white-space: nowrap;
     }
+    .axil-product.product-style-one[data-is-out="1"] .product-price-variant span.current-price{ color: #9ca3af !important; }
 
-    /* ============================================================
-       ✨ PRICE + ACTION
-       ============================================================ */
-    .axil-product .product-price-variant {
-        display: flex !important;
-        justify-content: space-between !important;
-        align-items: center !important;
-        gap: 8px !important;
-        margin: 0 !important; 
-        padding: 0 !important;
+    /* cart button: outlined square, filled on hover */
+    .axil-product.product-style-one .add-to-cart-btn{
+        flex: 0 0 auto; width: 38px; height: 38px; padding: 0; margin: 0; border-radius: 8px;
+        display: inline-flex; align-items: center; justify-content: center; cursor: pointer;
+        border: 1.5px solid var(--pc-accent); background: #fff; color: var(--pc-accent) !important;
+        text-decoration: none !important; box-shadow: none; transition: background .2s ease, color .2s ease, transform .15s ease;
     }
-    .axil-product .price-wrap{
-        display: flex;
-        align-items: baseline;
-        /* prices show two decimals now — the old price drops to its own line
-           instead of being cut off with "…" on narrow cards */
-        flex-wrap: wrap;
-        gap: 0 6px;
-        flex: 1;
-        min-width: 0;
-        overflow: hidden;
-    }
-    .axil-product .product-price-variant .current-price {
-        font-family: 'Hind Siliguri', sans-serif !important;
-        font-size: 15px !important;
-        font-weight: 800 !important;
-        color: #0f172a !important;
-        letter-spacing: -.2px;
-        background: linear-gradient(135deg, #0f172a 0%, var(--pc-accent) 120%);
-        -webkit-background-clip: text;
-        background-clip: text;
-        -webkit-text-fill-color: transparent;
-        line-height: 1.2;
-        white-space: nowrap;
-    }
-    .axil-product .product-price-variant .old-price {
-        font-family: 'Hind Siliguri', sans-serif !important;
-        font-size: 12px !important;
-        color: #94a3b8 !important;
-        text-decoration: line-through !important;
-        font-weight: 500 !important;
-        line-height: 1.2;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-    }
-
-    /* ============================================================
-       ✨ ACTION BUTTON
-       ============================================================ */
-    .axil-product .add-to-cart-btn{
-        position: relative;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        width: 38px;
-        height: 38px;
-        padding: 0;
-        border: 1px solid rgba(15,23,42,.08);
-        border-radius: 11px;
-        cursor: pointer;
-        color: #0f172a;
-        background: linear-gradient(135deg, #ffffff, #f8fafc);
-        text-decoration: none !important;
-        box-shadow:
-            0 6px 14px rgba(15,23,42,.08),
-            inset 0 1px 0 rgba(255,255,255,1);
-        overflow: hidden;
-        isolation: isolate;
-        transition:
-            transform .35s cubic-bezier(.22,.61,.36,1),
-            box-shadow .35s ease,
-            color .25s ease,
-            border-color .25s ease;
-        flex-shrink: 0;
-    }
-    .axil-product .add-to-cart-btn::before{
-        content:""; position: absolute; inset: 0;
-        border-radius: 11px;
-        background: linear-gradient(135deg, var(--pc-accent), var(--pc-accent-dark));
-        opacity: 0;
-        transition: opacity .35s ease;
-        z-index: -1;
-    }
-    .axil-product .add-to-cart-btn::after{
-        content:""; position: absolute; top: 0; left: -130%;
-        width: 60%; height: 100%;
-        background: linear-gradient(120deg, transparent, rgba(255,255,255,.50), transparent);
-        transform: skewX(-20deg);
-        transition: left .8s cubic-bezier(.22,.61,.36,1);
-        z-index: 0;
-    }
-    .axil-product .add-to-cart-btn:hover{
-        transform: translateY(-2px) scale(1.05);
-        color: #ffffff;
-        border-color: transparent;
-        box-shadow:
-            0 14px 26px color-mix(in srgb, var(--pc-accent) 32%, transparent),
-            inset 0 1px 0 rgba(255,255,255,.15);
-    }
-    .axil-product .add-to-cart-btn:hover::before{ opacity: 1; }
-    .axil-product .add-to-cart-btn:hover::after { left: 130%; }
-    .axil-product .add-to-cart-btn:active{ transform: translateY(0) scale(.96); }
-
-    .axil-product .add-to-cart-btn i{
-        position: relative;
-        z-index: 2;
-        font-size: 14px;
-        transition: transform .35s cubic-bezier(.34,1.56,.64,1);
-    }
-    .axil-product .add-to-cart-btn:hover i{
-        transform: rotate(-8deg) scale(1.15);
-    }
-
-    .axil-product .add-to-cart-btn.is-variable{
-        background: linear-gradient(135deg, var(--pc-accent-tint), var(--pc-accent-tint2));
-        color: var(--pc-accent);
-        border-color: color-mix(in srgb, var(--pc-accent) 20%, transparent);
-    }
-    .axil-product .add-to-cart-btn.is-variable:hover{ color: #ffffff; }
-
+    .axil-product.product-style-one .add-to-cart-btn::before, .axil-product.product-style-one .add-to-cart-btn::after{ display: none; }
+    .axil-product.product-style-one .add-to-cart-btn:hover{ background: var(--pc-accent); color: #fff !important; }
+    .axil-product.product-style-one .add-to-cart-btn:active{ transform: scale(.94); }
+    .axil-product.product-style-one .add-to-cart-btn svg{ width: 19px; height: 19px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+    .axil-product.product-style-one .add-to-cart-btn i{ font-size: 15px; color: inherit; }
+    .axil-product.product-style-one .add-to-cart-btn .fa-spinner{ animation: cartSpin .8s linear infinite; }
+    @keyframes cartSpin{ to{ transform: rotate(360deg); } }
+    .axil-product.product-style-one .add-to-cart-btn:disabled,
     .axil-product.product-style-one[data-is-out="1"] .add-to-cart-btn{
-        background: #f1f5f9 !important;
-        color: #94a3b8 !important;
-        cursor: not-allowed;
-        pointer-events: none;
-        box-shadow: none !important;
-        border-color: #e2e8f0 !important;
+        border-color: #e5e7eb; background: #f3f4f6; color: #9ca3af !important; cursor: not-allowed;
     }
-    .axil-product.product-style-one[data-is-out="1"] .add-to-cart-btn::before,
-    .axil-product.product-style-one[data-is-out="1"] .add-to-cart-btn::after{ display: none !important; }
 
-    /* ============================================================
-       ✨ STOCK OUT
-       ============================================================ */
-    .axil-product.product-style-one[data-is-out="1"]:hover .thumbnail img.product_img {
-        transform: none !important;
-    }
-    .axil-product.product-style-one[data-is-out="1"] .product-content .title a {
-        color: #94a3b8 !important;
-    }
-    .axil-product.product-style-one[data-is-out="1"] .product-price-variant .current-price{
-        color: #94a3b8 !important;
-        background: none !important;
-        -webkit-text-fill-color: #94a3b8 !important;
-    }
-    .axil-product.product-style-one[data-is-out="1"] .product-price-variant .old-price{
-        color: #cbd5e1 !important;
-    }
-    .axil-product.product-style-one[data-is-out="1"]:hover{
-        transform: none !important;
-        box-shadow:
-            0 1px 2px rgba(15,23,42,0.03),
-            0 0 0 1px rgba(15,23,42,0.02) !important;
-    }
-    .axil-product.product-style-one[data-is-out="1"]::before{ opacity: 0 !important; }
-
-    .axil-product .thumbnail{ position: relative; }
-    .axil-product.product-style-one .thumbnail > .stock-out-overlay{
-        position: absolute !important;
-        inset: 0;
-        z-index: 7 !important;
-        pointer-events: none;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        background: rgba(255,255,255,.18);
-    }
-    /* Full-width translucent red band across the image, slightly tilted */
-    .axil-product .stock-out-stamp{
-        display: block;
-        width: 140%;
-        flex: 0 0 auto;
-        padding: 9px 0;
-        background: rgba(232,72,85,.78);
-        color: #ffffff !important;
-        font-weight: 700;
-        font-size: 17px;
-        letter-spacing: 1.5px;
-        line-height: 1;
-        text-align: center;
-        text-transform: uppercase;
-        white-space: nowrap;
-        transform: rotate(-12deg);
-        text-shadow: 0 1px 2px rgba(0,0,0,.15);
-    }
-    @media (max-width: 575px){
-        .axil-product .stock-out-stamp{ font-size: 13px; padding: 7px 0; letter-spacing: 1px; }
-    }
-    .axil-product.product-style-one[data-is-out="1"] .label-block.label-right{ z-index: 8 !important; }
-
-    .axil-product .add-to-cart-btn .fa-spinner{ animation: cartSpin .8s linear infinite; }
-    @keyframes cartSpin{ from { transform: rotate(0); } to { transform: rotate(360deg); } }
-
-    /* ============================================================
-       ✨ MOBILE
-       ============================================================ */
     @media (max-width: 575.98px){
-        .axil-product.product-style-one{ border-radius: 12px !important; }
-        .axil-product .product-content{ padding: 10px 11px 10px !important; }
-        .product-type-indicator{ font-size: 9px; padding: 2px 7px; margin-bottom: 5px !important; }
-        .axil-product .product-content .title{ font-size: 13px !important; margin-bottom: 3px !important; }
-        .axil-product .product-price-variant .current-price{ font-size: 14px !important; }
-        .axil-product .product-price-variant .old-price{ font-size: 11px !important; }
-        .axil-product .add-to-cart-btn{ width: 34px; height: 34px; border-radius: 10px; }
-        .axil-product .add-to-cart-btn i{ font-size: 13px; }
-        .axil-product .label-block.label-left,
-        .axil-product .label-block.label-right{ top: 4px !important; gap: 3px !important; }
-        .axil-product .label-block.label-left{ left: 4px !important; }
-        .axil-product .label-block.label-right{ right: 4px !important; }
-        .axil-product .product-badget,
-        .axil-product .free-shipping-badge{ font-size: 8.5px !important; padding: 2.5px 6px !important; }
-        .axil-product .free-shipping-badge i{ font-size: 8px; }
+        .axil-product.product-style-one .product-content{ padding: 8px 9px 10px !important; }
+        .axil-product.product-style-one .product-content .title{ font-size: 13px !important; }
+        .axil-product.product-style-one .pc-sub{ font-size: 11.5px; }
+        .axil-product.product-style-one .product-price-variant span.current-price{ font-size: 14.5px !important; }
+        .axil-product.product-style-one .product-price-variant span.old-price{ font-size: 11px !important; }
+        .axil-product.product-style-one .add-to-cart-btn{ width: 34px; height: 34px; border-radius: 7px; }
+        .axil-product.product-style-one .add-to-cart-btn svg{ width: 17px; height: 17px; }
+        .axil-product.product-style-one .product-badget{ font-size: 10.5px; padding: 2px 7px; }
+        .axil-product.product-style-one .free-shipping-badge{ font-size: 10px; padding: 2px 6px; }
+        .axil-product.product-style-one .stock-out-stamp{ font-size: 11px; padding: 3px 8px; }
     }
-    /* very narrow phones: two-decimal prices still have to fit beside the button */
-    @media (max-width: 360px){
-        .axil-product .product-price-variant{ gap: 5px !important; }
-        .axil-product .product-price-variant .current-price{ font-size: 12.5px !important; }
-        .axil-product .add-to-cart-btn{ width: 30px; height: 30px; }
-    }
-
     @media (prefers-reduced-motion: reduce){
-        .axil-product, .axil-product *, .axil-product *::before, .axil-product *::after{
-            animation-duration: .001ms !important;
-            transition-duration: .001ms !important;
-        }
+        .axil-product.product-style-one, .axil-product.product-style-one *{ transition: none !important; }
     }
 </style>
 
@@ -589,6 +188,7 @@
 document.addEventListener('DOMContentLoaded', function() {
     if(window.ajaxCartInitialized) return;
     window.ajaxCartInitialized = true;
+
 
     // Hover photo is downloaded on first hover only, so cards never load two
     // images up front. Delegated, so AJAX-loaded cards work too.
@@ -690,7 +290,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
     <div class="thumbnail">
         <a href="{{ route('front.products.show', ['product' => $productParam]) }}">
-            <img src="{{ getImage('thumb_products', $product->image) }}" class="product_img" alt="{{ $product->name }}" loading="lazy" decoding="async">
+            @php
+                $thumbSrc = getImage('thumb_products', $product->image);
+                $fullSrc  = $product->image && file_exists(public_path('products/' . $product->image)) ? getImage('products', $product->image) : null;
+            @endphp
+            <img src="{{ $thumbSrc }}" class="product_img" alt="{{ $product->name }}" loading="lazy" decoding="async"
+                 @if($fullSrc) srcset="{{ $thumbSrc }} 500w, {{ $fullSrc }} 1200w" sizes="(max-width: 575px) 50vw, (max-width: 991px) 33vw, 260px" @endif>
             {{-- Second photo shown on hover: the first gallery image, fetched only when hovered --}}
             @php $hoverImage = optional($product->images->first())->image; @endphp
             @if($hoverImage && file_exists(public_path('products/' . $hoverImage)))
@@ -712,10 +317,14 @@ document.addEventListener('DOMContentLoaded', function() {
             </div>
         @endif
 
-        {{-- LEFT badge: Discount --}}
-        @if($hasDiscount && !$isOut)
+        {{-- LEFT badge: discount, otherwise "New" --}}
+        @if($hasDiscount && $discountPercent > 0 && !$isOut)
             <div class="label-block label-left">
                 <div class="product-badget">{{ $discountPercent }}% Off</div>
+            </div>
+        @elseif($isNew && !$isOut)
+            <div class="label-block label-left">
+                <div class="product-badget">New</div>
             </div>
         @endif
 
@@ -730,20 +339,13 @@ document.addEventListener('DOMContentLoaded', function() {
     </div>
 
     <div class="product-content">
-        <div class="product-type-indicator {{ $isVariable ? 'is-variable' : '' }}">
-            @if($isVariable)
-                <i class="fas fa-layer-group"></i> Variable
-            @else
-                <i class="fas fa-box"></i> Single
-            @endif
-        </div>
-
         <h5 class="title">
             <a href="{{ route('front.products.show', ['product' => $productParam]) }}"
                title="{{ $product->name }}">
                 {{ $product->name }}
             </a>
         </h5>
+        <span class="pc-sub">{{ $minQty > 1 ? 'Wholesale · Min '.$minQty.' pcs' : ($isVariable ? 'More options available' : (($product->relationLoaded('category') ? optional($product->category)->name : null) ?: 'Wholesale Price')) }}</span>
 
         <div class="product-price-variant">
             <div class="price-wrap">
@@ -767,13 +369,13 @@ document.addEventListener('DOMContentLoaded', function() {
             </div>
 
             @if($isOut)
-                <button type="button" class="add-to-cart-btn" disabled aria-disabled="true" title="Out of Stock">
-                    <i class="fas fa-ban"></i>
+                <button type="button" class="add-to-cart-btn" disabled aria-disabled="true" title="Out of Stock" aria-label="Out of Stock">
+                    {!! $cartIcon !!}
                 </button>
             @elseif($isVariable)
                 <a href="{{ route('front.products.show', ['product' => $productParam]) }}"
-                   class="add-to-cart-btn is-variable" title="Select Options">
-                    <i class="far fa-eye"></i>
+                   class="add-to-cart-btn is-variable" title="Select Options" aria-label="Select Options">
+                    {!! $cartIcon !!}
                 </a>
             @else
                 <button type="button" class="add-to-cart-btn ajax-add-btn"
@@ -781,8 +383,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     data-product="{{ $product->id }}"
                     data-variation="{{ $variationId }}"
                     data-token="{{ csrf_token() }}"
-                    title="Add to Cart">
-                    <i class="fas fa-cart-plus"></i>
+                    title="Add to Cart" aria-label="Add to Cart">
+                    {!! $cartIcon !!}
                 </button>
             @endif
         </div>

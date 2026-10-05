@@ -373,6 +373,7 @@
                                 <option value="latest"     {{ $sort=='latest' ? 'selected':'' }}>Sort by Latest</option>
                                 <option value="oldest"     {{ $sort=='oldest' ? 'selected':'' }}>Sort by Oldest</option>
                                 <option value="name"       {{ $sort=='name' ? 'selected':'' }}>Sort by Name</option>
+                                <option value="best_selling" {{ $sort=='best_selling' ? 'selected':'' }}>Best Selling</option>
                                 <option value="price_low"  {{ $sort=='price_low' ? 'selected':'' }}>Price: Low to High</option>
                                 <option value="price_high" {{ $sort=='price_high' ? 'selected':'' }}>Price: High to Low</option>
                             </select>

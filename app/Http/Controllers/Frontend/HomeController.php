@@ -69,21 +69,49 @@ class HomeController extends Controller
                         ->take(12)
                         ->get();
 
-        // Category cards under the featured banners: categories marked popular come
-        // first, topped up with the busiest ones. A card needs a picture and at
-        // least one product, otherwise it would lead to an empty page.
+        // Category cards: categories marked popular come first, then the busiest ones.
+        // A card needs a picture and at least one product, otherwise it would lead
+        // to an empty page.
         $popularCategories = Category::whereNotNull('image')->where('image', '!=', '')
             ->get()
             ->filter(fn ($c) => file_exists(public_path('categories/' . $c->image)))
             ->each(fn ($c) => $c->products_count = Product::where('status', 1)->inCategory([$c->id])->count())
             ->filter(fn ($c) => $c->products_count > 0)
             ->sortBy([['is_popular', 'desc'], ['products_count', 'desc']])
-            ->take(6)
             ->values();
+
+        // "Shop by Collection" runs as two auto-scrolling rows. The admin's featured
+        // banners fill the first row when their files exist; otherwise the categories
+        // are split across both rows.
+        $bannerTiles = collect();
+        if ($featured_images) {
+            foreach ([1, 2, 3, 4] as $n) {
+                $bannerTiles->push(['image' => $featured_images->{"left_image_$n"}, 'link' => $featured_images->{"left_link_$n"}]);
+            }
+            $bannerTiles->push(['image' => $featured_images->right_image, 'link' => $featured_images->right_link]);
+        }
+        $bannerTiles = $bannerTiles
+            ->filter(fn ($b) => !empty($b['image']) && file_exists(public_path('homeimages/' . $b['image'])))
+            ->map(fn ($b) => ['type' => 'banner', 'image' => asset('homeimages/' . $b['image']), 'link' => $b['link'] ?: route('front.products.index')])
+            ->values();
+
+        $categoryTiles = $popularCategories->map(fn ($c) => [
+            'type' => 'category', 'image' => asset('categories/' . $c->image),
+            'link' => route('front.category', [$c->url]), 'name' => $c->name, 'count' => $c->products_count,
+        ]);
+
+        $collectionRows = $bannerTiles->isNotEmpty()
+            ? [$bannerTiles, $categoryTiles]
+            : [$categoryTiles->filter(fn ($t, $i) => $i % 2 === 0)->values(), $categoryTiles->filter(fn ($t, $i) => $i % 2 === 1)->values()];
+        $collectionRows = array_values(array_filter($collectionRows, fn ($row) => $row->isNotEmpty()));
+
+        $popularCategories = $popularCategories->take(12);
+        $productCount = Product::where('status', 1)->count();
 
         return view('frontend.home', compact(
             'sliders','brands','featured_images',
-            'homeProducts','popular_products','homeCategoryCovers','popularCategories'
+            'homeProducts','popular_products','homeCategoryCovers','popularCategories',
+            'collectionRows','productCount'
         ));
     }
 

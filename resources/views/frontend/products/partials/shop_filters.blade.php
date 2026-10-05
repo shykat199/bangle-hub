@@ -20,6 +20,9 @@
     if ($sfMin > $sfMax) { $sfMin = $sfLo; $sfMax = $sfHi; }
 
     $sfCurrency = ['BDT' => '৳', 'Dollar' => '$'][getInfo()->currency ?? 'BDT'] ?? '৳';
+
+    // Only Category starts open; any other section opens when the shopper has picked something in it.
+    $sfOpen = fn (bool $active) => $active ? 'is-open' : '';
 @endphp
 
 <div class="filter-card sf-panel" data-sf-panel>
@@ -33,7 +36,7 @@
         {{-- Category: a filter on the shop page, links to the other categories on a category page --}}
         @if($cats->count())
         <div class="filter-acc is-open">
-            <button type="button" class="acc-btn">Category <i class="fas fa-chevron-up"></i></button>
+            <button type="button" class="acc-btn">Category <i class="fas fa-chevron-down"></i></button>
             <div class="acc-body">
                 <div class="pill-list">
                     @foreach($cats as $c)
@@ -52,8 +55,8 @@
 
         {{-- Price --}}
         @if($sfHi > $sfLo)
-        <div class="filter-acc is-open">
-            <button type="button" class="acc-btn">Price <i class="fas fa-chevron-up"></i></button>
+        <div class="filter-acc {{ $sfOpen($sfMin > $sfLo || $sfMax < $sfHi) }}">
+            <button type="button" class="acc-btn">Price <i class="fas fa-chevron-down"></i></button>
             <div class="acc-body">
                 <div class="price-box">
                     <div class="sf-price-vals">
@@ -71,8 +74,8 @@
         @endif
 
         {{-- Stock status (pick one) --}}
-        <div class="filter-acc is-open">
-            <button type="button" class="acc-btn">Stock Status <i class="fas fa-chevron-up"></i></button>
+        <div class="filter-acc {{ $sfOpen($sfStock !== '') }}">
+            <button type="button" class="acc-btn">Stock Status <i class="fas fa-chevron-down"></i></button>
             <div class="acc-body">
                 <div class="pill-list">
                     <button type="button" class="pill {{ $sfStock === 'in_stock' ? 'active' : '' }}" data-sf="stock" data-id="in_stock">In Stock</button>
@@ -83,8 +86,8 @@
 
         {{-- Brand --}}
         @if($types->count())
-        <div class="filter-acc is-open">
-            <button type="button" class="acc-btn">Brand <i class="fas fa-chevron-up"></i></button>
+        <div class="filter-acc {{ $sfOpen(!empty($sfBrand)) }}">
+            <button type="button" class="acc-btn">Brand <i class="fas fa-chevron-down"></i></button>
             <div class="acc-body">
                 <div class="pill-list">
                     @foreach($types as $t)
@@ -98,8 +101,8 @@
 
         {{-- Color --}}
         @if($colors->count())
-        <div class="filter-acc is-open">
-            <button type="button" class="acc-btn">Color <i class="fas fa-chevron-up"></i></button>
+        <div class="filter-acc {{ $sfOpen(!empty($sfColor)) }}">
+            <button type="button" class="acc-btn">Color <i class="fas fa-chevron-down"></i></button>
             <div class="acc-body">
                 <div class="pill-list sf-scroll">
                     @foreach($colors as $co)
@@ -119,8 +122,8 @@
 
         {{-- Size --}}
         @if($sizes->count())
-        <div class="filter-acc is-open">
-            <button type="button" class="acc-btn">Size <i class="fas fa-chevron-up"></i></button>
+        <div class="filter-acc {{ $sfOpen(!empty($sfSize)) }}">
+            <button type="button" class="acc-btn">Size <i class="fas fa-chevron-down"></i></button>
             <div class="acc-body">
                 <div class="pill-list sf-scroll">
                     @foreach($sizes as $sz)

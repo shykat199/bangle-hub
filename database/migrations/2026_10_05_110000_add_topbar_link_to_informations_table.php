@@ -2,6 +2,7 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
@@ -12,6 +13,10 @@ return new class extends Migration
             return;
         }
 
+        // This wide table already exceeds InnoDB's worst-case 8126-byte row estimate,
+        // so strict mode rejects any rebuilding ALTER. Actual row data is far smaller.
+        DB::statement('SET SESSION innodb_strict_mode = 0');
+
         // Optional link for the announcement bar: where it goes and the button label.
         Schema::table('informations', function (Blueprint $table) {
             if (!Schema::hasColumn('informations', 'topbar_link')) {
@@ -21,6 +26,8 @@ return new class extends Migration
                 $table->string('topbar_link_text', 60)->nullable();
             }
         });
+
+        DB::statement('SET SESSION innodb_strict_mode = 1');
     }
 
     public function down(): void

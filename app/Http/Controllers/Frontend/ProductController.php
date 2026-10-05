@@ -62,6 +62,10 @@ class ProductController extends Controller
         if ($key === 'latest')        return $query->orderBy('products.id', 'desc');
         if ($key === 'oldest')        return $query->orderBy('products.id', 'asc');
         if ($key === 'name')          return $query->orderBy('products.name', 'asc');
+        if ($key === 'best_selling') {
+            return $query->orderByRaw('(SELECT COALESCE(SUM(od.quantity), 0) FROM order_details od WHERE od.product_id = products.id AND od.deleted_at IS NULL) DESC')
+                         ->orderBy('products.id', 'desc');
+        }
         
         if ($key === 'price_low') {
             return $query->orderByRaw('IF(products.after_discount > 0, products.after_discount, products.sell_price) ASC');
@@ -551,15 +555,23 @@ class ProductController extends Controller
 
     public function categories()
     {
-        $category_id = request('category_id');
+        // Every top-level category with its live product count (its subcategories'
+        // products included). Categories with products first, busiest first; empty
+        // ones last so the list stays complete.
+        $cats = Category::whereNull('parent_id')->with('subcats')->get()
+            ->each(function ($c) {
+                $ids = $c->subcats->pluck('id')->push($c->id)->all();
+                $c->products_count = Product::where('status', 1)->inCategory($ids)->count();
+                $c->subcats->each(fn ($s) => $s->products_count = Product::where('status', 1)->inCategory([$s->id])->count());
+                $c->has_image = !empty($c->image) && file_exists(public_path('categories/' . $c->image));
+            })
+            ->sortBy([['products_count', 'desc'], ['name', 'asc']])
+            ->sortBy(fn ($c) => $c->products_count > 0 ? 0 : 1)
+            ->values();
 
-        $cats = Category::whereNull('parent_id')->get();
-        $q = Category::whereNotNull('parent_id');
+        $totalProducts = Product::where('status', 1)->count();
 
-        if (!empty($category_id)) $q->where('parent_id', $category_id);
-        $subs = $q->get();
-
-        return view('frontend.categories', compact('cats', 'subs'));
+        return view('frontend.categories', compact('cats', 'totalProducts'));
     }
 
     public function free_shipping()
