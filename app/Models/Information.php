@@ -26,6 +26,8 @@ class Information extends Model
         'topbar_active',
         'topbar_bg_color',
         'topbar_text_color',
+        'topbar_link',
+        'topbar_link_text',
         'facebook',
         'instagram',
         'tiktok',

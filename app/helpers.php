@@ -23,6 +23,35 @@ function getInfo() {
     return $info;
 }
 
+/**
+ * The storefront's accent colour: the brand colour from settings. Some sites use
+ * a light brand colour that only works on a coloured header — unusable for
+ * prices or buttons on white — so those get $fallback instead.
+ */
+function themeAccent(string $fallback = '#0f172a'): string
+{
+    $color = (string) (getInfo()->primary_color ?? '');
+    $hex = ltrim($color, '#');
+    if (strlen($hex) === 3) $hex = $hex[0].$hex[0].$hex[1].$hex[1].$hex[2].$hex[2];
+
+    if (strlen($hex) !== 6 || !ctype_xdigit($hex)) return $fallback;
+
+    $luma = 0.299 * hexdec(substr($hex, 0, 2)) + 0.587 * hexdec(substr($hex, 2, 2)) + 0.114 * hexdec(substr($hex, 4, 2));
+
+    return $luma > 185 ? $fallback : '#' . $hex;
+}
+
+/** Is this product in the current customer's wishlist? (one lookup per request) */
+function inWishlist($productId): bool
+{
+    return \App\Support\Wishlist::has($productId);
+}
+
+function wishlistCount(): int
+{
+    return \App\Support\Wishlist::count();
+}
+
 function dateFormate($date=null){
     $value='';
     if ($date) {
@@ -36,7 +65,8 @@ function getImage($folder=null,$value=null){
     $path = public_path($folder.'/'.$value);
     if (!empty($folder) && (!empty($value))) {
         if(file_exists($path)){
-            $url = asset($folder.'/'.$value);
+            // smaller WebP/AVIF copy when one was generated for this file (App\Support\ImageOptimizer)
+            $url = asset(\App\Support\ImageOptimizer::best($folder.'/'.$value));
         }
     }
     return $url;
@@ -49,6 +79,8 @@ function deleteImage($folder=null, $file=null){
         if ($isExists) {
             unlink($path);
         }
+        // the WebP/AVIF copies go with their original
+        \App\Support\ImageOptimizer::deleteSiblings($path);
     }
     return true;
 }

@@ -226,7 +226,8 @@ class CartController extends Controller
                 if ($stockQty < ($existingQty + $quantity)) {
                     return [
                         'ok' => false,
-                        'payload' => $this->errorResponse($request, 'Stock limit reached! You already have this item in cart.', 422)
+                        // in_cart lets "Order Now" carry on to checkout: the item is already there
+                        'payload' => $this->errorResponse($request, 'Stock limit reached! You already have this item in cart.', 422, ['in_cart' => true])
                     ];
                 }
             }
@@ -341,12 +342,12 @@ class CartController extends Controller
         ];
     }
 
-    private function errorResponse(Request $request, string $msg, int $status = 422)
+    private function errorResponse(Request $request, string $msg, int $status = 422, array $extra = [])
     {
         if (!$request->ajax() && !$request->expectsJson()) {
             return redirect()->back()->with('error', $msg);
         }
-        return response()->json(['success'=>false, 'msg'=>$msg], $status);
+        return response()->json(['success'=>false, 'msg'=>$msg] + $extra, $status);
     }
 
     public function storeCart(Request $request)

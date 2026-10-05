@@ -36,15 +36,45 @@ class ProductReviewController extends Controller
      * @param  \Illuminate\Http\Request  $request
      * @return \Illuminate\Http\Response
      */
+    /**
+     * "Log in" from the review box: remember the product so the customer lands
+     * back on its review form after logging in (the login action follows session('url')).
+     */
+    public function loginFirst(Product $product)
+    {
+        $back = route('front.products.show', ['product' => $product->slug ?: $product->id]) . '?review=1';
+
+        if (auth()->check()) {
+            return redirect($back);
+        }
+
+        session()->put('url', $back);
+
+        return redirect()->route('login');
+    }
+
     public function store(Request $request)
     {
+        // Only logged-in customers can review. The form is not shown to guests,
+        // this covers anyone posting to the endpoint directly.
+        if (!auth()->check()) {
+            return response()->json(['status' => false, 'login' => true, 'msg' => 'Please log in to write a review.'], 401);
+        }
+
         $data=$request->validate([
-            'review' => 'required|numeric',
-            'name' => 'required',
-            'message' => 'required',
+            'review' => 'required|numeric|min:1|max:5',
+            'name' => 'nullable|string|max:255',
+            // the form marks notes as optional
+            'message' => 'nullable|string|max:2000',
             'product_id' => 'required|numeric',
+            'image' => 'nullable|image|max:4096',
         ]);
-        
+
+        $data['name']    = trim((string) ($data['name'] ?? '')) ?: (auth()->user()->name ?? 'Customer');
+        $data['message'] = $data['message'] ?? '';
+        $data['user_id'] = auth()->id();
+        unset($data['image']);
+
         if ($request->hasFile('image')) {
             $image = $request->file('image');
             
@@ -61,7 +91,8 @@ class ProductReviewController extends Controller
             $data['image'] = 'reviews/' . $name;
         }
         
-        $old_check=['name'=>$data['name'],'product_id'=>$data['product_id']];
+        // one review per customer per product — sending again updates it
+        $old_check=['user_id'=>auth()->id(),'product_id'=>$data['product_id']];
         unset($data['product_id']);
         
         ProductReview::updateOrCreate($old_check,$data);

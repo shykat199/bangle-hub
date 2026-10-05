@@ -50,7 +50,7 @@
                 ? resolveStock($singleProduct, $v)
                 : resolveStock($singleProduct);
 
-            $varImage = $v->image ? asset('products/'.$v->image) : null;
+            $varImage = $v->image ? getImage('products', $v->image) : null;
 
             $key = $sid.'|'.$cid;
             $varMap[$key] = [
@@ -124,6 +124,20 @@
     $initFinal = (float)($initialVar['price'] ?? ($singleProduct->after_discount > 0 ? $singleProduct->after_discount : $singleProduct->sell_price));
     $initRaw   = (float)($initialVar['raw']   ?? ($singleProduct->sell_price ?? 0));
 
+    // Accent for price / active states: the site's brand colour. Some sites use a
+    // white brand text on a coloured gradient — there fall back to the Order Now colour.
+    $pdAccent = themeAccent($info->order_now_btn_color ?? '#0f172a');
+
+    $totalReviews  = $singleProduct->reviews->count();
+    $averageRating = $totalReviews > 0 ? round($singleProduct->reviews->avg('review'), 2) : 0;
+    $initSavePct   = ($initRaw > $initFinal && $initRaw > 0) ? (int) round((($initRaw - $initFinal) / $initRaw) * 100) : 0;
+    $currSymbol    = $info->currency_symbol ?? '৳';
+    // "170 ৳ off" — whole amounts without decimals, otherwise two.
+    $fmtOff        = fn ($n) => rtrim(rtrim(number_format((float) $n, 2), '0'), '.');
+    $initOff       = max(0, $initRaw - $initFinal);
+    // At or below this many pieces the "left" badge switches to the urgent style.
+    $lowStockLimit = max(1, (int) ($info->stock_warning_limit ?? 5));
+
     $hasMultipleVariants = count($varMap) > 1;
     $showSize  = $hasMultipleVariants && (count($sizesMap) > 0);
     $showColor = $hasMultipleVariants && (count($colorsMap) > 0);
@@ -137,6 +151,7 @@
       --brand-gradient: {!! $info->gradient_code ?? 'linear-gradient(90deg,#0d6efd,#00276C)' !!};
       --brand-text: {{ $info->primary_color ?? '#ffffff' }};
       --brand-dark: #00276C;
+      --pd-accent: {{ $pdAccent }};
 
       --bg: #f4f6f9;
       --card: #ffffff;
@@ -899,7 +914,7 @@
         transition: transform var(--t);
     }
     .order_now_btn:hover i {
-        transform: translateX(4px);
+        transform: scale(1.12);
     }
 
     .wa_now_btn,
@@ -1407,6 +1422,393 @@
         .notify-modal__dialog{ max-width: 100%; border-radius: 16px 16px 0 0; padding: 18px 16px 22px; }
         .notify-modal__head h5{ font-size: 16px !important; }
     }
+
+    /* ==========================================================================
+       PREMIUM LAYOUT LAYER
+       Sits on top of the rules above: calmer surfaces, one accent colour
+       (--pd-accent = the site's brand colour), clear type hierarchy. Button
+       colours still come from the admin settings (--order-btn-*, --common-btn-*).
+       ========================================================================== */
+    :root{
+        --bg: #f6f7f9;
+        --pd-line: #eaecf0;
+        --pd-accent-soft: #f7f7f8;
+        --pd-accent-ring: rgba(15,23,42,.12);
+        --pd-card-shadow: 0 1px 2px rgba(16,24,40,.04), 0 16px 36px -18px rgba(16,24,40,.14);
+    }
+    @supports (color: color-mix(in srgb, red 10%, white)){
+        :root{
+            --pd-accent-soft: color-mix(in srgb, var(--pd-accent) 7%, #fff);
+            --pd-accent-ring: color-mix(in srgb, var(--pd-accent) 18%, transparent);
+        }
+    }
+
+    /* Order Now uses the brand colour on this page, same red as the nav. */
+    :root{ --order-btn-bg: var(--pd-accent); --order-btn-text: #fff; }
+
+    /* --- surfaces: no lift-on-hover, hairline borders --- */
+    .single-product-thumbnail-wrap,
+    .details_right,
+    .woocommerce-tabs .tab-content,
+    .premium-review-card{
+        border: 1px solid var(--pd-line) !important;
+        border-radius: 22px;
+        box-shadow: var(--pd-card-shadow) !important;
+    }
+    .single-product-thumbnail-wrap:hover,
+    .details_right:hover,
+    .woocommerce-tabs .tab-content:hover,
+    .premium-review-card:hover,
+    .courier-card:hover,
+    .premium-short-description:hover,
+    .rating-box-wrapper:hover,
+    .product-code p:hover, .product-stock-box p:hover,
+    .details-ratting-wrapper:hover{
+        transform: none;
+        box-shadow: var(--pd-card-shadow) !important;
+    }
+    .courier-card:hover, .premium-short-description:hover, .rating-box-wrapper:hover,
+    .product-code p:hover, .product-stock-box p:hover, .details-ratting-wrapper:hover{ box-shadow: none !important; }
+    .single-product-thumbnail-wrap:hover img{ transform: none; }
+    /* Hover zoom (mouse devices, desktop width): a lens on the main image and an
+       enlarged pane beside it — see the script at the bottom. */
+    .pd-zoom-lens{
+        position: absolute; z-index: 4; display: none; pointer-events: none;
+        border: 1px solid var(--pd-accent); border-radius: 6px;
+        background: rgba(255,255,255,.35); box-shadow: 0 0 0 1px rgba(255,255,255,.6) inset;
+    }
+    .pd-zoom-pane{
+        position: fixed; z-index: 1010; display: none; pointer-events: none;
+        background-color: #fff; background-repeat: no-repeat;
+        border: 1px solid var(--pd-line); border-radius: 22px;
+        box-shadow: 0 24px 60px -12px rgba(16,24,40,.28);
+    }
+    .pd-zoom-on .product-large-thumbnail-3 .thumbnail{ cursor: crosshair; }
+
+    /* --- gallery --- */
+    @media (min-width: 992px){
+        .mobile_show > .row{ align-items: flex-start; }
+        .mobile_show > .row > .col-lg-6:first-child{ position: sticky; top: 96px; }
+        /* thumbnail rail is exactly as tall as the main image and scrolls inside it */
+        .mx_0 > .col-lg-2{ position: relative; }
+        .mx_0 > .col-lg-2 > .small-thumb-wrapper.custom-gallery-mode{
+            position: absolute; top: 0; bottom: 0; left: 0; right: 8px;
+            max-height: none; padding-right: 0; scrollbar-width: none;
+        }
+        .mx_0 > .col-lg-2 > .small-thumb-wrapper.custom-gallery-mode::-webkit-scrollbar{ display: none; }
+    }
+    /* the theme draws a yellow frame + padding around the main image */
+    .single-product-thumbnail.img-section{ border: none !important; padding: 0 !important; }
+    .small-thumb-wrapper.custom-gallery-mode .small-thumb-img img{ border-radius: 12px; background: #fff; border: 2px solid var(--pd-line); }
+    .small-thumb-wrapper.custom-gallery-mode .small-thumb-img.active-thumb img,
+    .small-thumb-wrapper.custom-gallery-mode .small-thumb-img:hover img{ border-color: var(--pd-accent) !important; }
+    .small-thumb-img:hover{ transform: none; box-shadow: none; }
+    .single-product-thumbnail-wrap .product-quick-view.position-view a{
+        width: 44px; height: 44px; border-radius: 50%;
+        display: flex; align-items: center; justify-content: center;
+        background: rgba(255,255,255,.94); color: var(--text) !important; font-size: 16px;
+        box-shadow: 0 6px 18px rgba(16,24,40,.16); transition: transform var(--t), color var(--t);
+    }
+    .single-product-thumbnail-wrap .product-quick-view.position-view a:hover{ transform: scale(1.06); color: var(--pd-accent) !important; }
+    .single-product-thumbnail-wrap .label-block{ animation: none; }
+    .single-product-thumbnail-wrap .label-block .product-badget{
+        background: var(--pd-accent) !important; color: #fff;
+        border-radius: 999px; padding: 6px 14px; font-weight: 700; font-size: 13px; letter-spacing: .02em;
+    }
+
+    /* --- details column --- */
+    .details_right{ height: auto; padding: 30px 32px; }
+    .pd-eyebrow{ min-height: 0; }
+    .pd-eyebrow a, .pd-eyebrow span{
+        font-size: 12px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase;
+        color: var(--pd-accent); text-decoration: none;
+    }
+    .pd-eyebrow a:hover{ text-decoration: underline; }
+    .product-cart h1.name{
+        font-size: 28px; font-weight: 700; line-height: 1.25; letter-spacing: -.015em;
+        color: var(--text); margin: 8px 0 12px; text-transform: none;
+    }
+    .details-ratting-wrapper{
+        display: flex; flex-wrap: wrap; white-space: normal; gap: 8px;
+        padding: 0; border: none; background: none; box-shadow: none;
+        font-size: 13.5px; font-weight: 500; color: var(--muted);
+    }
+    .details-ratting-wrapper .pd-stars{ display: inline-flex; gap: 2px; }
+    .details-ratting-wrapper .pd-stars i{ color: #f5a623; font-size: 14px; }
+    .details-ratting-wrapper .pd-stars i.far{ color: #d0d5dd; font-weight: 400; }
+    .pd-rating-num{ font-weight: 700; color: var(--text); }
+    .all-reviews-button{ margin-left: 2px; font-size: 13.5px; font-weight: 600; color: var(--pd-accent); }
+    .all-reviews-button:after{ background: var(--pd-accent); }
+
+    .details-price{
+        margin: 18px 0 !important; padding: 18px 0;
+        border-top: 1px solid var(--pd-line); border-bottom: 1px solid var(--pd-line);
+        align-items: center; gap: 12px;
+    }
+    .current-price-product{
+        background: none; border: none; padding: 0; box-shadow: none; border-radius: 0;
+        font-size: 34px; font-weight: 800; line-height: 1; letter-spacing: -.02em; color: var(--pd-accent);
+    }
+    @keyframes pdPriceFlash{ 0%{ opacity: .35; transform: translateY(4px); } 100%{ opacity: 1; transform: translateY(0); } }
+    .current-price-product.price-flash{ animation: pdPriceFlash .35s ease; }
+    .details-price del{ font-size: 18px; font-weight: 500; color: #98a2b3; }
+    .pd-save-badge{
+        background: var(--pd-accent); color: #fff; border-radius: 999px;
+        padding: 5px 11px; font-size: 12px; font-weight: 700; line-height: 1; letter-spacing: .02em;
+    }
+
+    .pd-sku{ margin: 0 0 10px; font-size: 14px; font-weight: 500; color: var(--muted); }
+    .pd-sku span{ font-weight: 700; color: var(--text); text-transform: uppercase; letter-spacing: .04em; }
+    .pd-price-label{
+        font-size: 14px; font-weight: 700; line-height: 1; color: var(--text);
+        text-transform: uppercase; letter-spacing: .04em;
+    }
+    .pd-save-badge{ border-radius: 6px; padding: 6px 10px; }
+
+    .meta-row.pd-meta{ justify-content: flex-start; margin: 18px 0 0; }
+    .product-stock-box p{
+        background: none; border: none; padding: 0; border-radius: 0; gap: 6px;
+        font-size: 14px; font-weight: 500; color: var(--text) !important;
+    }
+    .pd-status-label{ font-weight: 700; text-transform: uppercase; letter-spacing: .04em; }
+    .pd-status{ font-weight: 800; text-transform: uppercase; letter-spacing: .04em; }
+    .pd-status.is-in{ color: #16a34a; }
+    .pd-status.is-out{ color: #dc2626; }
+    /* how many pieces are left — a badge, urgent colours when stock is low */
+    .pd-stock-left{
+        display: inline-flex; align-items: center; gap: 6px; margin-left: 6px;
+        padding: 6px 12px; border-radius: 999px; line-height: 1;
+        font-size: 13px; font-weight: 600; color: #067647 !important;
+        background: #ecfdf3; border: 1px solid #abefc6;
+    }
+    .pd-stock-left b{ font-size: 15px; font-weight: 800; color: inherit; }
+    .pd-stock-left i{ font-size: 12px; color: inherit; }
+    .pd-stock-left.is-low{
+        color: #fff !important; background: var(--pd-accent); border-color: var(--pd-accent);
+        box-shadow: 0 6px 14px -4px var(--pd-accent-ring); animation: pdStockPulse 1.8s ease-in-out infinite;
+    }
+    @keyframes pdStockPulse{ 0%, 100%{ transform: scale(1); } 50%{ transform: scale(1.06); } }
+
+    .premium-short-description{
+        border: none; border-radius: 0; box-shadow: none; background: none;
+        padding: 0; margin: 16px 0 0; font-size: 15px; line-height: 1.7; color: #475467;
+    }
+
+    /* --- variants --- */
+    #variantBox{ margin-top: 20px !important; }
+    #variantBox .variant-group{ width: 100%; }
+    #variantBox label{
+        display: block; font-size: 14px; font-weight: 700; letter-spacing: 0; text-transform: none;
+        color: var(--text); margin-bottom: 10px !important;
+    }
+    #variantBox label .pd-variant-picked{ color: var(--pd-accent); margin-left: 4px; }
+    #variantBox .size{
+        border: 1.5px solid #e4e7ec !important; border-radius: 999px !important;
+        padding: 8px 18px !important; font-size: 13.5px !important; font-weight: 600; color: var(--text);
+    }
+    #variantBox .size:hover{ transform: none; box-shadow: none; border-color: var(--pd-accent) !important; color: var(--pd-accent); }
+    #variantBox .size.active{
+        background: var(--pd-accent) !important; border-color: var(--pd-accent) !important;
+        color: #fff !important; box-shadow: 0 6px 14px -4px var(--pd-accent-ring); animation: none;
+    }
+    #variantBox .size.is-out{ color: #98a2b3; padding-right: 40px !important; }
+    #variantBox .size.is-out.active{ background: #f2f4f7 !important; border-color: #98a2b3 !important; color: #667085 !important; box-shadow: none; }
+
+    /* --- buy block: quantity + cart, then Order Now, then contact buttons --- */
+    .pd-buy{ margin-top: 24px; }
+    .single_product{ flex-wrap: wrap; align-items: stretch; gap: 12px; margin-top: 0 !important; }
+    .single_product .qty-cart{ order: 1; flex: 0 0 136px; }
+    .qty-cart .quantity{ width: 136px; height: 52px; border: 1.5px solid #e4e7ec; border-radius: 14px; box-shadow: none; }
+    .quantity .minus, .quantity .plus{ width: 44px; height: 49px; line-height: 49px; font-weight: 600; }
+    .quantity .minus:hover, .quantity .plus:hover{ transform: none; background: #f2f4f7; }
+    .quantity input{ font-size: 16px; }
+    .single_product .add_cart_btn{
+        order: 2; flex: 1 1 0; width: auto !important; height: 52px !important;
+        padding: 0 18px !important; border-radius: 14px !important; font-size: 15px !important; letter-spacing: 0;
+    }
+    .single_product .add_cart_btn i{ font-size: 16px; }
+    .single_product .order_now_btn{
+        order: 3; flex: 1 1 100%; height: 56px !important;
+        border-radius: 14px !important; font-size: 16px !important; letter-spacing: .02em;
+    }
+    .single_product .wa_now_btn,
+    .single_product .call_now_btn{
+        order: 4; flex: 1 1 0; width: auto !important; height: 46px !important; gap: 8px;
+        border-radius: 12px !important; font-size: 14px; font-weight: 600; box-shadow: none !important;
+    }
+    .single_product .wa_now_btn{ background: #ecfdf3 !important; color: #0e7a43 !important; border: 1px solid #c6f0d6 !important; }
+    .single_product .call_now_btn{ background: #fff !important; color: var(--text) !important; border: 1px solid #e4e7ec !important; }
+    .single_product .wa_now_btn i, .single_product .call_now_btn i{ font-size: 16px; }
+    .single_product .wa_now_btn:hover, .single_product .call_now_btn:hover{ transform: translateY(-1px); filter: none; }
+    .single_product .call_now_btn:hover{ border-color: var(--pd-accent) !important; color: var(--pd-accent) !important; }
+
+    /* --- trust strip + delivery --- */
+    .pd-trust{
+        list-style: none; margin: 22px 0 0; padding: 16px 0;
+        display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;
+        border-top: 1px solid var(--pd-line); border-bottom: 1px solid var(--pd-line);
+    }
+    .pd-trust li{
+        display: flex; align-items: center; justify-content: center; gap: 8px; margin: 0;
+        font-size: 13px; font-weight: 600; color: var(--text); text-align: center;
+    }
+    .pd-trust li + li{ border-left: 1px solid var(--pd-line); }
+    .pd-trust i{ color: var(--pd-accent); font-size: 15px; }
+
+    .courier-card{ margin-top: 22px; border: 1px solid var(--pd-line); border-radius: 16px; box-shadow: none; }
+    .courier-card .courier-title{
+        text-align: left; padding: 13px 18px; background: #fafbfc;
+        border-bottom: 1px solid var(--pd-line); font-size: 14px; font-weight: 700;
+    }
+    .courier-card .courier-title i{ color: var(--pd-accent); margin-right: 6px; }
+    .courier-card table, .courier-card table > :not(caption) > *,
+    .courier-card table > :not(caption) > * > *{ border-width: 0 !important; box-shadow: none !important; }
+    .courier-card table td{ padding: 12px 18px !important; font-size: 14px; border-bottom: 1px solid var(--pd-line) !important; background: transparent !important; }
+    .courier-card table tr:last-child td{ border-bottom: 0 !important; }
+    .courier-card table td:last-child{ font-weight: 700; }
+    .product-metas li:hover{ padding-left: 0; }
+
+    /* --- share --- */
+    .pd-share{ display: flex; align-items: center; flex-wrap: wrap; gap: 12px; margin-top: 20px; }
+    .pd-share-label{ font-size: 13px; font-weight: 700; color: var(--text); }
+    .pd-share-sep{ width: 1px; height: 20px; background: var(--pd-line); }
+    @media (max-width: 575.98px){ .pd-share-sep{ flex: 0 0 100%; height: 0; } }
+    .pd-share-label i{ color: var(--pd-accent); margin-right: 4px; }
+    .pd-share-links{ display: flex; flex-wrap: wrap; gap: 8px; }
+    .pd-share-btn{
+        width: 38px; height: 38px; border-radius: 50%; padding: 0;
+        display: inline-flex; align-items: center; justify-content: center;
+        background: #fff; border: 1px solid #e4e7ec; color: var(--text); font-size: 15px;
+        text-decoration: none; cursor: pointer; transition: background var(--t), color var(--t), border-color var(--t), transform var(--t);
+    }
+    .pd-share-btn:hover{ transform: translateY(-2px); color: #fff; }
+    .pd-share-btn.is-fb:hover{ background: #1877f2; border-color: #1877f2; }
+    .pd-share-btn.is-msg:hover{ background: #0084ff; border-color: #0084ff; }
+    .pd-share-btn.is-wa:hover{ background: #25d366; border-color: #25d366; }
+    .pd-share-btn.is-tg:hover{ background: #229ed9; border-color: #229ed9; }
+    .pd-share-btn.is-x:hover{ background: #0f172a; border-color: #0f172a; }
+    .pd-share-btn.is-copy:hover, .pd-share-btn.is-copy.is-done{ background: var(--pd-accent); border-color: var(--pd-accent); color: #fff; }
+    /* Messenger's share link only opens the app, so show it on touch devices only */
+    @media (hover: hover) and (pointer: fine){ .pd-share-btn.is-msg{ display: none; } }
+
+    /* --- tabs: underline style --- */
+    .woocommerce-tabs.wc-tabs-wrapper{ margin-top: 12px; }
+    .nav.nav-tabs{
+        border: none; border-bottom: 1px solid var(--pd-line); border-radius: 0;
+        background: none; box-shadow: none !important; padding: 0; gap: 30px !important; margin-bottom: 0 !important;
+    }
+    .nav.nav-tabs .nav-item a{
+        padding: 14px 2px; border-radius: 0; background: none !important;
+        font-size: 16px; font-weight: 700; color: var(--muted); overflow: visible;
+    }
+    .nav.nav-tabs .nav-item a:hover{ transform: none; color: var(--text); }
+    .nav-tabs .nav-link.active{ color: var(--text) !important; background: none !important; box-shadow: none !important; animation: none; }
+    .nav-tabs .nav-link.active::after{
+        content: ""; position: absolute; left: 0; right: 0; bottom: -1px; height: 3px;
+        border-radius: 3px 3px 0 0; background: var(--pd-accent);
+    }
+    .pd-tab-count{
+        display: inline-block; margin-left: 4px; padding: 2px 8px; border-radius: 999px;
+        background: #f2f4f7; color: var(--muted); font-size: 12px; font-weight: 700; vertical-align: middle;
+    }
+    .woocommerce-tabs .tab-content{ padding: 30px; margin-top: 22px; }
+    .product-desc-wrapper .title,
+    .pro-desc-commnet-area .title{ font-size: 20px; font-weight: 700; margin-bottom: 0; }
+    .single-desc{ font-size: 15px; line-height: 1.8; }
+    .view-more-btn{ border-width: 1.5px; }
+    .view-more-btn:hover{ transform: none; border-color: var(--pd-accent); color: var(--pd-accent); box-shadow: none; }
+    .review-header-title::after{ background: var(--pd-accent); }
+    #reviewFormCard{ scroll-margin-top: 100px; }
+    .review-login-box{ text-align: center; padding: 18px 8px 8px; }
+    /* the tab content forces one text colour on everything inside it, icons included */
+    .woocommerce-tabs .tab-content .review-login-box > i{ font-size: 40px; color: var(--pd-accent) !important; }
+    .woocommerce-tabs .tab-content .review-login-box .submit-review-btn,
+    .woocommerce-tabs .tab-content .review-login-box .submit-review-btn i{ color: var(--common-btn-text) !important; }
+    .review-login-title{ margin: 12px 0 4px; font-size: 17px; font-weight: 700; color: var(--text); }
+    .review-login-text{ margin: 0 auto 16px; max-width: 360px; font-size: 14px; line-height: 1.6; color: var(--muted) !important; }
+    .review-login-box .submit-review-btn{ display: inline-flex; width: auto; text-decoration: none; }
+    .premium-input-group input:focus, .premium-input-group textarea:focus{
+        border-color: var(--pd-accent); box-shadow: 0 0 0 4px var(--pd-accent-ring); transform: none;
+    }
+
+    /* --- related products --- */
+    .axil-product-area .section-title-wrapper{ margin-bottom: 22px !important; }
+    .pd-section-kicker{
+        display: block; margin-bottom: 4px;
+        font-size: 12px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--pd-accent);
+    }
+    .axil-product-area .section-title-wrapper h2{
+        display: block; margin: 0; animation: none;
+        font-size: 28px; font-weight: 700; letter-spacing: -.015em; color: var(--text);
+    }
+    .axil-product-area .section-title-wrapper h2::after{ display: none; }
+
+    /* --- sticky buy bar: small screens only; replaces the site's floating bottom nav on this page --- */
+    .pd-buy-bar{ display: none; }
+    @media (max-width: 767.98px){
+        #footerNav{ display: none !important; }
+        body{ padding-bottom: calc(76px + env(safe-area-inset-bottom, 0px)) !important; }
+        .pd-buy-bar{
+            position: fixed; left: 0; right: 0; bottom: 0; z-index: 1030;
+            display: flex; align-items: center; gap: 12px;
+            padding: 10px 14px calc(10px + env(safe-area-inset-bottom, 0px));
+            background: #fff; border-top: 1px solid var(--pd-line);
+            box-shadow: 0 -10px 28px -12px rgba(16,24,40,.22);
+        }
+        body.hide-header .pd-buy-bar{ display: none; }
+        .pd-buy-bar__price{ flex: 0 0 auto; display: flex; flex-direction: column; line-height: 1.15; min-width: 0; }
+        .pd-buy-bar__now{ font-size: 18px; font-weight: 800; letter-spacing: -.01em; color: var(--pd-accent); white-space: nowrap; }
+        .pd-buy-bar__old{ font-size: 12px; font-weight: 500; color: #98a2b3; white-space: nowrap; }
+        .pd-buy-bar__actions{ flex: 1 1 auto; display: flex; gap: 8px; min-width: 0; }
+        .pd-buy-bar__btn{
+            height: 46px; border-radius: 12px; padding: 0 12px;
+            display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+            font-size: 14px; font-weight: 700; line-height: 1; white-space: nowrap; cursor: pointer;
+            filter: none !important; transition: transform .15s ease, opacity .15s ease;
+        }
+        .pd-buy-bar__btn:active{ transform: scale(.97); }
+        .pd-buy-bar__btn.is-cart{ flex: 1 1 0; background: #fff; color: var(--pd-accent); border: 1.5px solid var(--pd-accent); }
+        .pd-buy-bar__btn.is-buy{ flex: 1 1 0; background: var(--pd-accent); color: #fff; border: 1.5px solid var(--pd-accent); }
+        .pd-buy-bar__btn.is-notify{ flex: 1 1 auto; display: none; background: var(--pd-accent); color: #fff; border: 1.5px solid var(--pd-accent); }
+        .pd-buy-bar__btn:disabled{ opacity: .45 !important; }
+        /* out of stock: the two buy buttons give way to Notify Me */
+        .pd-buy-bar.is-out .pd-buy-bar__actions{ display: none; }
+        .pd-buy-bar.is-out .pd-buy-bar__btn.is-notify{ display: inline-flex; }
+    }
+    @media (max-width: 359.98px){
+        .pd-buy-bar{ gap: 8px; padding-left: 10px; padding-right: 10px; }
+        .pd-buy-bar__btn.is-cart{ flex: 0 0 46px; padding: 0; }
+        .pd-buy-bar__btn.is-cart span{ display: none; }
+    }
+
+    @media (max-width: 991px){
+        .details_right{ padding: 24px 22px; }
+        .product-cart h1.name{ font-size: 24px; }
+    }
+    @media (max-width: 575.98px){
+        .details_right{ padding: 20px 16px; border-radius: 18px; }
+        .single-product-thumbnail-wrap, .woocommerce-tabs .tab-content{ border-radius: 18px; }
+        .product-cart h1.name{ font-size: 21px; margin: 6px 0 10px; }
+        .current-price-product{ font-size: 28px; }
+        .details-price{ margin: 14px 0 !important; padding: 14px 0; }
+        .details-price del{ font-size: 16px; }
+        #variantBox label{ font-size: 13.5px !important; margin-bottom: 8px !important; }
+        .pd-price-label{ font-size: 13px; }
+        #variantBox .size{ padding: 7px 14px !important; font-size: 13px !important; border-radius: 999px !important; }
+        .single_product{ gap: 10px; }
+        .single_product .qty-cart{ flex: 0 0 116px; }
+        .qty-cart .quantity{ width: 116px; height: 48px; margin: 0; }
+        .quantity .minus, .quantity .plus{ width: 38px; height: 45px; line-height: 45px; }
+        .single_product .add_cart_btn{ flex: 1 1 0; width: auto !important; height: 48px !important; font-size: 14px !important; }
+        .single_product .order_now_btn{ height: 52px !important; font-size: 15px !important; padding: 0 12px !important; }
+        .single_product .wa_now_btn, .single_product .call_now_btn{ flex: 1 1 0; width: auto !important; height: 44px !important; font-size: 13.5px; }
+        .pd-trust{ gap: 4px; padding: 14px 0; }
+        .pd-trust li{ flex-direction: column; gap: 6px; font-size: 12px; }
+        .nav.nav-tabs{ gap: 22px !important; }
+        .nav.nav-tabs .nav-item a{ padding: 12px 2px; font-size: 15px; border-radius: 0; }
+        .woocommerce-tabs .tab-content{ padding: 20px 16px; margin-top: 16px; }
+        .axil-product-area .section-title-wrapper h2{ font-size: 22px; }
+    }
 </style>
 @endpush
 
@@ -1479,7 +1881,7 @@
                                         @endphp
                                         <div class="label-block">
                                             <div class="product-badget" style="background: #0f172a;">
-                                                {{$discountPercent}} % Off
+                                                {{$discountPercent}}% Off
                                             </div>
                                         </div>
                                     @endif
@@ -1488,7 +1890,7 @@
 
                                     <div class="product-quick-view position-view">
                                         <a href="{{ getImage('products', $singleProduct->image)}}" class="popup-zoom">
-                                            <i class="far fa-search-plus"></i>
+                                            <i class="fas fa-search-plus"></i>
                                         </a>
                                     </div>
                                 </div>
@@ -1525,7 +1927,33 @@
                         <div class="details_right">
                             <div class="product">
                                 <div class="product-cart">
-                                    <p class="name">{{ $singleProduct->name}}</p>
+                                    <div class="pd-eyebrow">
+                                        @if($crumbCategory && $crumbCategory->url)
+                                            <a href="{{ route('front.category', [$crumbCategory->url]) }}">{{ $crumbCategory->name }}</a>
+                                        @elseif($crumbCategory)
+                                            <span>{{ $crumbCategory->name }}</span>
+                                        @endif
+                                    </div>
+                                    <h1 class="name">{{ $singleProduct->name}}</h1>
+                                    @if(!empty($singleProduct->sku))
+                                        <p class="pd-sku"><span>SKU:</span> {{ $singleProduct->sku }}</p>
+                                    @endif
+
+                                    <div class="details-ratting-wrapper">
+                                        <span class="pd-stars" aria-hidden="true">
+                                            @for($st = 1; $st <= 5; $st++)
+                                                <i class="{{ $averageRating >= $st ? 'fas fa-star' : ($averageRating >= $st - 0.5 ? 'fas fa-star-half-alt' : 'far fa-star') }}"></i>
+                                            @endfor
+                                        </span>
+                                        @if($totalReviews > 0)
+                                            <span class="pd-rating-num">{{ number_format($averageRating, 1) }}</span>
+                                            <span class="pd-rating-count">({{ $totalReviews }} {{ $totalReviews === 1 ? 'Review' : 'Reviews' }})</span>
+                                            <a class="all-reviews-button" href="#writeReview">See Reviews</a>
+                                        @else
+                                            <span class="pd-rating-count">No reviews yet</span>
+                                            <a class="all-reviews-button" href="#writeReview">Write a review</a>
+                                        @endif
+                                    </div>
                                     @if($minOrderQty > 1)
                                         <div class="pd-wholesale">
                                             <span class="pd-wholesale-badge"><i class="fas fa-boxes"></i> Wholesale</span>
@@ -1534,7 +1962,10 @@
                                     @endif
 
                                     <p class="details-price">
-                                        @if($initRaw > $initFinal && $initRaw > 0)
+                                        <span class="pd-price-label">Price:</span>
+                                        <span class="current-price-product">{{ biz_format_currency($initFinal) }}</span>
+
+                                        @if($initSavePct > 0)
                                           <del id="product-old-price" class="price old-price">
                                               {{ biz_format_currency($initRaw) }}
                                           </del>
@@ -1542,7 +1973,7 @@
                                           <del id="product-old-price" class="price old-price" style="display:none;"></del>
                                         @endif
 
-                                        <span class="current-price-product">{{ biz_format_currency($initFinal) }}</span>
+                                        <span class="pd-save-badge" id="pdSaveBadge" style="{{ $initSavePct > 0 ? '' : 'display:none;' }}">{{ $fmtOff($initOff) }} {{ $currSymbol }} off</span>
                                     </p>
 
                                     <div class="pd-stock-out-alert" id="pdStockOutAlert" style="{{ $inStock ? 'display:none;' : '' }}">
@@ -1566,42 +1997,6 @@
 
                                         <input type="hidden" name="action_type" id="input_action_type" value="cart">
 
-                                        <div class="meta-row">
-                                            <div class="product-code">
-                                                <p><span>{{ $dt->product_code_text ?? 'Product Code :' }} </span>{{ $singleProduct->sku }}</p>
-                                            </div>
-                                            <div class="product-stock-box">
-                                                <p id="stock-text-element">
-                                                    @if($inStock)
-                                                        <i class="fas fa-check-circle text-success"></i> <span>{{ (int)$initialStock }} Items left</span>
-                                                    @else
-                                                        <i class="fas fa-times-circle text-danger"></i> <span>0 Items left</span>
-                                                    @endif
-                                                </p>
-                                            </div>
-                                        </div>
-
-                                        <div class="meta-row" style="margin-top: 10px;">
-                                            
-                                            <div class="qty-cart m-0" style="margin-top: 0; width: auto;">
-                                                <div class="quantity" style="margin: 0;">
-                                                    <span class="minus">-</span>
-                                                    <input type="number" name="quantity" value="{{ $minOrderQty }}" min="{{ $minOrderQty }}" readonly>
-                                                    <span class="plus">+</span>
-                                                </div>
-                                            </div>
-
-                                            <div class="details-ratting-wrapper m-0">
-                                                @php
-                                                    $totalReviews = $singleProduct->reviews->count();
-                                                    $averageRating = $totalReviews > 0 ? round($singleProduct->reviews->avg('review'), 2) : 0;
-                                                @endphp
-                                                <span>{{ $totalReviews }} Reviews</span>
-                                                <span style="font-weight: 800; color: #fbbf24;">{{ number_format($averageRating, 2) }}/5</span>
-                                                <a class="all-reviews-button" href="#writeReview">See Reviews</a>
-                                            </div>
-                                        </div>
-
                                         @if(!empty($singleProduct->short_description))
                                             <div class="premium-short-description">
                                                 {!! $singleProduct->short_description !!}
@@ -1609,11 +2004,11 @@
                                         @endif
 
                                         @if(isset($singleProduct->variations) && $singleProduct->variations->count() > 0 && ($showSize || $showColor))
-                                          <div class="mt-3 d-flex flex-wrap gap-4" id="variantBox">
+                                          <div class="mt-3 d-flex flex-column gap-3" id="variantBox">
 
                                             @if($showSize)
                                               <div class="variant-group">
-                                                  <label class="mb-2">Size:</label>
+                                                  <label class="mb-2">Select Your Size: <span class="pd-variant-picked" id="pdPickedSize">{{ $sizesMap[$defaultSizeId] ?? '' }}</span></label>
                                                   <div class="d-flex flex-wrap gap-2" id="sizeOptions">
                                                     @foreach($sizesMap as $sid => $slabel)
                                                       <div class="size size-opt {{ ((int)$sid === (int)$defaultSizeId) ? 'active' : '' }}"
@@ -1627,7 +2022,7 @@
 
                                             @if($showColor)
                                               <div class="variant-group">
-                                                  <label class="mb-2">Color:</label>
+                                                  <label class="mb-2">Select Your Color: <span class="pd-variant-picked" id="pdPickedColor">{{ $colorsMap[$defaultColorId] ?? '' }}</span></label>
                                                   <div class="d-flex flex-wrap gap-2" id="colorOptions">
                                                     @foreach($colorsMap as $cid => $clabel)
                                                       <div class="size color-opt {{ ((int)$cid === (int)$defaultColorId) ? 'active' : '' }}"
@@ -1667,26 +2062,47 @@
                                           </script>
                                         @endif
 
-                                        <div class="mt-4">
+                                        <div class="meta-row pd-meta">
+                                            <div class="product-stock-box">
+                                                <p id="stock-text-element">
+                                                    <span class="pd-status-label">Status:</span>
+                                                    @if($inStock)
+                                                        <strong class="pd-status is-in">Stock In</strong>
+                                                        <span class="pd-stock-left {{ (int)$initialStock <= $lowStockLimit ? 'is-low' : '' }}"><i class="fas fa-{{ (int)$initialStock <= $lowStockLimit ? 'fire' : 'box-open' }}"></i> {{ (int)$initialStock <= $lowStockLimit ? 'Only ' : '' }}<b>{{ (int)$initialStock }}</b> left</span>
+                                                    @else
+                                                        <strong class="pd-status is-out">Stock Out</strong>
+                                                    @endif
+                                                </p>
+                                            </div>
+                                        </div>
+
+                                        <div class="pd-buy">
                                             <div class="d-flex single_product col-sm-12">
+                                                <div class="qty-cart m-0">
+                                                    <div class="quantity" style="margin: 0;">
+                                                        <span class="minus" aria-label="Decrease quantity">&minus;</span>
+                                                        <input type="number" name="quantity" value="{{ $minOrderQty }}" min="{{ $minOrderQty }}" readonly aria-label="Quantity">
+                                                        <span class="plus" aria-label="Increase quantity">+</span>
+                                                    </div>
+                                                </div>
                                                 @if(!empty($info->whats_num) && ($info->whats_active ?? 0) == 1)
                                                     <a href="https://wa.me/+88{{ $info->whats_num }}?text={{ urlencode($singleProduct->name.' - এই পণ্যটি সম্পর্কে জানতে চাই।') }}"
                                                        target="_blank" class="btn wa_now_btn" title="WhatsApp">
-                                                        <i class="fab fa-whatsapp"></i>
+                                                        <i class="fab fa-whatsapp"></i> <span>WhatsApp</span>
                                                     </a>
                                                 @endif
                                                 @if(!empty($info->owner_phone))
                                                     <a href="tel:{{ $info->owner_phone }}" class="btn call_now_btn" title="Call Now">
-                                                        <i class="fas fa-phone-alt"></i>
+                                                        <i class="fas fa-phone-alt"></i> <span>Call Now</span>
                                                     </a>
                                                 @endif
                                                 <button type="submit"
                                                         class="btn add_cart_btn"
                                                         {{ $inStock ? '' : 'disabled' }} title="Add to Cart">
-                                                    <i class="fas fa-shopping-cart"></i>
+                                                    <i class="fas fa-shopping-cart"></i> <span>Add to Cart</span>
                                                 </button>
 
-                                                <template id="orderNowLabel">@if(($singleProduct->is_free_shipping ?? 0) == 1)<i class="fas fa-shipping-fast"></i> &nbsp; {{ $bangla_text->fshipping_text ?? 'Free Shipping' }}@else{{ $dt->order_now_text ?? 'Order Now' }}@endif</template>
+                                                <template id="orderNowLabel">@if(($singleProduct->is_free_shipping ?? 0) == 1)<i class="fas fa-shipping-fast"></i> &nbsp; {{ $bangla_text->fshipping_text ?? 'Free Shipping' }}@else<i class="fas fa-shopping-bag"></i> {{ $dt->order_now_text ?? 'Order Now' }}@endif</template>
                                                 <button type="submit"
                                                         class="btn px-4 order_now_btn order_now_btn_m"
                                                         {{ $inStock ? '' : 'disabled' }}>
@@ -1695,7 +2111,7 @@
                                                     @elseif(($singleProduct->is_free_shipping ?? 0) == 1)
                                                         <i class="fas fa-shipping-fast"></i> &nbsp; {{ $bangla_text->fshipping_text ?? 'Free Shipping' }}
                                                     @else
-                                                        {{ $dt->order_now_text ?? 'Order Now' }}
+                                                        <i class="fas fa-shopping-bag"></i> {{ $dt->order_now_text ?? 'Order Now' }}
                                                     @endif
                                                 </button>
                                             </div>
@@ -1707,9 +2123,15 @@
                                             </button>
                                         </div>
 
+                                        <ul class="pd-trust">
+                                            <li><i class="fas fa-shipping-fast"></i><span>Fast Delivery</span></li>
+                                            <li><i class="fas fa-shield-alt"></i><span>Safe Payment</span></li>
+                                            <li><i class="fas fa-headset"></i><span>Live Support</span></li>
+                                        </ul>
+
                                         @if(($singleProduct->is_free_shipping ?? 0) == 0)
                                             <div class="courier-card" style="font-family: 'Hind Siliguri', sans-serif;">
-                                                <div class="courier-title">{{ $dt->courier_delivery_cost_text ?? 'Delivery Cost' }}</div>
+                                                <div class="courier-title"><i class="fas fa-truck"></i> {{ $dt->courier_delivery_cost_text ?? 'Delivery Cost' }}</div>
                                                 <table class="table table-bordered border-0">
                                                     <tbody>
                                                         @foreach($charges as $charge)
@@ -1723,16 +2145,46 @@
                                             </div>
                                         @else
                                             <div class="courier-card" style="font-family: 'Hind Siliguri', sans-serif;">
-                                                <div class="courier-title">{{ $dt->courier_delivery_cost_text ?? 'Delivery Cost' }}</div>
+                                                <div class="courier-title"><i class="fas fa-truck"></i> {{ $dt->courier_delivery_cost_text ?? 'Delivery Cost' }}</div>
                                                 <div class="text-center text-success" style="padding: 14px; font-weight: 800; font-size: 16px;">
                                                     <i class="fas fa-shipping-fast"></i> {{ $bangla_text->fshipping_text ?? 'Free Shipping' }}
                                                 </div>
                                             </div>
                                         @endif
 
-                                        <ul class="product-metas mt-4" style="font-family: 'Hind Siliguri', sans-serif;">
-                                          {!! $singleProduct->feature !!}
-                                        </ul>
+                                        @php
+                                            $shareUrl  = route('front.products.show', ['product' => $singleProduct->slug ?: $singleProduct->id]);
+                                            $shareText = $singleProduct->name;
+                                        @endphp
+                                        <div class="pd-share">
+                                            <button type="button" class="wl-toggle wl-btn {{ inWishlist($singleProduct->id) ? 'is-saved' : '' }}"
+                                                    data-product="{{ $singleProduct->id }}" aria-pressed="{{ inWishlist($singleProduct->id) ? 'true' : 'false' }}">
+                                                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20.5s-7.5-4.4-9.6-9.1C1 8.1 2.9 4.5 6.5 4.5c2 0 3.6 1 4.6 2.5.3.4.6.4.9 0 1-1.5 2.6-2.5 4.6-2.5 3.6 0 5.5 3.6 4.1 6.9-2.1 4.7-9.6 9.1-9.6 9.1z"/></svg>
+                                                <span data-wl-label>{{ inWishlist($singleProduct->id) ? 'Saved to Wishlist' : 'Add to Wishlist' }}</span>
+                                            </button>
+                                            <span class="pd-share-sep"></span>
+                                            <span class="pd-share-label"><i class="fas fa-share-alt"></i> Share</span>
+                                            <div class="pd-share-links">
+                                                <a class="pd-share-btn is-fb" target="_blank" rel="noopener" title="Share on Facebook" aria-label="Share on Facebook"
+                                                   href="https://www.facebook.com/sharer/sharer.php?u={{ urlencode($shareUrl) }}"><i class="fab fa-facebook-f"></i></a>
+                                                <a class="pd-share-btn is-msg" target="_blank" rel="noopener" title="Share on Messenger" aria-label="Share on Messenger"
+                                                   href="fb-messenger://share/?link={{ urlencode($shareUrl) }}"><i class="fab fa-facebook-messenger"></i></a>
+                                                <a class="pd-share-btn is-wa" target="_blank" rel="noopener" title="Share on WhatsApp" aria-label="Share on WhatsApp"
+                                                   href="https://wa.me/?text={{ urlencode($shareText.' '.$shareUrl) }}"><i class="fab fa-whatsapp"></i></a>
+                                                <a class="pd-share-btn is-tg" target="_blank" rel="noopener" title="Share on Telegram" aria-label="Share on Telegram"
+                                                   href="https://t.me/share/url?url={{ urlencode($shareUrl) }}&text={{ urlencode($shareText) }}"><i class="fab fa-telegram-plane"></i></a>
+                                                <a class="pd-share-btn is-x" target="_blank" rel="noopener" title="Share on X" aria-label="Share on X"
+                                                   href="https://twitter.com/intent/tweet?url={{ urlencode($shareUrl) }}&text={{ urlencode($shareText) }}"><i class="fab fa-twitter"></i></a>
+                                                <button type="button" class="pd-share-btn is-copy" id="pdShareCopy" title="Copy link" aria-label="Copy link"
+                                                        data-url="{{ $shareUrl }}" data-title="{{ $shareText }}"><i class="fas fa-link"></i></button>
+                                            </div>
+                                        </div>
+
+                                        @if(!empty(trim(strip_tags((string) $singleProduct->feature))))
+                                            <ul class="product-metas mt-4" style="font-family: 'Hind Siliguri', sans-serif;">
+                                              {!! $singleProduct->feature !!}
+                                            </ul>
+                                        @endif
                                     </form>
 
                                 </div>
@@ -1753,7 +2205,7 @@
               </li>
               <li class="nav-item" role="presentation">
                 <a class="nav-link" id="review-tab" data-bs-toggle="tab" href="#review" role="tab" aria-controls="review" aria-selected="false">
-                    {{ $dt->reviews_tab_text ?? 'Reviews' }}
+                    {{ $dt->reviews_tab_text ?? 'Reviews' }} <span class="pd-tab-count">{{ $totalReviews }}</span>
                 </a>
               </li>
             </ul>
@@ -1781,7 +2233,7 @@
                             <div class="row">
                                 <div class="col-lg-6 mb--20">
                                     <div class="axil-comment-area pro-desc-commnet-area pt-3">
-                                        <h5 class="title">({{$singleProduct->reviews->count()}}) Relative Product</h5>
+                                        <h5 class="title">Customer Reviews ({{ $totalReviews }})</h5>
                                         <ul class="comment-list">
                                             @include("frontend.products.partials.reviewList")
                                         </ul>
@@ -1789,10 +2241,11 @@
                                 </div>
 
                                 <div class="col-lg-6 mb--20">
-                                    <div class="premium-review-card">
+                                    <div class="premium-review-card" id="reviewFormCard">
                                         <div class="comment-respond pro-des-commend-respond mt--0">
                                             <h5 class="review-header-title">Add a Review</h5>
                                             
+                                            @auth
                                             <form action="{{ route('front.product-reviews.store')}}" method="POST" id="ajax_form2" enctype="multipart/form-data">
                                                 @csrf
                                                 <input type="hidden" name="product_id" value="{{$singleProduct->id}}" />
@@ -1844,7 +2297,7 @@
                                                     <div class="col-lg-6 col-md-6 col-12 mb-3">
                                                         <div class="premium-input-group">
                                                             <label>Name <span class="text-danger">*</span></label>
-                                                            <input id="name" type="text" name="name" required placeholder="Your Name"/>
+                                                            <input id="name" type="text" name="name" required placeholder="Your Name" value="{{ auth()->user()->name ?? '' }}"/>
                                                         </div>
                                                     </div>
 
@@ -1871,6 +2324,16 @@
                                                     </div>
                                                 </div>
                                             </form>
+                                            @else
+                                                <div class="review-login-box">
+                                                    <i class="far fa-user-circle"></i>
+                                                    <p class="review-login-title">Log in to write a review</p>
+                                                    <p class="review-login-text">Only customers with an account can review a product. It takes a moment, and you will come straight back here.</p>
+                                                    <a href="{{ route('front.reviews.login', ['product' => $singleProduct->slug ?: $singleProduct->id]) }}" class="btn submit-review-btn px-4 fw-bold" style="border-radius:12px;">
+                                                        <i class="fas fa-sign-in-alt me-2"></i> Log In
+                                                    </a>
+                                                </div>
+                                            @endauth
                                         </div>
                                     </div>
                                 </div>
@@ -1890,7 +2353,8 @@
     <div class="axil-product-area bg-color-white pt--20 pb--40">
         <div class="container">
             <div class="section-title-wrapper mb-4">
-                <h2 class="border-bottom border-2 pb-2" style="font-family: 'Arial', sans-serif; font-weight: 800; color: var(--text);">Related Products</h2>
+                <span class="pd-section-kicker">You may also like</span>
+                <h2>Related Products</h2>
             </div>
             <div class="explore-product-activation slick-layout-wrapper slick-layout-wrapper--15 axil-slick-arrow arrow-top-slide">
                 <div class="slick-single-layout" id="relative_data">
@@ -1907,6 +2371,23 @@
         </div>
     </div>
 </main>
+{{-- ===== Sticky buy bar (small screens only) — mirrors the price and buttons above ===== --}}
+<div class="pd-buy-bar {{ $inStock ? '' : 'is-out' }}" id="pdBuyBar">
+    <div class="pd-buy-bar__price">
+        <span class="pd-buy-bar__now" id="pdBarPrice">{{ biz_format_currency($initFinal) }}</span>
+        <del class="pd-buy-bar__old" id="pdBarOld" style="{{ $initSavePct > 0 ? '' : 'display:none;' }}">{{ $initSavePct > 0 ? biz_format_currency($initRaw) : '' }}</del>
+    </div>
+    <div class="pd-buy-bar__actions">
+        <button type="button" class="pd-buy-bar__btn is-cart" id="pdBarCart" aria-label="Add to Cart">
+            <i class="fas fa-shopping-cart"></i> <span>Add to Cart</span>
+        </button>
+        <button type="button" class="pd-buy-bar__btn is-buy" id="pdBarBuy"><i class="fas fa-shopping-bag"></i> Buy Now</button>
+    </div>
+    <button type="button" class="pd-buy-bar__btn is-notify" id="pdBarNotify">
+        <i class="far fa-bell"></i> Notify Me When Available
+    </button>
+</div>
+
 {{-- ===== Notify Me When Available modal ===== --}}
 <div class="notify-modal" id="notifyModal" aria-hidden="true">
     <div class="notify-modal__backdrop" data-notify-close></div>
@@ -2171,20 +2652,41 @@ window.__PRODUCT_OUT__ = @json($productOut);
 
   document.addEventListener('DOMContentLoaded', function() {
     
+    // Open the Reviews tab and bring the review box (form, or the log-in prompt) into view.
+    // The box is inside the tab, so it has no position until the tab has finished
+    // opening — scrolling on a fixed delay used to fire too early and do nothing.
+    function goToReviewBox(){
+      const reviewTabLink = document.querySelector('#review-tab');
+      let done = false;
+      function scrollToBox(){
+        if (done) return;
+        const target = document.querySelector('#reviewFormCard') || document.querySelector('#writeReview');
+        if (!target || !target.offsetHeight) return;   // still hidden
+        done = true;
+        target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+
+      if (reviewTabLink && !reviewTabLink.classList.contains('active')) {
+        reviewTabLink.addEventListener('shown.bs.tab', scrollToBox, { once: true });
+        if (window.bootstrap && bootstrap.Tab) (new bootstrap.Tab(reviewTabLink)).show();
+        else reviewTabLink.click();
+      }
+      // already open, or a theme without the tab event: keep trying briefly
+      let tries = 0;
+      (function retry(){ scrollToBox(); if (!done && ++tries < 12) setTimeout(retry, 100); })();
+    }
+
     document.querySelectorAll('a.all-reviews-button').forEach(function(btn){
       btn.addEventListener('click', function(e){
         e.preventDefault();
-        const reviewTabLink = document.querySelector('#review-tab');
-        if (reviewTabLink) {
-          if (window.bootstrap && bootstrap.Tab) (new bootstrap.Tab(reviewTabLink)).show();
-          else reviewTabLink.click();
-        }
-        setTimeout(function(){
-          const target = document.querySelector('#writeReview');
-          if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }, 250);
+        goToReviewBox();
       });
     });
+
+    // back from logging in (?review=1), or a link straight to the reviews (#writeReview)
+    if (new URLSearchParams(window.location.search).get('review') === '1' || window.location.hash === '#writeReview') {
+      goToReviewBox();
+    }
 
     const MIN_QTY = {{ $minOrderQty }};
     const qtyWrap = document.querySelector('.quantity');
@@ -2240,6 +2742,16 @@ window.__PRODUCT_OUT__ = @json($productOut);
             if(res.url){ document.location.href = res.url; return; }
             setTimeout(function(){ window.location.reload(); }, 700);
           } else { toastUnique('error', res.msg || 'Failed'); }
+        },
+        error: function (xhr) {
+          const res = xhr.responseJSON || {};
+          if (xhr.status === 401 || res.login) {
+            toastUnique('warning', res.msg || 'Please log in to write a review.');
+            setTimeout(function(){ document.location.href = @json(route('front.reviews.login', ['product' => $singleProduct->slug ?: $singleProduct->id])); }, 900);
+            return;
+          }
+          const first = res.errors ? Object.values(res.errors)[0][0] : null;
+          toastUnique('error', first || res.msg || 'Could not submit your review. Please try again.');
         }
       });
       return false;
@@ -2356,6 +2868,19 @@ window.__PRODUCT_OUT__ = @json($productOut);
             if (actionType === 'order') { document.location.href = res.url ? res.url : "{{ url('/checkouts') }}"; return; }
             openCartSidebar();
           } else { toastUnique('error', res.msg || 'Failed'); }
+        },
+        // The server answers 422 when it refuses the add (stock, variation...). Without this
+        // handler the click looked dead.
+        error: function (xhr) {
+          const res = xhr.responseJSON || {};
+          // "Order Now" on something already in the cart at its stock limit: nothing to add,
+          // but the customer still wants to check out — the item is waiting there.
+          if (actionType === 'order' && res.in_cart) {
+            toastUnique('info', 'This item is already in your cart. Taking you to checkout...');
+            document.location.href = "{{ url('/checkouts') }}";
+            return;
+          }
+          toastUnique('error', res.msg || 'Could not add this product. Please try again.');
         }
       });
       return false;
@@ -2369,7 +2894,20 @@ window.__PRODUCT_OUT__ = @json($productOut);
   function moneyText(val){
     val = parseFloat(val || 0);
     if (isNaN(val)) val = 0;
-    return '{{ $info->currency_symbol ?? "৳" }} ' + Math.round(val);
+    return '{{ $info->currency_symbol ?? "৳" }} ' + val.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+  // "170 ৳ off": whole amounts without decimals, otherwise two.
+  function offText(val){
+    val = Math.round(parseFloat(val || 0) * 100) / 100;
+    return val.toLocaleString('en-US', { minimumFractionDigits: Number.isInteger(val) ? 0 : 2, maximumFractionDigits: 2 }) + ' {{ $info->currency_symbol ?? "৳" }} off';
+  }
+  function statusHtml(stock){
+    return '<span class="pd-status-label">Status:</span> ' + (stock > 0
+      ? '<strong class="pd-status is-in">Stock In</strong> '
+        + (stock <= {{ $lowStockLimit }}
+            ? '<span class="pd-stock-left is-low"><i class="fas fa-fire"></i> Only <b>' + stock + '</b> left</span>'
+            : '<span class="pd-stock-left"><i class="fas fa-box-open"></i> <b>' + stock + '</b> left</span>')
+      : '<strong class="pd-status is-out">Stock Out</strong>');
   }
 
   function resolveVariation(sizeId, colorId){
@@ -2399,14 +2937,18 @@ window.__PRODUCT_OUT__ = @json($productOut);
 
     const label = labelParts.join(' - ');
     if(label){ $('span.size_name').text(label).show(); }else{ $('span.size_name').hide(); }
+    $('#pdPickedSize').text(v.size && v.size !== 'Default' ? v.size : '');
+    $('#pdPickedColor').text(v.color && v.color !== 'Default' ? v.color : '');
 
     $('.current-price-product').text(moneyText(v.price));
     if(!isFirstLoad) flashPrice();
 
     if (v.raw > v.price && v.raw > 0) {
       $('#product-old-price').show().text(moneyText(v.raw));
+      $('#pdSaveBadge').text(offText(v.raw - v.price)).show();
     } else {
       $('#product-old-price').hide();
+      $('#pdSaveBadge').hide();
     }
 
     if (v.image) {
@@ -2437,7 +2979,7 @@ window.__PRODUCT_OUT__ = @json($productOut);
     const stock = parseInt(v.stock || 0);
     const stockEl = document.querySelector('#stock-text-element');
     if(stockEl){
-      stockEl.innerHTML = `<i class="fas ${stock > 0 ? 'fa-check-circle text-success' : 'fa-times-circle text-danger'}"></i> <span>${stock > 0 ? stock : '0'} Items left</span>`;
+      stockEl.innerHTML = statusHtml(window.__PRODUCT_OUT__ ? 0 : stock);
     }
 
     setStockState(stock <= 0 || window.__PRODUCT_OUT__);
@@ -2495,7 +3037,7 @@ window.__PRODUCT_OUT__ = @json($productOut);
     
     const stockEl = document.querySelector('#stock-text-element');
     if(stockEl){
-      stockEl.innerHTML = `<i class="fas fa-times-circle text-danger"></i> <span>0 Items left</span>`;
+      stockEl.innerHTML = statusHtml(0);
     }
     
     $('.add_cart_btn, .order_now_btn').prop('disabled', true);
@@ -2701,6 +3243,148 @@ window.__PRODUCT_OUT__ = @json($productOut);
     $("[data-tag-set=" + onStar + "]").css('display', 'block');
   });
 
+})();
+
+// Hover zoom on the main product image, marketplace style: a lens follows the
+// cursor on the image and the enlarged area shows in a pane beside it (over the
+// details column). Mouse devices at desktop width only — touch keeps swipe + tap-to-open.
+(function(){
+  if(!window.matchMedia || !window.matchMedia('(hover: hover) and (pointer: fine)').matches) return;
+  const gallery = document.querySelector('.product-large-thumbnail-3');
+  const wrap = document.querySelector('.single-product-thumbnail-wrap');
+  if(!gallery || !wrap) return;
+
+  const ZOOM = 2.5, GAP = 18;
+  const lens = document.createElement('div'); lens.className = 'pd-zoom-lens';
+  const pane = document.createElement('div'); pane.className = 'pd-zoom-pane';
+  wrap.appendChild(lens);
+  document.body.appendChild(pane);
+
+  function hide(){
+    lens.style.display = 'none';
+    pane.style.display = 'none';
+    wrap.classList.remove('pd-zoom-on');
+  }
+
+  // Where the picture itself sits inside the <img> box (object-fit may letterbox or crop it).
+  function contentRect(img, box){
+    const nw = img.naturalWidth, nh = img.naturalHeight;
+    const fit = getComputedStyle(img).objectFit;
+    if(!nw || !nh || (fit !== 'contain' && fit !== 'cover')) return { x: 0, y: 0, w: box.width, h: box.height };
+    const scale = fit === 'contain' ? Math.min(box.width / nw, box.height / nh) : Math.max(box.width / nw, box.height / nh);
+    const w = nw * scale, h = nh * scale;
+    return { x: (box.width - w) / 2, y: (box.height - h) / 2, w: w, h: h };
+  }
+
+  gallery.addEventListener('mousemove', function(e){
+    const slide = e.target.closest ? e.target.closest('.thumbnail') : null;
+    const img = slide && !slide.classList.contains('video-slide') ? slide.querySelector('img') : null;
+    // no zoom while dragging the slider, on the video, or when there is no room beside the image
+    if(!img || e.buttons || window.innerWidth < 992){ hide(); return; }
+
+    const box  = img.getBoundingClientRect();
+    const wbox = wrap.getBoundingClientRect();
+    const paneW = Math.min(box.width, window.innerWidth - wbox.right - GAP - 16);
+    const paneH = Math.min(box.height, window.innerHeight - 16);
+    if(paneW < 260 || !box.width || !box.height){ hide(); return; }
+
+    const lensW = paneW / ZOOM, lensH = paneH / ZOOM;
+    const lx = Math.min(box.width  - lensW, Math.max(0, e.clientX - box.left - lensW / 2));
+    const ly = Math.min(box.height - lensH, Math.max(0, e.clientY - box.top  - lensH / 2));
+
+    lens.style.width  = lensW + 'px';
+    lens.style.height = lensH + 'px';
+    lens.style.left   = (box.left - wbox.left - wrap.clientLeft + lx) + 'px';
+    lens.style.top    = (box.top  - wbox.top  - wrap.clientTop  + ly) + 'px';
+    lens.style.display = 'block';
+
+    const c = contentRect(img, box);
+    const src = img.currentSrc || img.src;
+    if(pane.dataset.src !== src){ pane.dataset.src = src; pane.style.backgroundImage = 'url("' + src.replace(/"/g, '%22') + '")'; }
+    pane.style.width  = paneW + 'px';
+    pane.style.height = paneH + 'px';
+    pane.style.left   = (wbox.right + GAP) + 'px';
+    pane.style.top    = Math.max(8, Math.min(wbox.top, window.innerHeight - paneH - 8)) + 'px';
+    pane.style.backgroundSize = (c.w * ZOOM) + 'px ' + (c.h * ZOOM) + 'px';
+    pane.style.backgroundPosition = ((c.x - lx) * ZOOM) + 'px ' + ((c.y - ly) * ZOOM) + 'px';
+    pane.style.display = 'block';
+    wrap.classList.add('pd-zoom-on');
+  });
+  gallery.addEventListener('mouseleave', hide);
+  gallery.addEventListener('mousedown', hide);
+  window.addEventListener('scroll', hide, { passive: true });
+})();
+
+// Share row: "copy link" button (falls back to a hidden textarea on older browsers / http).
+(function(){
+  const btn = document.getElementById('pdShareCopy');
+  if(!btn) return;
+  function done(ok){
+    if(window.toastr) ok ? toastr.success('Product link copied!') : toastr.error('Could not copy the link');
+    if(!ok) return;
+    btn.classList.add('is-done');
+    btn.innerHTML = '<i class="fas fa-check"></i>';
+    setTimeout(function(){ btn.classList.remove('is-done'); btn.innerHTML = '<i class="fas fa-link"></i>'; }, 1800);
+  }
+  btn.addEventListener('click', function(){
+    const url = btn.dataset.url || window.location.href;
+    if(navigator.clipboard && window.isSecureContext){
+      navigator.clipboard.writeText(url).then(function(){ done(true); }, function(){ done(false); });
+      return;
+    }
+    const ta = document.createElement('textarea');
+    ta.value = url; ta.setAttribute('readonly', ''); ta.style.cssText = 'position:fixed;top:-1000px;opacity:0;';
+    document.body.appendChild(ta); ta.select();
+    let ok = false;
+    try { ok = document.execCommand('copy'); } catch (e) {}
+    document.body.removeChild(ta);
+    done(ok);
+  });
+})();
+
+// Sticky buy bar (small screens). It owns no cart logic: its buttons press the real
+// ones in the form, and it copies price / stock state from them whenever they change,
+// so variant switching, stock-out and the notify modal all behave exactly the same.
+(function(){
+  const bar = document.getElementById('pdBuyBar');
+  if(!bar) return;
+  const realCart   = document.querySelector('.single_product .add_cart_btn');
+  const realOrder  = document.querySelector('.single_product .order_now_btn');
+  const notifyWrap = document.getElementById('notifyMeWrap');
+  const priceBox   = document.querySelector('.details_right .details-price');
+  const barCart = document.getElementById('pdBarCart'), barBuy = document.getElementById('pdBarBuy');
+
+  function sync(){
+    const now = priceBox && priceBox.querySelector('.current-price-product');
+    const old = document.getElementById('product-old-price');
+    if(now) document.getElementById('pdBarPrice').textContent = now.textContent.trim();
+    const barOld = document.getElementById('pdBarOld');
+    const hasOld = old && old.style.display !== 'none' && old.textContent.trim() !== '';
+    barOld.textContent = hasOld ? old.textContent.trim() : '';
+    barOld.style.display = hasOld ? '' : 'none';
+
+    bar.classList.toggle('is-out', !!notifyWrap && notifyWrap.style.display !== 'none');
+    if(realCart)  barCart.disabled = realCart.disabled;
+    if(realOrder) barBuy.disabled  = realOrder.disabled;
+  }
+
+  barCart.addEventListener('click', function(){ if(realCart && !realCart.disabled) realCart.click(); });
+  barBuy.addEventListener('click',  function(){ if(realOrder && !realOrder.disabled) realOrder.click(); });
+  document.getElementById('pdBarNotify').addEventListener('click', function(){
+    const open = document.getElementById('notifyMeOpen');
+    if(open) open.click();
+  });
+
+  if(window.MutationObserver){
+    const mo = new MutationObserver(sync);
+    if(priceBox)   mo.observe(priceBox,   { subtree: true, childList: true, characterData: true, attributes: true, attributeFilter: ['style'] });
+    if(notifyWrap) mo.observe(notifyWrap, { attributes: true, attributeFilter: ['style'] });
+    if(realCart)   mo.observe(realCart,   { attributes: true, attributeFilter: ['disabled'] });
+    if(realOrder)  mo.observe(realOrder,  { attributes: true, attributeFilter: ['disabled'] });
+  }
+  document.addEventListener('DOMContentLoaded', sync);
+  window.addEventListener('load', sync);
+  sync();
 })();
 </script>
 @endpush

@@ -8,7 +8,7 @@
     use App\Models\ProductStock;
     use Illuminate\Support\Str;
 
-    $info = Information::first();
+    $info = getInfo(); // memoized — this partial renders once per card
     $curr = $info->currency ?? 'BDT';
 
     $productParam = $product->slug ?: $product->id;
@@ -38,6 +38,14 @@
 
 @once
 <style>
+    /* Card accent = the site's brand colour (themeAccent()); the tints and the darker
+       shade are mixed from it so the whole card follows one theme colour. */
+    :root{
+        --pc-accent: {{ themeAccent() }};
+        --pc-accent-dark: color-mix(in srgb, var(--pc-accent) 72%, #000);
+        --pc-accent-tint: color-mix(in srgb, var(--pc-accent) 6%, #fff);
+        --pc-accent-tint2: color-mix(in srgb, var(--pc-accent) 13%, #fff);
+    }
     /* ============================================================
        ✨ PREMIUM CARD
        ============================================================ */
@@ -65,10 +73,10 @@
         border-radius: 14px;
         padding: 1.5px;
         background: linear-gradient(135deg,
-            rgba(13,110,253,0) 0%,
-            rgba(13,110,253,.45) 35%,
-            rgba(0,39,108,.45) 65%,
-            rgba(13,110,253,0) 100%);
+            color-mix(in srgb, var(--pc-accent) 0%, transparent) 0%,
+            color-mix(in srgb, var(--pc-accent) 45%, transparent) 35%,
+            color-mix(in srgb, var(--pc-accent-dark) 45%, transparent) 65%,
+            color-mix(in srgb, var(--pc-accent) 0%, transparent) 100%);
         -webkit-mask:
             linear-gradient(#fff 0 0) content-box,
             linear-gradient(#fff 0 0);
@@ -83,7 +91,7 @@
         transform: translateY(-6px) !important;
         border-color: transparent !important;
         box-shadow:
-            0 22px 40px -18px rgba(0,39,108,.22),
+            0 22px 40px -18px color-mix(in srgb, var(--pc-accent-dark) 22%, transparent),
             0 8px 18px -8px rgba(15,23,42,.08) !important;
     }
     .axil-product.product-style-one:hover::before{ opacity: 1; }
@@ -108,7 +116,7 @@
         position: absolute;
         width: 220%; height: 220%;
         top: -60%; left: -60%;
-        background: radial-gradient(circle at 30% 30%, rgba(13,110,253,.10), transparent 45%);
+        background: radial-gradient(circle at 30% 30%, color-mix(in srgb, var(--pc-accent) 10%, transparent), transparent 45%);
         opacity: 0;
         transition: opacity .5s ease;
         pointer-events: none;
@@ -167,10 +175,10 @@
         letter-spacing: .2px;
         text-transform: uppercase;
         line-height: 1 !important;
-        background: linear-gradient(135deg, #0d6efd, #00276C) !important;
+        background: linear-gradient(135deg, var(--pc-accent), var(--pc-accent-dark)) !important;
         color: #ffffff !important;
         border: 1px solid rgba(255,255,255,.10) !important;
-        box-shadow: 0 4px 10px rgba(13,110,253,.28) !important;
+        box-shadow: 0 4px 10px color-mix(in srgb, var(--pc-accent) 28%, transparent) !important;
         font-family: 'Hind Siliguri', sans-serif !important;
         overflow: hidden;
         animation: badgeIn .5s cubic-bezier(.22,.61,.36,1) both;
@@ -314,9 +322,9 @@
     }
     .product-type-indicator i{ font-size: 9px; }
     .product-type-indicator.is-variable{
-        color: #0d6efd;
-        background: linear-gradient(135deg, #eff6ff, #dbeafe);
-        border-color: rgba(13,110,253,.18);
+        color: var(--pc-accent);
+        background: linear-gradient(135deg, var(--pc-accent-tint), var(--pc-accent-tint2));
+        border-color: color-mix(in srgb, var(--pc-accent) 18%, transparent);
     }
     .axil-product.product-style-one:hover .product-type-indicator{
         transform: translateY(-1px);
@@ -345,7 +353,7 @@
         transition: color .25s ease;
     }
     .axil-product.product-style-one:hover .product-content .title a {
-        color: #0d6efd !important;
+        color: var(--pc-accent) !important;
     }
 
     /* ============================================================
@@ -362,26 +370,26 @@
     .axil-product .price-wrap{
         display: flex;
         align-items: baseline;
-        flex-wrap: nowrap;
-        gap: 4px;
+        /* prices show two decimals now — the old price drops to its own line
+           instead of being cut off with "…" on narrow cards */
+        flex-wrap: wrap;
+        gap: 0 6px;
         flex: 1;
         min-width: 0;
         overflow: hidden;
     }
     .axil-product .product-price-variant .current-price {
         font-family: 'Hind Siliguri', sans-serif !important;
-        font-size: 16px !important;
+        font-size: 15px !important;
         font-weight: 800 !important;
         color: #0f172a !important;
         letter-spacing: -.2px;
-        background: linear-gradient(135deg, #0f172a 0%, #0d6efd 120%);
+        background: linear-gradient(135deg, #0f172a 0%, var(--pc-accent) 120%);
         -webkit-background-clip: text;
         background-clip: text;
         -webkit-text-fill-color: transparent;
         line-height: 1.2;
         white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
     }
     .axil-product .product-price-variant .old-price {
         font-family: 'Hind Siliguri', sans-serif !important;
@@ -427,7 +435,7 @@
     .axil-product .add-to-cart-btn::before{
         content:""; position: absolute; inset: 0;
         border-radius: 11px;
-        background: linear-gradient(135deg, #0d6efd, #00276C);
+        background: linear-gradient(135deg, var(--pc-accent), var(--pc-accent-dark));
         opacity: 0;
         transition: opacity .35s ease;
         z-index: -1;
@@ -445,7 +453,7 @@
         color: #ffffff;
         border-color: transparent;
         box-shadow:
-            0 14px 26px rgba(13,110,253,.32),
+            0 14px 26px color-mix(in srgb, var(--pc-accent) 32%, transparent),
             inset 0 1px 0 rgba(255,255,255,.15);
     }
     .axil-product .add-to-cart-btn:hover::before{ opacity: 1; }
@@ -463,9 +471,9 @@
     }
 
     .axil-product .add-to-cart-btn.is-variable{
-        background: linear-gradient(135deg, #eff6ff, #dbeafe);
-        color: #0d6efd;
-        border-color: rgba(13,110,253,.20);
+        background: linear-gradient(135deg, var(--pc-accent-tint), var(--pc-accent-tint2));
+        color: var(--pc-accent);
+        border-color: color-mix(in srgb, var(--pc-accent) 20%, transparent);
     }
     .axil-product .add-to-cart-btn.is-variable:hover{ color: #ffffff; }
 
@@ -561,6 +569,12 @@
         .axil-product .product-badget,
         .axil-product .free-shipping-badge{ font-size: 8.5px !important; padding: 2.5px 6px !important; }
         .axil-product .free-shipping-badge i{ font-size: 8px; }
+    }
+    /* very narrow phones: two-decimal prices still have to fit beside the button */
+    @media (max-width: 360px){
+        .axil-product .product-price-variant{ gap: 5px !important; }
+        .axil-product .product-price-variant .current-price{ font-size: 12.5px !important; }
+        .axil-product .add-to-cart-btn{ width: 30px; height: 30px; }
     }
 
     @media (prefers-reduced-motion: reduce){
@@ -676,13 +690,20 @@ document.addEventListener('DOMContentLoaded', function() {
 
     <div class="thumbnail">
         <a href="{{ route('front.products.show', ['product' => $productParam]) }}">
-            <img src="{{ getImage('thumb_products', $product->image) }}" class="product_img" alt="{{ $product->name }}">
+            <img src="{{ getImage('thumb_products', $product->image) }}" class="product_img" alt="{{ $product->name }}" loading="lazy" decoding="async">
             {{-- Second photo shown on hover: the first gallery image, fetched only when hovered --}}
             @php $hoverImage = optional($product->images->first())->image; @endphp
             @if($hoverImage && file_exists(public_path('products/' . $hoverImage)))
-                <img data-hover-src="{{ asset('products/' . $hoverImage) }}" class="product_img_hover" alt="" aria-hidden="true">
+                <img data-hover-src="{{ getImage('products', $hoverImage) }}" class="product_img_hover" alt="" aria-hidden="true">
             @endif
         </a>
+
+        {{-- Wishlist heart (styles + click handling live in partials/header) --}}
+        <button type="button" class="wl-toggle wl-heart {{ inWishlist($product->id) ? 'is-saved' : '' }}"
+                data-product="{{ $product->id }}" aria-pressed="{{ inWishlist($product->id) ? 'true' : 'false' }}"
+                title="{{ inWishlist($product->id) ? 'Remove from Wishlist' : 'Add to Wishlist' }}" aria-label="Wishlist">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20.5s-7.5-4.4-9.6-9.1C1 8.1 2.9 4.5 6.5 4.5c2 0 3.6 1 4.6 2.5.3.4.6.4.9 0 1-1.5 2.6-2.5 4.6-2.5 3.6 0 5.5 3.6 4.1 6.9-2.1 4.7-9.6 9.1-9.6 9.1z"/></svg>
+        </button>
 
         {{-- Big STOCK OUT overlay across the image --}}
         @if($isOut)
@@ -727,19 +748,19 @@ document.addEventListener('DOMContentLoaded', function() {
         <div class="product-price-variant">
             <div class="price-wrap">
                 <span class="price current-price" style="font-family:'Hind Siliguri', sans-serif;">
-                    @if($curr == 'BDT') ৳ {{ number_format((int)($data['price'] ?? 0)) }}
-                    @elseif($curr == 'Dollar') $ {{ $data['price'] ?? 0 }}
-                    @elseif($curr == 'Euro') {{ $data['price'] ?? 0 }}
-                    @elseif($curr == 'Rupee') {{ $data['price'] ?? 0 }}
+                    @if($curr == 'BDT') ৳ {{ number_format((float)($data['price'] ?? 0), 2) }}
+                    @elseif($curr == 'Dollar') $ {{ number_format((float)($data['price'] ?? 0), 2) }}
+                    @elseif($curr == 'Euro') {{ number_format((float)($data['price'] ?? 0), 2) }}
+                    @elseif($curr == 'Rupee') {{ number_format((float)($data['price'] ?? 0), 2) }}
                     @endif
                 </span>
 
                 @if($hasDiscount)
                     <span class="price old-price" style="font-family:'Hind Siliguri', sans-serif;">
-                        @if($curr == 'BDT') ৳ {{ number_format((int)($data['old_price'] ?? 0)) }}
-                        @elseif($curr == 'Dollar') $ {{ $data['old_price'] ?? 0 }}
-                        @elseif($curr == 'Euro') {{ $data['old_price'] ?? 0 }}
-                        @elseif($curr == 'Rupee') {{ $data['old_price'] ?? 0 }}
+                        @if($curr == 'BDT') ৳ {{ number_format((float)($data['old_price'] ?? 0), 2) }}
+                        @elseif($curr == 'Dollar') $ {{ number_format((float)($data['old_price'] ?? 0), 2) }}
+                        @elseif($curr == 'Euro') {{ number_format((float)($data['old_price'] ?? 0), 2) }}
+                        @elseif($curr == 'Rupee') {{ number_format((float)($data['old_price'] ?? 0), 2) }}
                         @endif
                     </span>
                 @endif

@@ -148,6 +148,11 @@
               <a class="btn btn-sm btn-danger show_update" href="{{ route('admin.showUpdate')}}?status=0">Hide</a>
               <a class="btn btn-sm btn-success recomm_update" href="{{ route('admin.checkoutPickUpdate')}}?is_checkout_pick=1">Add (Checkout)</a>
               <a class="btn btn-sm btn-warning recomm_update" href="{{ route('admin.checkoutPickUpdate')}}?is_checkout_pick=0">Remove (Checkout)</a>
+              @can('product.delete')
+                <a class="btn btn-sm btn-danger bulk_delete" href="{{ route('admin.products.bulkDelete') }}">
+                  <i class="mdi mdi-delete"></i> Delete Selected
+                </a>
+              @endcan
 
               <span class="bulk-info ms-2">
                 Selected: <strong id="bulkCount">0</strong>
@@ -449,6 +454,31 @@
     $.ajax({
       type:'GET', url,
       data:{ 'product_ids[]': product_ids },
+      beforeSend(){ $('body').css('cursor','wait'); },
+      complete(){ $('body').css('cursor','default'); },
+      success:function(res){
+        if(res.status===true){
+          if(window.toastr) toastr.success(res.msg);
+          location.reload();
+        }else{
+          if(window.toastr) toastr.error(res.msg || 'Failed');
+        }
+      },
+      error:function(){ if(window.toastr) toastr.error('Request failed'); }
+    });
+  });
+
+  $(document).on('click', 'a.bulk_delete', function(e){
+    e.preventDefault();
+    const url = $(this).attr('href');
+    const product_ids = getSelectedIds();
+    if(product_ids.length === 0){
+      return window.toastr ? toastr.error('Please select product(s) first!') : alert('Please select product(s) first!');
+    }
+    if(!confirm('Delete ' + product_ids.length + ' selected product(s)? This cannot be undone.')) return;
+    $.ajax({
+      type:'POST', url,
+      data:{ product_ids: product_ids, _token: '{{ csrf_token() }}' },
       beforeSend(){ $('body').css('cursor','wait'); },
       complete(){ $('body').css('cursor','default'); },
       success:function(res){

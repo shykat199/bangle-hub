@@ -121,6 +121,8 @@ class InformationController extends Controller
             'topbar_active' => 'nullable',
             'topbar_bg_color' => 'nullable',
             'topbar_text_color' => 'nullable',
+            'topbar_link'       => 'nullable|string|max:500',
+            'topbar_link_text'  => 'nullable|string|max:60',
             'facebook'      => 'nullable',
             'instagram'     => 'nullable',
             'tiktok'        => 'nullable',

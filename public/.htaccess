@@ -9,6 +9,12 @@
     RewriteCond %{HTTP:Authorization} .
     RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
 
+    # /products is the shop page, but public/products/ (product images) is a real
+    # folder with the same name. Send the bare URL to the app instead of the folder;
+    # files inside it (products/xyz.jpg) are untouched.
+    DirectorySlash Off
+    RewriteRule ^products/?$ index.php [L]
+
     # Redirect Trailing Slashes If Not A Folder...
     RewriteCond %{REQUEST_FILENAME} !-d
     RewriteCond %{REQUEST_URI} (.+)/$

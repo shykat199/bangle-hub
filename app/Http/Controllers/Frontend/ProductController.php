@@ -13,6 +13,7 @@ use App\Models\Product;
 use App\Models\Category;
 use App\Models\Type;
 use App\Models\Size;
+use App\Models\Color;
 use App\Models\Information;
 use App\Models\LandingPage;
 use App\Models\DeliveryCharge;
@@ -74,7 +75,7 @@ class ProductController extends Controller
                      ->orderBy('products.id', 'desc');
     }
 
-    private function applyCommonFilters($query, array $brand_ids, array $size_ids, string $q, $min_price, $max_price)
+    private function applyCommonFilters($query, array $brand_ids, array $size_ids, string $q, $min_price, $max_price, array $color_ids = [], string $stock_status = '')
     {
         if ($q !== '') {
             // A search that matches a category name also brings every product of that category.
@@ -82,6 +83,7 @@ class ProductController extends Controller
 
             $query->where(function ($row) use ($q, $matchedCatIds) {
                 $row->where('products.name', 'like', "%{$q}%")
+                    ->orWhere('products.sku', 'like', "%{$q}%")
                     ->orWhere('products.description', 'like', "%{$q}%");
 
                 if (!empty($matchedCatIds)) {
@@ -91,20 +93,156 @@ class ProductController extends Controller
         }
 
         if ($min_price !== null && $max_price !== null && $min_price !== '' && $max_price !== '') {
-            $query->whereBetween('products.sell_price', [(float)$min_price, (float)$max_price]);
+            $query->whereRaw(Product::displayPriceSql() . ' between ? and ?', [(float)$min_price, (float)$max_price]);
         }
 
         if (!empty($brand_ids)) {
             $query->whereIn('products.type_id', $brand_ids);
         }
 
-        if (!empty($size_ids)) {
-            $query->whereHas('variation', function ($v) use ($size_ids) {
-                $v->whereIn('size_id', $size_ids);
+        // Size + colour together must be one real variation ("Red in XL"), not a
+        // product that merely has some red variation and some XL variation.
+        if (!empty($size_ids) || !empty($color_ids)) {
+            $query->whereHas('variations', function ($v) use ($size_ids, $color_ids) {
+                if (!empty($size_ids))  $v->whereIn('size_id', $size_ids);
+                if (!empty($color_ids)) $v->whereIn('color_id', $color_ids);
             });
         }
 
+        if (in_array($stock_status, ['in_stock', 'stock_out'], true)) {
+            $query->availability($stock_status);
+        }
+
         return $query;
+    }
+
+    /** Products shown per page on the shop and category pages. */
+    private const PER_PAGE = 100;
+
+    /**
+     * Shop page and category pages share everything: the filtered, paginated
+     * product list (returned as the grid partial for AJAX) and the filter
+     * options, which only offer what actually exists in this listing.
+     */
+    private function productListing(Request $request, ?Category $cat = null)
+    {
+        $ids = fn ($key) => array_values(array_filter(array_map('intval', (array) $request->input($key, []))));
+
+        $q          = trim((string) $request->input('q', ''));
+        $brandIds   = $ids('brand_id');
+        $catIds     = $ids('cat_id');
+        $sizeIds    = $ids('size_id');
+        $colorIds   = $ids('color_id');
+        $stock      = (string) $request->input('stock_status', '');
+        $min_price  = $request->input('min_price');
+        $max_price  = $request->input('max_price');
+        $sort       = $this->orderKey($request);
+
+        $base = fn () => Product::query()
+            ->where('products.status', 1)
+            ->when($cat, fn ($w) => $w->inCategory([$cat->id]));
+
+        // প্রতিটা কার্ড resolveStock() ডাকে, যেটা variations আর product_stocks দুটোই দেখে।
+        // eager-load না থাকায় প্রতি কার্ডে কয়েকটা করে বাড়তি কোয়েরি হতো (N+1)।
+        $query = $base()
+            ->with(['variation', 'category:id,name,url', 'variations.stocks', 'images'])
+            ->select('products.*');
+
+        if (!empty($catIds)) $query->inCategory($catIds);
+
+        $this->applyCommonFilters($query, $brandIds, $sizeIds, $q, $min_price, $max_price, $colorIds, $stock);
+        $this->applySort($query, $sort);
+
+        $items = $query->paginate(self::PER_PAGE)->withQueryString();
+
+        if ($request->ajax()) {
+            return view('frontend.products.partials.category_products', compact('items'))->render();
+        }
+
+        $priceSql = Product::displayPriceSql();
+        $range    = $base()->selectRaw("min($priceSql) as lo, max($priceSql) as hi")->first();
+        $minDb    = floor((float) ($range->lo ?? 0));
+        $maxDb    = ceil((float) ($range->hi ?? 0));
+
+        $productIds = fn () => $base()->select('products.id');
+
+        $sizeCol  = $this->sizeLabelColumn();
+        $sizes    = Size::whereIn('id', Variation::whereIn('product_id', $productIds())->whereNotNull('size_id')->distinct()->select('size_id'))
+            ->orderBy($sizeCol)->get();
+        $hasSizes = $sizes->isNotEmpty();
+
+        $colors = Color::whereIn('id', Variation::whereIn('product_id', $productIds())->whereNotNull('color_id')->distinct()->select('color_id'))
+            ->orderBy('name')->get();
+
+        $types = Type::whereIn('id', $base()->whereNotNull('products.type_id')->distinct()->select('products.type_id'))
+            ->orderBy('name')->get();
+
+        $cats = Category::whereNull('parent_id')->get();
+        // On the shop page categories are a filter — an empty one would only ever give "no products".
+        if (!$cat) {
+            $cats = $cats->filter(fn ($c) => Product::where('status', 1)->inCategory([$c->id])->exists())->values();
+        }
+
+        $view = $cat ? 'frontend.products.another_index' : 'frontend.products.index';
+
+        return view($view, compact(
+            'items', 'cats', 'sizes', 'colors', 'types', 'sizeCol',
+            'hasSizes', 'minDb', 'maxDb', 'sort', 'cat'
+        ));
+    }
+
+    /**
+     * Header live search — a handful of matches as JSON for the dropdown preview.
+     * Name/SKU/category only (not description) so short queries stay relevant and fast.
+     */
+    public function liveSearch(Request $request)
+    {
+        $q = trim((string) $request->input('q', ''));
+
+        if (mb_strlen($q) < 2) {
+            return response()->json(['items' => [], 'total' => 0]);
+        }
+
+        $matchedCatIds = Category::where('name', 'like', "%{$q}%")->pluck('id')->all();
+
+        $query = Product::query()
+            ->with(['variations', 'category:id,name'])
+            ->where('products.status', 1)
+            ->where(function ($row) use ($q, $matchedCatIds) {
+                $row->where('products.name', 'like', "%{$q}%")
+                    ->orWhere('products.sku', 'like', "%{$q}%");
+
+                if (!empty($matchedCatIds)) {
+                    $row->orWhere(fn ($w) => $w->inCategory($matchedCatIds));
+                }
+            });
+
+        $total = (clone $query)->count();
+
+        // Exact SKU first, then names starting with the query, then other name/SKU matches.
+        $products = $query
+            ->orderByRaw('CASE WHEN products.sku = ? THEN 0 WHEN products.name LIKE ? THEN 1 WHEN products.name LIKE ? OR products.sku LIKE ? THEN 2 ELSE 3 END', [$q, "{$q}%", "%{$q}%", "%{$q}%"])
+            ->latest('products.id')
+            ->limit(6)
+            ->get();
+
+        $items = $products->map(function ($product) {
+            $data  = getProductInfo($product);
+            $price = (float) ($data['price'] ?? 0);
+            $old   = (float) ($data['old_price'] ?? 0);
+
+            return [
+                'name'      => $product->name,
+                'sku'       => $product->sku,
+                'category'  => optional($product->category)->name,
+                'url'       => route('front.products.show', ['product' => $product->slug ?: $product->id]),
+                'image'     => getImage('thumb_products', $product->image),
+                'price'     => $price,
+                'old_price' => $old > $price ? $old : null,
+            ];
+        });
+
+        return response()->json(['items' => $items, 'total' => $total]);
     }
 
     /* ===========================
@@ -113,58 +251,7 @@ class ProductController extends Controller
 
     public function index(Request $request)
     {
-        $q         = trim((string)$request->input('q', ''));
-        $type_id   = (array)$request->input('brand_id', []);
-        $cat_id    = (array)$request->input('cat_id', []);
-        $size_id   = (array)$request->input('size_id', []);
-        $min_price = $request->input('min_price');
-        $max_price = $request->input('max_price');
-
-        $orderKey = $this->orderKey($request);
-        $sort     = $orderKey;
-
-        // প্রতিটা কার্ড resolveStock() ডাকে, যেটা variations আর product_stocks দুটোই দেখে।
-        // eager-load না থাকায় ১২টা কার্ডের পেজে কয়েক ডজন বাড়তি কোয়েরি হতো (N+1)।
-        $query = Product::query()
-            ->with(['variation', 'category:id,name,url', 'variations.stocks', 'images'])
-            ->select('products.*')
-            ->where('products.status', 1);
-
-        if (!empty($cat_id))  $query->inCategory($cat_id);
-        if (!empty($type_id)) $query->whereIn('products.type_id', $type_id);
-
-        $this->applyCommonFilters($query, $type_id, $size_id, $q, $min_price, $max_price);
-        $this->applySort($query, $orderKey);
-
-        $items = $query->paginate(32)->withQueryString();
-
-        if ($request->ajax()) {
-            return view('frontend.products.partials.category_products', compact('items'))->render();
-        }
-
-        $types    = Type::orderBy('name')->get();
-        $cats     = Category::whereNull('parent_id')->get();
-
-        $sizeCol = $this->sizeLabelColumn();
-
-        $sizeIds = DB::table('variations')
-            ->join('products', 'products.id', '=', 'variations.product_id')
-            ->where('products.status', 1)
-            ->whereNotNull('variations.size_id')
-            ->distinct()
-            ->pluck('variations.size_id')
-            ->toArray();
-
-        $hasSizes = !empty($sizeIds);
-        $sizes    = $hasSizes ? Size::whereIn('id', $sizeIds)->orderBy($sizeCol)->get() : collect([]);
-
-        $minDb = Product::where('status', 1)->min('sell_price') ?? 0;
-        $maxDb = Product::where('status', 1)->max('sell_price') ?? 0;
-
-        return view('frontend.products.index', compact(
-            'items', 'cats', 'sizes', 'types', 'sizeCol',
-            'hasSizes', 'minDb', 'maxDb', 'sort'
-        ));
+        return $this->productListing($request);
     }
 
     public function comboProducts()
@@ -450,108 +537,12 @@ class ProductController extends Controller
 
     public function subCategories1(Request $request, $slug)
     {
-        $cat = Category::where('url', $slug)->firstOrFail();
-
-        $q         = trim((string)$request->get('q', ''));
-        $brand_ids = (array)$request->get('brand_id', []);
-        $size_ids  = (array)$request->get('size_id', []);
-        $min_price = $request->get('min_price');
-        $max_price = $request->get('max_price');
-
-        $orderKey = $this->orderKey($request);
-        $sort     = $orderKey;
-
-        $query = Product::with(['variation', 'category:id,name,url', 'variations.stocks', 'images'])
-            ->select('products.*')
-            ->inCategory([$cat->id])
-            ->where('products.status', 1);
-
-        $this->applyCommonFilters($query, $brand_ids, $size_ids, $q, $min_price, $max_price);
-        $this->applySort($query, $orderKey);
-
-        $items = $query->paginate(32)->withQueryString();
-
-        if ($request->ajax()) {
-            return view('frontend.products.partials.category_products', compact('items'))->render();
-        }
-
-        $minDb = Product::inCategory([$cat->id])->min('sell_price') ?? 0;
-        $maxDb = Product::inCategory([$cat->id])->max('sell_price') ?? 0;
-
-        $types = Type::orderBy('name')->get();
-        $cats  = Category::whereNull('parent_id')->get();
-
-        $sizeIds = Variation::whereIn('product_id', Product::inCategory([$cat->id])->where('status', 1)->select('id'))
-            ->whereNotNull('size_id')
-            ->distinct()
-            ->pluck('size_id')
-            ->toArray();
-
-        $hasSizes = !empty($sizeIds);
-        $sizeCol  = $this->sizeLabelColumn();
-        $sizes    = $hasSizes ? Size::whereIn('id', $sizeIds)->orderBy($sizeCol)->get() : collect([]);
-
-        return view('frontend.products.another_index', compact(
-            'items', 'types', 'cats', 'sizes', 'cat',
-            'minDb', 'maxDb', 'hasSizes', 'sizeCol', 'sort'
-        ));
+        return $this->productListing($request, Category::where('url', $slug)->firstOrFail());
     }
 
     public function subsubCategories(Request $request, $slug)
     {
-        $s_cat = Category::where('url', $slug)->firstOrFail();
-
-        $q         = trim((string)$request->get('q', ''));
-        $brand_ids = (array)$request->get('brand_id', []);
-        $size_ids  = (array)$request->get('size_id', []);
-        $min_price = $request->get('min_price');
-        $max_price = $request->get('max_price');
-
-        $orderKey = $this->orderKey($request);
-        $sort     = $orderKey;
-
-        $query = Product::with(['variation', 'images'])
-            ->select('products.*')
-            ->inCategory([$s_cat->id])
-            ->where('products.status', 1);
-
-        $this->applyCommonFilters($query, $brand_ids, $size_ids, $q, $min_price, $max_price);
-        $this->applySort($query, $orderKey);
-
-        $items = $query->paginate(32)->withQueryString();
-
-        if ($request->ajax()) {
-            return view('frontend.products.partials.category_products', compact('items'))->render();
-        }
-
-        $minDb = Product::inCategory([$s_cat->id])->min('sell_price') ?? 0;
-        $maxDb = Product::inCategory([$s_cat->id])->max('sell_price') ?? 0;
-
-        $types = Type::orderBy('name')->get();
-        $cats  = Category::whereNull('parent_id')->get();
-
-        $sizeIds = Variation::whereIn('product_id', Product::inCategory([$s_cat->id])->where('status', 1)->select('id'))
-            ->whereNotNull('size_id')
-            ->distinct()
-            ->pluck('size_id')
-            ->toArray();
-
-        $hasSizes = !empty($sizeIds);
-        $sizeCol  = $this->sizeLabelColumn();
-        $sizes    = $hasSizes ? Size::whereIn('id', $sizeIds)->orderBy($sizeCol)->get() : collect([]);
-
-        return view('frontend.products.another_index', [
-            'items'    => $items,
-            'types'    => $types,
-            'cats'     => $cats,
-            'sizes'    => $sizes,
-            'cat'      => $s_cat,
-            'minDb'    => $minDb,
-            'maxDb'    => $maxDb,
-            'hasSizes' => $hasSizes,
-            'sizeCol'  => $sizeCol,
-            'sort'     => $sort
-        ]);
+        return $this->productListing($request, Category::where('url', $slug)->firstOrFail());
     }
 
     /* ===========================

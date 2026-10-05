@@ -10,23 +10,36 @@
 {{-- ✅ ফন্ট লোড --}}
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;700;900&display=swap"/>
 
+<style>
+    /* Thank-you page follows the site's brand colour (heading, order link, buttons). */
+    :root{ --ty-accent: {{ themeAccent() }}; }
+    .ty-card a:not(.btn){ color: var(--ty-accent) !important; font-weight: 700; }
+    .ty-btn{
+        border: 1.5px solid var(--ty-accent); background: #fff; color: var(--ty-accent) !important;
+        transition: background .18s ease, color .18s ease, transform .18s ease;
+    }
+    .ty-btn:hover, .ty-btn:focus{ background: var(--ty-accent); color: #fff !important; transform: translateY(-1px); }
+    .ty-btn.is-solid{ background: var(--ty-accent); color: #fff !important; }
+    .ty-btn.is-solid:hover{ filter: brightness(.93); }
+</style>
+
 <main class="main-wrapper">
     <div class="container py-5">
         <div class="row justify-content-center">
             <div class="col-lg-8">
                 {{-- ✅ Card Design --}}
-                <div class="card border-0 shadow-lg rounded-4 text-center p-5" 
+                <div class="card ty-card border-0 shadow-lg rounded-4 text-center p-5" 
                      style="background: linear-gradient(135deg, #F5F7FA 0%, #FFFFFF 100%); font-family: 'Hind Siliguri', sans-serif;">
                     
                     <div class="mb-4">
                         <svg xmlns="http://www.w3.org/2000/svg" width="90" height="90" viewBox="0 0 16 16" 
-                             style="color:#0FA298; fill:currentColor; display:block; margin:auto;">
+                             style="color: #16a34a; fill:currentColor; display:block; margin:auto;">
                             <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/>
                             <path d="M10.97 4.97a.235.235 0 0 0-.02.022L7.477 9.417 5.384 7.323a.75.75 0 0 0-1.06 1.06L6.97 11.03a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 0 0-1.071-1.05z"/>
                         </svg>
                     </div>
 
-                    <h1 class="fw-bold mb-3" style="font-size: 3rem; color:#0FA298;">ধন্যবাদ !</h1>
+                    <h1 class="fw-bold mb-3" style="font-size: 3rem; color: var(--ty-accent);">ধন্যবাদ !</h1>
                     <h3 class="text-muted mb-3" style="font-size: 2rem;">আপনার অর্ডারটি সফলভাবে গ্রহণ করা হয়েছে।</h3>
                     <p class="mb-4 px-lg-5" style="color:#555; font-size: 1.8rem;">
                         আমাদের একজন বিক্রয় প্রতিনিধি শীঘ্রই আপনার সাথে যোগাযোগ করবে অর্ডার নিশ্চিত করার জন্য।
@@ -44,12 +57,12 @@
                     <div class="d-flex justify-content-center flex-wrap gap-3">
                         <a href="{{ route('front.home') }}" 
                            class="btn rounded-pill px-5 py-3 shadow-sm fs-3"
-                           style="background:#0FA298; color:#fff; font-family:'Hind Siliguri', sans-serif;">
+                           style="background: var(--ty-accent); color:#fff; font-family:'Hind Siliguri', sans-serif;">
                             হোমে ফিরে যান
                         </a>
 
                         <a target="_blank" href="{{ route('front.orders.show', ['order' => $order->id, 't' => $order->order_token]) }}"
-                           class="btn btn-outline-primary rounded-pill px-5 py-3 shadow-sm fs-3"
+                           class="btn ty-btn rounded-pill px-5 py-3 shadow-sm fs-3"
                            style="font-family: 'Hind Siliguri', sans-serif;">
                             ইনভয়েস প্রিন্ট করুন
                         </a>

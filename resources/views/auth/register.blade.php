@@ -15,10 +15,12 @@
         :root{
             --brand-gradient: {!! $brandGradient !!};
             --brand-text: {{ $brandText }};
+            /* solid accent for buttons and links: the header gradient can be white on this theme */
+            --auth-accent: {{ themeAccent() }};
         }
 
         .auth-page {
-            background: radial-gradient(circle at top, rgba(13,110,253,.12) 0, rgba(0,39,108,.08) 30%, #ffffff 70%);
+            background: radial-gradient(circle at top, color-mix(in srgb, var(--auth-accent) 10%, transparent) 0, color-mix(in srgb, var(--auth-accent) 5%, transparent) 30%, #ffffff 70%);
         }
 
         .axil-checkout-area { padding: 70px 0; }
@@ -105,9 +107,9 @@
             font-weight:600;
             border:none;
             font-size:15px;
-            background:var(--brand-gradient);
-            color:var(--brand-text);
-            margin-top:4px;
+            background:var(--auth-accent);
+            color:#fff;
+            margin-top:10px;
             display:inline-flex;
             justify-content:center;
             align-items:center;
@@ -118,7 +120,7 @@
 
         .auth-btn:hover{
             filter:brightness(1.05);
-            box-shadow:0 16px 34px rgba(0, 39, 108, .40);
+            box-shadow:0 12px 24px color-mix(in srgb, var(--auth-accent) 32%, transparent);
             transform:translateY(-1px);
         }
 
@@ -129,23 +131,28 @@
             box-shadow:none;
         }
 
+        /* "Already have an account?" — a divider, then a clear secondary button to the login page */
         .auth-login-link{
+            margin-top:20px;
             text-align:center;
-            font-size:12px;
-            margin-top:10px;
-            color:#6b7280;
         }
-
+        .auth-login-label{
+            display:flex; align-items:center; gap:12px;
+            margin-bottom:12px;
+            font-size:13px; font-weight:600; color:#6b7280;
+        }
+        .auth-login-label::before,
+        .auth-login-label::after{ content:""; flex:1; height:1px; background:#e5e7eb; }
         .auth-login-link a{
-            color:transparent;
-            background:var(--brand-gradient);
-            -webkit-background-clip:text;
-            background-clip:text;
-            font-weight:700;
-            text-decoration:none;
+            display:flex; align-items:center; justify-content:center; gap:8px;
+            width:100%; padding:11px 14px; border-radius:999px;
+            border:1.5px solid var(--auth-accent); background:#fff;
+            color:var(--auth-accent) !important; font-size:15px; font-weight:600;
+            text-decoration:none !important; transition:background .18s ease, color .18s ease;
         }
-
-        .auth-login-link a:hover{ text-decoration:underline; }
+        .auth-login-link a i{ font-size:13px; color:inherit !important; }
+        .auth-login-link a:hover{ background:var(--auth-accent); color:#fff !important; }
+        .auth-login-link a:hover i{ color:#fff !important; }
 
         .invalid-feedback{
             display:block;
@@ -272,8 +279,8 @@
                                     </div>
 
                                     <div class="auth-login-link">
-                                        Already have an account?
-                                        <a href="{{ route('login') }}">Sign In</a>
+                                        <div class="auth-login-label">Already have an account?</div>
+                                        <a href="{{ route('login') }}"><i class="fas fa-sign-in-alt"></i> Sign In</a>
                                     </div>
 
                                 </div>

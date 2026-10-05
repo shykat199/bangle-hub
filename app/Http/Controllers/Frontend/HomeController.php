@@ -69,9 +69,21 @@ class HomeController extends Controller
                         ->take(12)
                         ->get();
 
+        // Category cards under the featured banners: categories marked popular come
+        // first, topped up with the busiest ones. A card needs a picture and at
+        // least one product, otherwise it would lead to an empty page.
+        $popularCategories = Category::whereNotNull('image')->where('image', '!=', '')
+            ->get()
+            ->filter(fn ($c) => file_exists(public_path('categories/' . $c->image)))
+            ->each(fn ($c) => $c->products_count = Product::where('status', 1)->inCategory([$c->id])->count())
+            ->filter(fn ($c) => $c->products_count > 0)
+            ->sortBy([['is_popular', 'desc'], ['products_count', 'desc']])
+            ->take(6)
+            ->values();
+
         return view('frontend.home', compact(
             'sliders','brands','featured_images',
-            'homeProducts','popular_products','homeCategoryCovers'
+            'homeProducts','popular_products','homeCategoryCovers','popularCategories'
         ));
     }
 

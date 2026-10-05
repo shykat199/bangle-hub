@@ -195,6 +195,37 @@ class Product extends Model
         end)";
     }
 
+    /**
+     * SQL for the price a product card shows (getProductInfo()): a variable
+     * product shows its first variation's price, anything else its own —
+     * discounted price when one is set. The shop price filter uses this so
+     * a product is filtered by the same number the customer sees.
+     */
+    public static function displayPriceSql(): string
+    {
+        $own = 'if(products.after_discount > 0, products.after_discount, products.sell_price)';
+        $variation = 'if(v.after_discount_price > 0 and v.after_discount_price < v.price, v.after_discount_price, v.price)';
+
+        return "(case
+            when coalesce(products.type, 'single') = 'variable'
+                 and exists (select 1 from variations v where v.product_id = products.id)
+            then (select $variation from variations v where v.product_id = products.id order by v.id limit 1)
+            else $own
+        end)";
+    }
+
+    /** Orderable on the storefront (productIsOrderable()): stock is managed and something is left. */
+    public function scopeAvailability($query, $status)
+    {
+        $stock = static::resolvedStockSql();
+
+        return match ($status) {
+            'in_stock'  => $query->where('products.is_stock', 1)->whereRaw("$stock > 0"),
+            'stock_out' => $query->where(fn ($w) => $w->where('products.is_stock', '!=', 1)->orWhereNull('products.is_stock')->orWhereRaw("$stock <= 0")),
+            default     => $query,
+        };
+    }
+
     /** $status: in_stock (above the low-stock limit), low_stock (1..limit), stock_out (0). */
     public function scopeStockStatus($query, $status, int $lowLimit = 5)
     {

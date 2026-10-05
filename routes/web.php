@@ -163,7 +163,12 @@ Route::group(['as'=>'front.'], function() {
         ->name('stock_notify.store')->middleware('throttle:10,1');
 
     Route::controller(FrontProduct::class)->group(function(){
-        Route::get('/products-list','index')->name('products.index');
+        Route::get('/products','index')->name('products.index');
+        // Old shop URL — now served at /products (filters and search in the query string are kept).
+        Route::get('/products-list', fn (\Illuminate\Http\Request $request) => redirect()->to(
+            route('front.products.index') . ($request->getQueryString() ? '?' . $request->getQueryString() : ''), 301
+        ));
+        Route::get('/live-search','liveSearch')->name('products.liveSearch')->middleware('throttle:60,1');
         Route::get('/category','categories')->name('categories');
         Route::get('/c/{slug}','subCategories')->name('subCategories');
         // Old prefixed category URLs — now served at /{slug} (see end of file).
@@ -209,9 +214,13 @@ Route::group(['as'=>'front.'], function() {
     Route::group(['middleware' => 'auth'], function() {
         Route::resource('dashboard',UserDashboard::class);
         Route::resource('account_details',UserAccountDetailsController::class);
-        Route::resource('wishlist',UserWishlistController::class);
     });
 
+    // Wishlist works for guests as well (cookie) — logged-in customers get it saved to their account.
+    Route::get('/wishlist', [UserWishlistController::class, 'index'])->name('wishlist.index');
+    Route::post('/wishlist/toggle', [UserWishlistController::class, 'toggle'])->name('wishlist.toggle')->middleware('throttle:60,1');
+
+    Route::get('/review-login/{product}', [ProductReviewController::class, 'loginFirst'])->name('reviews.login');
     Route::resource('product-reviews',ProductReviewController::class);
     Route::put('product-reviews', [ProductReviewController::class, 'update2'])->name('product.view.update');
 
@@ -382,6 +391,7 @@ Route::group(['prefix' => 'admin','middleware' => ['auth','staff'],'as'=>'admin.
     Route::post('/products/variant-option',[ProductController::class,'storeVariantOption'])->name('products.variantOption');
     Route::get('/products/search', [ProductController::class, 'search'])->name('products.search');
     Route::post('/products/toggle-popular', [ProductController::class, 'togglePopular'])->name('product.togglePopular');
+    Route::post('/products/bulk-delete', [ProductController::class, 'bulkDestroy'])->name('products.bulkDelete');
 
     Route::resource('products',ProductController::class);
 

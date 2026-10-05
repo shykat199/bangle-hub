@@ -19,8 +19,12 @@
         line-height: 1.2;
     }
     .badge-single { background-color: #e6fffa; color: #047481; border: 1px solid #b2f5ea; }
-    .badge-variable { background-color: #ebf8ff; color: #2b6cb0; border: 1px solid #bee3f8; }
-    .badge-color { background-color: #faf5ff; color: #6b46c1; border: 1px solid #e9d8fd; }
+    /* variant chips follow the theme accent */
+    .badge-variable, .badge-color {
+        background-color: color-mix(in srgb, {{ themeAccent() }} 7%, #fff);
+        color: {{ themeAccent() }};
+        border: 1px solid color-mix(in srgb, {{ themeAccent() }} 24%, transparent);
+    }
 
     /* ✅ QUANTITY SELECTOR STYLES */
     .pro-qty {
@@ -156,7 +160,7 @@
                     </span>
                     
                     @if(isset($item['is_free_shipping']) && $item['is_free_shipping'])
-                        <span class="badge bg-info mt-1" style="width: fit-content; font-size: 10px;">Free Ship</span>
+                        <span class="badge mt-1" style="width: fit-content; font-size: 10px; background: {{ themeAccent() }}; color: #fff;">Free Ship</span>
                     @endif
 
                     <div class="d-flex flex-column gap-1">

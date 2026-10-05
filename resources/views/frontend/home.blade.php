@@ -9,8 +9,6 @@
     $viewAllText  = $adminText->view_all_text ?? 'View All';
     $info = Information::first();
     $popularDotColor  = $info->popular_dot_color ?? '#0d6efd';
-    $viewAllBtnBg     = $info->view_all_btn_bg_color ?? '#0d6efd';
-    $viewAllBtnColor  = $info->view_all_btn_text_color ?? '#ffffff';
     $categoryHeadingColor = $info->category_heading_color ?? '#0d6efd';
 
     // Dot-er pulse glow ar heading-er pashe divider line — dot color-erই halka
@@ -32,6 +30,8 @@
 @endpush
 
 <style>
+    /* Accent = the site's brand colour (themeAccent()), with a darker shade mixed from it. */
+    :root{ --home-accent: {{ themeAccent() }}; --home-accent-dark: color-mix(in srgb, var(--home-accent) 72%, #000); }
     .swiper:not(.swiper-initialized) .swiper-slide { display: none; }
     .swiper:not(.swiper-initialized) .swiper-slide:first-child { display: block; }
 
@@ -93,7 +93,7 @@
     .swiper-button-next:after, .swiper-button-prev:after { font-size: 15px; font-weight: 700; }
     .swiper-button-next:hover, .swiper-button-prev:hover {
         background: rgba(255,255,255,0.95);
-        color: #00276C !important; transform: scale(1.06);
+        color: var(--home-accent-dark) !important; transform: scale(1.06);
     }
 
     .desktop-swiper .swiper-pagination,
@@ -220,7 +220,7 @@
         animation: lineGrow .9s cubic-bezier(.22,.61,.36,1) .15s forwards;
     }
     .popular_product b:first-child{ transform-origin: right center; }
-    .popular_product b:last-child { transform-origin: left center; }
+    .popular_product b:last-of-type { transform-origin: left center; }
     @keyframes lineGrow { to { transform: scaleX(1); } }
 
     @media (max-width: 991px){ .popular_product span{ padding: 0 30px; } }
@@ -324,7 +324,7 @@
     }
     .swiper-slide-active .pop-card img{
         transform: scale(1.08);
-        filter: drop-shadow(0 14px 22px rgba(0,39,108,.22));
+        filter: drop-shadow(0 14px 22px color-mix(in srgb, var(--home-accent-dark) 22%, transparent));
     }
 
     .pop-title {
@@ -334,7 +334,7 @@
         white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
         transition: color .4s ease, transform .4s ease;
     }
-    .swiper-slide-active .pop-title{ color: #0d6efd; transform: translateY(-2px); }
+    .swiper-slide-active .pop-title{ color: var(--home-accent); transform: translateY(-2px); }
     .pop-card:hover{ transform: translateY(-4px); }
 
     @media (min-width: 1400px){ .popular-swiper .swiper-slide{ width: 240px; } }
@@ -379,12 +379,12 @@
     }
     .product-section-wrap::before{
         top: -120px; left: -80px;
-        background: radial-gradient(circle, rgba(13,110,253,.18), transparent 70%);
+        background: radial-gradient(circle, color-mix(in srgb, var(--home-accent) 18%, transparent), transparent 70%);
         animation: orbFloatA 14s ease-in-out infinite;
     }
     .product-section-wrap::after{
         bottom: -120px; right: -80px;
-        background: radial-gradient(circle, rgba(0,39,108,.18), transparent 70%);
+        background: radial-gradient(circle, color-mix(in srgb, var(--home-accent-dark) 18%, transparent), transparent 70%);
         animation: orbFloatB 18s ease-in-out infinite;
     }
     @keyframes orbFloatA{ 0%,100%{transform:translate(0,0);} 50%{transform:translate(40px,30px);} }
@@ -410,63 +410,21 @@
     .product-section-wrap.in-view .row > [class*="col"]:nth-child(6){ transition-delay: .30s; }
 
     /* CATEGORY VIEW ALL */
-    .category-view-all-wrap{
-        text-align: center;
-        padding: 14px 0 4px;
-        opacity: 0;
-        transform: translateY(16px);
-        transition: opacity .7s ease, transform .7s cubic-bezier(.22,.61,.36,1);
-        transition-delay: .45s;
-    }
-    .product-section-wrap.in-view .category-view-all-wrap{
-        opacity: 1; transform: translateY(0);
-    }
-    .category-view-all-btn{
-        position: relative;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        gap: 8px;
-        padding: 9px 22px;
-        border-radius: 999px;
+    .category-view-all-link{
+        margin-left: 12px;
         font-family: 'Hind Siliguri', sans-serif;
-        font-size: 12.5px;
-        font-weight: 800;
-        letter-spacing: .4px;
-        text-transform: uppercase;
-        text-decoration: none !important;
-        color: {{ $viewAllBtnColor }} !important;
-        background: {{ $viewAllBtnBg }};
-        border: 1px solid rgba(255,255,255,.18);
-        box-shadow: 0 8px 18px rgba(0,0,0,.22);
-        overflow: hidden;
-        isolation: isolate;
-        transition:
-            transform .35s cubic-bezier(.22,.61,.36,1),
-            box-shadow .35s ease,
-            filter .3s ease;
+        font-size: 14px;
+        font-weight: 700;
+        white-space: nowrap;
+        color: {{ $categoryHeadingColor }};
+        text-decoration: none;
     }
-    .category-view-all-btn::before{
-        content:""; position: absolute; top:0; left:-130%;
-        width: 60%; height: 100%;
-        background: linear-gradient(120deg, transparent, rgba(255,255,255,.55), transparent);
-        transform: skewX(-18deg);
-        transition: left .8s cubic-bezier(.22,.61,.36,1);
-        z-index: -1;
-    }
-    .category-view-all-btn:hover::before{ left: 140%; }
-    .category-view-all-btn:hover{
-        transform: translateY(-2px) scale(1.04);
-        box-shadow: 0 14px 26px rgba(0,0,0,.32);
-        filter: brightness(1.06);
-    }
-    .category-view-all-btn i{ font-size: 10px; transition: transform .35s ease; }
-    .category-view-all-btn:hover i{ transform: translateX(4px); }
+    .category-view-all-link:hover{ color: {{ $categoryHeadingColor }}; text-decoration: underline; }
+    .category-view-all-link i{ font-size: 10px; }
 
     @media (max-width: 575px){
-        .category-view-all-wrap{ padding: 10px 0 2px; }
-        .category-view-all-btn{ padding: 8px 18px; font-size: 11.5px; gap: 6px; }
-        .category-view-all-btn i{ font-size: 9px; }
+        .category-view-all-link{ margin-left: 8px; font-size: 12.5px; }
+        .category-view-all-link i{ font-size: 9px; }
     }
 
     /* ✅ Popular section reveal kept, Featured section NO REVEAL */
@@ -490,8 +448,8 @@
         color: #fff !important;
         border-radius: 999px;
         text-decoration: none;
-        background: linear-gradient(135deg, #0d6efd, #00276C);
-        box-shadow: 0 8px 20px rgba(13,110,253,.30);
+        background: linear-gradient(135deg, var(--home-accent), var(--home-accent-dark));
+        box-shadow: 0 8px 20px color-mix(in srgb, var(--home-accent) 30%, transparent);
         transition: all .35s cubic-bezier(.22,.61,.36,1);
         border: 1px solid rgba(255,255,255,.16);
         position: relative; overflow: hidden;
@@ -508,7 +466,7 @@
     .bottom-view-btn:hover::before{ left: 140%; }
     .bottom-view-btn:hover {
         transform: translateY(-3px) scale(1.03);
-        box-shadow: 0 14px 28px rgba(13,110,253,.42);
+        box-shadow: 0 14px 28px color-mix(in srgb, var(--home-accent) 42%, transparent);
         filter: brightness(1.06);
     }
     .bottom-view-btn i{ font-size: 11px; transition: transform .35s ease; }
@@ -525,6 +483,93 @@
             animation-iteration-count: 1 !important;
             transition-duration: .001ms !important;
         }
+    }
+
+    /* ==========================================================================
+       COMPACT LAYOUT LAYER
+       One spacing scale for the whole home page (about 44px between sections on
+       desktop, 24px on phones, 14px under a heading), a capped content width,
+       and the combined collections + categories block.
+       ========================================================================== */
+    :root{ --home-space: 44px; --home-head-gap: 14px; --home-gap: 16px; }
+    @media (max-width: 767.98px){ :root{ --home-space: 24px; --home-head-gap: 12px; --home-gap: 10px; } }
+
+    /* content width follows the header's container (1140px, 1320px on wide screens) and never exceeds 1320px */
+    @media (min-width: 1400px){ .main-wrapper .container{ max-width: 1320px; } }
+
+    /* slider sits close under the header; the next section brings its own top space */
+    .desktop-slide.mt-3, .mobile-slide.mt-3{ margin-top: 14px !important; }
+
+    /* headings */
+    .popular_product,
+    .product-section-wrap .popular_product{ margin: 0 0 var(--home-head-gap) !important; padding: 0; }
+    .popular_product span{ font-size: 24px; font-weight: 700; letter-spacing: .06em; padding: 0 32px; }
+    @media (max-width: 767px){ .popular_product span{ font-size: 18px; padding: 0 24px; } }
+    @media (max-width: 420px){ .popular_product span{ font-size: 16px; padding: 0 20px; } }
+
+    /* sections */
+    .featured-section.home-shop{ padding: var(--home-space) 0 0; }
+    .product-section-wrap{ padding: var(--home-space) 0 0; }
+    .cat-product-swiper{ padding: 2px 2px 6px; }
+    .bottom-cta-container{ margin: 26px 0 var(--home-space); }
+
+    /* featured banners */
+    .featured-grid-container, .left-4-grid{ gap: var(--home-gap); }
+    .grid-img-wrapper{
+        border-radius: 16px;
+        box-shadow: 0 1px 2px rgba(16,24,40,.05), 0 10px 24px -14px rgba(16,24,40,.22);
+        transition: transform .3s ease, box-shadow .3s ease;
+    }
+    .grid-img-wrapper img{ transition: transform .6s cubic-bezier(.22,.61,.36,1); }
+    .grid-img-wrapper:hover{ transform: translateY(-3px); box-shadow: 0 2px 4px rgba(16,24,40,.06), 0 18px 32px -16px rgba(16,24,40,.32); }
+    .grid-img-wrapper:hover img{ transform: scale(1.04); }
+    @media (max-width: 991px){ .right-1-grid{ min-height: 0; } .right-1-grid .grid-img-wrapper img{ height: auto; } }
+    @media (max-width: 575px){ .grid-img-wrapper{ border-radius: 12px; } }
+
+    /* category cards: same square picture, name over a soft gradient */
+    .home-cats{
+        display: grid; grid-template-columns: repeat(6, minmax(0, 1fr));
+        gap: var(--home-gap); margin-top: var(--home-gap);
+    }
+    @media (max-width: 991.98px){ .home-cats{ grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+    .home-cat{
+        position: relative; display: block; aspect-ratio: 1 / 1; overflow: hidden;
+        border-radius: 16px; background: #f1f5f9; text-decoration: none !important; isolation: isolate;
+        box-shadow: 0 1px 2px rgba(16,24,40,.05), 0 10px 24px -14px rgba(16,24,40,.22);
+        transition: transform .3s ease, box-shadow .3s ease;
+    }
+    .home-cat img{ position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; transition: transform .6s cubic-bezier(.22,.61,.36,1); }
+    .home-cat::after{
+        content: ""; position: absolute; inset: 0; z-index: 1;
+        background: linear-gradient(180deg, rgba(15,23,42,0) 42%, rgba(15,23,42,.78) 100%);
+        transition: opacity .3s ease;
+    }
+    .home-cat__body{ position: absolute; left: 0; right: 0; bottom: 0; z-index: 2; padding: 12px 14px; display: flex; flex-direction: column; gap: 2px; }
+    .home-cat__name{ color: #fff; font-size: 15px; font-weight: 700; line-height: 1.25; text-shadow: 0 1px 2px rgba(0,0,0,.35); }
+    .home-cat__meta{ color: rgba(255,255,255,.86); font-size: 12px; font-weight: 500; }
+    .home-cat__meta i{ font-size: 10px; margin-left: 2px; opacity: 0; transform: translateX(-4px); transition: opacity .25s ease, transform .25s ease; }
+    .home-cat:hover{ transform: translateY(-4px); box-shadow: 0 2px 4px rgba(16,24,40,.06), 0 18px 32px -16px rgba(16,24,40,.34); }
+    .home-cat:hover img{ transform: scale(1.07); }
+    .home-cat:hover .home-cat__meta i{ opacity: 1; transform: translateX(0); }
+    .home-cat:focus-visible{ outline: 2px solid var(--home-accent); outline-offset: 2px; }
+    @media (max-width: 575px){
+        .home-cat{ border-radius: 12px; }
+        .home-cat__body{ padding: 8px 9px; }
+        .home-cat__name{ font-size: 12.5px; }
+        .home-cat__meta{ font-size: 10.5px; }
+    }
+
+    /* buttons: gentle rounding, comfortable padding, a simple lift on hover */
+    .bottom-view-btn{ border-radius: 12px; padding: 13px 28px; letter-spacing: .06em; }
+    .bottom-view-btn:hover{ transform: translateY(-2px); filter: none; }
+    .category-view-all-link{ padding: 6px 12px; border-radius: 8px; transition: background .2s ease; }
+    .category-view-all-link:hover{ background: color-mix(in srgb, var(--home-accent) 9%, transparent); text-decoration: none; }
+    @media (max-width: 575px){
+        .bottom-view-btn{ padding: 11px 22px; }
+        .category-view-all-link{ padding: 4px 8px; }
+    }
+    @media (prefers-reduced-motion: reduce){
+        .grid-img-wrapper, .grid-img-wrapper img, .home-cat, .home-cat img{ transition: none; }
     }
 </style>
 
@@ -568,15 +613,16 @@
         </div>
     </div>
 
-    {{-- ✅ FEATURED COLLECTIONS — Static, no animation --}}
-    @if(!empty($featured_images))
-    <div class="featured-section">
-        <div class="container mt-3 mb-2">
-            <div class="popular_product" style="margin-bottom: 30px;">
-                <b></b><span>FEATURED COLLECTIONS</span><b></b>
+    {{-- ✅ COLLECTIONS + CATEGORIES — one section: the admin's featured banners, then category cards --}}
+    @if(!empty($featured_images) || $popularCategories->isNotEmpty())
+    <div class="featured-section home-shop">
+        <div class="container">
+            <div class="popular_product">
+                <b></b><span>Shop by Collection</span><b></b>
             </div>
 
-            <div class="featured-grid-container px-2 px-md-3">
+            @if(!empty($featured_images))
+            <div class="featured-grid-container">
                 <div class="left-4-grid">
                     <a href="{{ $featured_images->left_link_1 ?? '#' }}" class="grid-img-wrapper">
                         <img src="{{ $featured_images->left_image_1 ? asset('homeimages/'.$featured_images->left_image_1) : 'https://via.placeholder.com/400?text=No+Image' }}" alt="Featured 1">
@@ -598,6 +644,21 @@
                     </a>
                 </div>
             </div>
+            @endif
+
+            @if($popularCategories->isNotEmpty())
+            <div class="home-cats">
+                @foreach($popularCategories as $pc)
+                    <a href="{{ route('front.category', [$pc->url]) }}" class="home-cat">
+                        <img src="{{ asset('categories/' . $pc->image) }}" alt="{{ $pc->name }}" loading="lazy" decoding="async">
+                        <span class="home-cat__body">
+                            <span class="home-cat__name">{{ $pc->name }}</span>
+                            <span class="home-cat__meta">{{ $pc->products_count }} {{ $pc->products_count === 1 ? 'product' : 'products' }} <i class="fas fa-arrow-right"></i></span>
+                        </span>
+                    </a>
+                @endforeach
+            </div>
+            @endif
         </div>
     </div>
     @endif
@@ -615,6 +676,9 @@
                 @if(!empty($products->first()->category->id))
                     <div class="popular_product">
                         <b></b><span>{{ $catName }}</span><b></b>
+                        @if($catUrl)
+                            <a href="{{ route('front.category', [$catUrl]) }}" class="category-view-all-link">{{ $viewAllText }} <i class="fas fa-arrow-right"></i></a>
+                        @endif
                     </div>
                 @endif
 
@@ -627,14 +691,6 @@
                         @endforeach
                     </div>
                 </div>
-
-                @if($catUrl)
-                    <div class="category-view-all-wrap">
-                        <a href="{{ route('front.category', [$catUrl]) }}" class="category-view-all-btn">
-                            {{ $viewAllText }} <i class="fas fa-arrow-right"></i>
-                        </a>
-                    </div>
-                @endif
 
             </div>
         </div>

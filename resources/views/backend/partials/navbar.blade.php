@@ -457,6 +457,12 @@
                 </a>
             </li>
             <li class="menu-item">
+                <a href="{{ route('admin.settings.index') }}#announcement" class="menu-link">
+                    <i class="menu-icon mdi mdi-bullhorn-outline text-warning"></i>
+                    <span class="menu-text">Announcement Bar</span>
+                </a>
+            </li>
+            <li class="menu-item">
                 <a href="{{ route('admin.tracking_guide') }}" class="menu-link {{ nav_active(['admin.tracking_guide']) }}">
                     <i class="menu-icon mdi mdi-book-open-page-variant-outline text-info"></i>
                     <span class="menu-text">Tracking Setup Guide</span>

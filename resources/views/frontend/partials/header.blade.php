@@ -35,16 +35,44 @@ color: var(--brand-text) !important;
 color: #000 !important;
 }
 body { font-family: 'Hind Siliguri', sans-serif; }
-.topbar { overflow: hidden; height: 35px; background: var(--topbar-bg); border-bottom: 1px solid rgba(255,255,255,0.1); }
-.topbar .container { height: 100%; display: flex; align-items: center; }
-.topbar-notice { position: relative; width: 100%; height: 100%; display: flex; align-items: center; overflow: hidden; white-space: nowrap; }
-.topbar-notice .notice-track { display: inline-flex; align-items: center; gap: 40px; will-change: transform; animation: noticeScroll 90s linear infinite; padding-left: 100%; }
-.topbar-notice:hover .notice-track { animation-play-state: paused; }
-.topbar-notice .notice-text { font-size: 13px; font-weight: 500; color: var(--topbar-text); letter-spacing: 0.5px; text-transform: uppercase; }
-@keyframes noticeScroll {
-0%   { transform: translateX(0); }
-100% { transform: translateX(-100%); }
+/* Announcement bar: tall, bold, high-contrast strip above the header. A short line sits
+   centred; a line too long for the screen scrolls (the script below turns that on). */
+.topbar { background: var(--topbar-bg); color: var(--topbar-text); position: relative; z-index: 1021; }
+.topbar .container { display: flex; align-items: center; justify-content: center; gap: 14px; min-height: 48px; padding-top: 7px; padding-bottom: 7px; }
+.topbar-icon { flex: 0 0 auto; font-size: 17px; color: var(--topbar-text); }
+.topbar-notice { position: relative; flex: 0 1 auto; min-width: 0; overflow: hidden; white-space: nowrap; }
+.topbar-notice .notice-track { display: inline-flex; align-items: center; }
+.topbar-notice .notice-text {
+    font-size: 15.5px; font-weight: 700; line-height: 1.35; letter-spacing: .01em;
+    color: var(--topbar-text); -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility;
 }
+.topbar-notice .notice-text + .notice-text { display: none; }
+.topbar.is-scrolling .topbar-notice { flex: 1 1 auto;
+    -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 28px, #000 calc(100% - 28px), transparent 100%);
+            mask-image: linear-gradient(90deg, transparent 0, #000 28px, #000 calc(100% - 28px), transparent 100%); }
+.topbar.is-scrolling .notice-track { gap: 64px; padding-right: 64px; will-change: transform; animation: noticeScroll var(--notice-time, 30s) linear infinite; }
+.topbar.is-scrolling .notice-text + .notice-text { display: inline; }
+.topbar.is-scrolling .topbar-notice:hover .notice-track { animation-play-state: paused; }
+.topbar-cta {
+    flex: 0 0 auto; display: inline-flex; align-items: center; gap: 6px;
+    padding: 7px 16px; border-radius: 999px; white-space: nowrap;
+    background: var(--topbar-text); color: var(--topbar-bg) !important;
+    font-size: 13.5px; font-weight: 800; line-height: 1; text-decoration: none !important;
+    transition: transform .18s ease, opacity .18s ease;
+}
+.topbar-cta:hover { transform: translateY(-1px); opacity: .9; }
+.topbar-cta i { font-size: 11px; }
+@media (max-width: 575.98px) {
+    .topbar .container { min-height: 42px; gap: 10px; padding-top: 6px; padding-bottom: 6px; }
+    .topbar-icon { font-size: 15px; }
+    .topbar-notice .notice-text { font-size: 13.5px; }
+    .topbar-cta { padding: 6px 12px; font-size: 12.5px; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .topbar.is-scrolling .notice-track { animation: none; }
+    .topbar.is-scrolling .topbar-notice { overflow-x: auto; -webkit-mask-image: none; mask-image: none; }
+}
+@keyframes noticeScroll { from { transform: translateX(0); } to { transform: translateX(-50%); } }
 .axil-mainmenu-desktop {
 transition: all 0.3s ease;
 width: 100%;
@@ -59,17 +87,22 @@ height: 75px;
 width: 100%;
 }
 .desktop-logo-clean { flex: 0 0 15%; display: flex; align-items: center; }
-.desktop-logo-clean img { max-height: 45px; object-fit: contain; }
+.desktop-logo-clean img { max-height: 40px; object-fit: contain; }
+/* Logo with its subtitle underneath (header and footer share .logo-tagline) */
+.logo-lockup { display: inline-flex; flex-direction: column; align-items: center; gap: 3px; text-decoration: none !important; }
+.logo-tagline {
+    display: block; white-space: nowrap; line-height: 1;
+    font-size: 9.5px; font-weight: 800; letter-spacing: .2em; text-transform: uppercase;
+    color: {{ themeAccent('#1f2937') }} !important; -webkit-font-smoothing: antialiased;
+}
 /* Many menu items: the bar scrolls sideways instead of overflowing the header.
    margin:auto (not justify-content:center) keeps the first items reachable. */
 .desktop-menu-clean {
 flex: 1; min-width: 0; display: flex; margin: 0 15px;
 overflow-x: auto; overflow-y: hidden;
-scrollbar-width: thin; scrollbar-color: rgba(128,128,128,.45) transparent;
+scrollbar-width: none; -ms-overflow-style: none;
 }
-.desktop-menu-clean::-webkit-scrollbar { height: 4px; }
-.desktop-menu-clean::-webkit-scrollbar-track { background: transparent; }
-.desktop-menu-clean::-webkit-scrollbar-thumb { background: rgba(128,128,128,.45); border-radius: 4px; }
+.desktop-menu-clean::-webkit-scrollbar { display: none; }
 .nav-menu-clean { display: flex; gap: 25px; list-style: none; margin: 0 auto; padding: 0; align-items: center; }
 .nav-item-clean { position: relative; flex-shrink: 0; }
 .nav-link-clean {
@@ -109,7 +142,48 @@ background: rgba(0, 0, 0, 0.1);
 padding-left: 25px; font-weight: 600; 
 }
 
-.desktop-icons-clean { flex: 0 0 20%; display: flex; justify-content: flex-end; align-items: center; }
+/* Header (desktop + mobile) stays pinned to the top while scrolling, below
+   Bootstrap's offcanvas/modal layers. The theme puts overflow-x:hidden on body,
+   which turns body into a scroll container and silently disables sticky —
+   clip hides the sideways overflow the same way without doing that. */
+body { overflow-x: clip !important; overflow-y: visible !important; }
+header.axil-header { position: -webkit-sticky; position: sticky; top: 0; z-index: 1020; }
+/* Wishlist: heart buttons (product cards, product page) + the count badge in the nav.
+   Clicks are handled once, in the script at the bottom of this file. */
+.custom-cart-badge[hidden]{ display: none !important; }
+.wl-heart{
+    position: absolute; right: 8px; bottom: 8px; z-index: 6;
+    width: 34px; height: 34px; padding: 0; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    background: rgba(255,255,255,.94); border: 1px solid rgba(15,23,42,.08);
+    box-shadow: 0 4px 12px rgba(15,23,42,.14); cursor: pointer;
+    transition: transform .18s ease, background .18s ease;
+}
+.wl-heart svg, .wl-btn svg{
+    width: 18px; height: 18px; fill: none; stroke: {{ themeAccent('#e11d2e') }};
+    stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; transition: fill .18s ease;
+}
+.wl-heart:hover{ transform: scale(1.1); }
+.wl-toggle.is-saved svg{ fill: {{ themeAccent('#e11d2e') }}; }
+.wl-toggle.is-busy{ opacity: .6; pointer-events: none; }
+@keyframes wlPop{ 0%{ transform: scale(1); } 40%{ transform: scale(1.3); } 100%{ transform: scale(1); } }
+.wl-toggle.wl-pop svg{ animation: wlPop .35s ease; }
+/* labelled variant used on the product page */
+.wl-btn{
+    display: inline-flex; align-items: center; gap: 8px; padding: 0; border: 0; background: none; cursor: pointer;
+    font-size: 14px; font-weight: 600; color: #0f172a;
+}
+.wl-btn:hover{ color: {{ themeAccent('#e11d2e') }}; }
+@media (max-width: 575.98px){ .wl-heart{ width: 30px; height: 30px; right: 6px; bottom: 6px; } .wl-heart svg{ width: 16px; height: 16px; } }
+
+/* Reading progress: a thin bar hanging under the sticky header, filled as the page scrolls. */
+.scroll-progress { position: absolute; left: 0; right: 0; top: 100%; height: 3px; pointer-events: none; overflow: hidden; }
+.scroll-progress span {
+    display: block; width: 100%; height: 100%;
+    background: {{ themeAccent('#e11d2e') }};
+    transform: scaleX(0); transform-origin: left center; will-change: transform;
+}
+.desktop-icons-clean { flex: 0 0 auto; min-width: 20%; display: flex; justify-content: flex-end; align-items: center; }
 .action-list-clean { display: flex; gap: 18px; list-style: none; margin: 0; padding: 0; align-items: center; }
 .action-list-clean a {
 background: transparent !important; border: none !important; box-shadow: none !important;
@@ -118,6 +192,7 @@ position: relative !important; display: flex !important; align-items: center !im
 transition: transform 0.3s ease !important;
 }
 .action-list-clean a:hover { opacity: 0.7; transform: translateY(-2px) !important; }
+.nav-ico { width: 22px; height: 22px; display: block; fill: none; stroke: #e11d2e; stroke-width: 2.3; stroke-linecap: round; stroke-linejoin: round; }
 .custom-cart-badge {
 position: absolute !important; top: -6px !important; right: -8px !important;
 background: #000 !important; color: #ffffff !important;
@@ -125,7 +200,7 @@ font-size: 11px !important; font-weight: 800 !important; width: 18px !important;
 display: flex !important; align-items: center !important; justify-content: center !important;
 border-radius: 50% !important; box-shadow: 0 2px 5px rgba(0,0,0,0.2) !important; line-height: 1 !important; z-index: 10 !important;
 }
-.desktop-search-wrapper { position: absolute; top: 100%; right: 15px; width: 320px; background: #fff; padding: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.15); border-radius: 0 0 8px 8px; z-index: 99999; display: none; border-top: 3px solid var(--brand-gradient); }
+.desktop-search-wrapper { position: absolute; top: 100%; right: 15px; width: 420px; max-width: calc(100vw - 30px); background: #fff; padding: 14px; box-shadow: 0 18px 40px rgba(0,0,0,0.16); border-radius: 0 0 14px 14px; z-index: 99999; display: none; border-top: 3px solid var(--brand-gradient); }
 .desktop-search-wrapper.active { display: block; animation: fadeIn 0.3s ease; }
 @keyframes fadeIn { from { opacity:0; transform:translateY(-10px); } to { opacity:1; transform:translateY(0); } }
 
@@ -133,7 +208,8 @@ border-radius: 50% !important; box-shadow: 0 2px 5px rgba(0,0,0,0.2) !important;
 .desktop { display: none !important; }
 .axil-mainmenu-mobile { padding: 10px 0; border-bottom: none; box-shadow: 0 2px 10px rgba(0,0,0,0.05); width: 100%; transition: all 0.3s ease; position: relative;}
 .mobile-header-navbar { display: flex; align-items: center; justify-content: space-between; padding: 0 !important; } 
-.mobile-logo img { max-height: 35px; }
+.mobile-logo img { max-height: 30px; }
+.mobile-logo .logo-tagline { font-size: 8px; letter-spacing: .16em; }
 .mobile-nav-toggler { background: transparent !important; border: none !important; font-size: 24px !important; padding: 5px !important; color: var(--brand-text) !important; box-shadow: none !important; margin: 0 !important; outline: none;}
 .mobile-icons a { background: transparent !important; border: none !important; box-shadow: none !important; color: var(--brand-text) !important; font-size: 20px; padding: 5px !important; margin: 0 !important;}
 .mobile-top-search-outside { display: none; position: absolute; top: 100%; left: 0; width: 100%; padding: 12px 15px; background: #fff; box-shadow: 0 5px 15px rgba(0,0,0,0.1); z-index: 99999; border-top: 2px solid var(--brand-gradient); }
@@ -144,38 +220,85 @@ border-radius: 50% !important; box-shadow: 0 2px 5px rgba(0,0,0,0.2) !important;
 @media (min-width: 992px) { .mobile { display: none !important; } .mobile-top-search-outside { display: none !important; } }
 
 .search-box { position: relative; width: 100%; display: block; }
-.search-box input { 
-    width: 100%; 
-    height: 42px; 
-    padding: 0 45px 0 15px;
-    border-radius: 30px; 
-    border: 1px solid #ddd; 
-    font-size: 13px; 
-    outline: none; 
-    transition: 0.3s; 
-    background: #fff;
-    color: #000;
+.search-box .ls-lead {
+    position: absolute; left: 16px; top: 50%; transform: translateY(-50%);
+    width: 18px; height: 18px; fill: none; stroke: #9ca3af; stroke-width: 2;
+    stroke-linecap: round; stroke-linejoin: round; pointer-events: none; transition: stroke .2s ease;
 }
-.search-box input:focus { border-color: #000; }
-.search-box button { 
-    position: absolute; 
-    right: 4px; 
-    top: 50%; 
-    transform: translateY(-50%); 
-    background: var(--brand-gradient); 
-    border: none; 
-    color: var(--brand-text); 
-    font-size: 13px; 
-    height: 34px; 
-    width: 34px; 
-    border-radius: 50%; 
-    display: flex; 
-    align-items: center; 
-    justify-content: center; 
-    cursor: pointer;
-    z-index: 5;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+.search-box:focus-within .ls-lead { stroke: #e11d2e; }
+.search-box input {
+    width: 100%; height: 46px; padding: 0 78px 0 44px;
+    border-radius: 30px; border: 1.5px solid #e5e7eb;
+    font-size: 14px; outline: none; background: #f9fafb; color: #111827;
+    transition: border-color .2s ease, box-shadow .2s ease, background .2s ease;
 }
+.search-box input::placeholder { color: #9ca3af; }
+.search-box input:focus { border-color: #e11d2e; background: #fff; box-shadow: 0 0 0 4px rgba(225,29,46,.10); }
+.search-box input::-webkit-search-cancel-button { display: none; }
+.search-box button[type="submit"] {
+    position: absolute; right: 5px; top: 50%; transform: translateY(-50%);
+    background: var(--brand-gradient); border: none; color: var(--brand-text);
+    font-size: 13px; height: 36px; width: 36px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; z-index: 5; box-shadow: 0 2px 6px rgba(0,0,0,.15);
+    transition: transform .2s ease;
+}
+.search-box button[type="submit"]:hover { transform: translateY(-50%) scale(1.06); }
+/* Preloader: small ring next to the submit button while a request is in flight */
+.search-box .ls-spinner {
+    position: absolute; right: 50px; top: 50%; width: 18px; height: 18px; margin-top: -9px;
+    border: 2px solid rgba(225,29,46,.2); border-top-color: #e11d2e; border-radius: 50%;
+    opacity: 0; transition: opacity .15s ease; pointer-events: none;
+}
+.search-form.ls-loading .ls-spinner { opacity: 1; animation: lsSpin .6s linear infinite; }
+@keyframes lsSpin { to { transform: rotate(360deg); } }
+
+/* Live search preview */
+.ls-results { display: none; margin-top: 10px; max-height: min(62vh, 440px); overflow-y: auto; scrollbar-width: thin; }
+.ls-results.open { display: block; }
+.ls-item {
+    display: flex; align-items: center; gap: 12px; padding: 8px; border-radius: 10px;
+    text-decoration: none !important; color: #111827 !important;
+    transition: background .15s ease; animation: lsIn .25s ease both;
+}
+.ls-item:hover, .ls-item.ls-active { background: #fef2f2; }
+@keyframes lsIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+.ls-thumb { flex: 0 0 52px; width: 52px; height: 52px; border-radius: 8px; object-fit: cover; background: #f3f4f6; border: 1px solid #f1f5f9; }
+.ls-info { flex: 1; min-width: 0; }
+.ls-name { font-size: 13.5px; font-weight: 600; line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.ls-name mark, .ls-cat mark { background: none; color: #e11d2e !important; padding: 0; font-weight: 800; }
+.ls-cat { font-size: 11.5px; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ls-price { flex: 0 0 auto; text-align: right; font-size: 13.5px; font-weight: 800; color: #e11d2e; white-space: nowrap; }
+.ls-price del { display: block; font-size: 11px; font-weight: 500; color: #9ca3af; }
+.ls-all {
+    display: block; margin-top: 6px; padding: 10px; border-top: 1px solid #f1f5f9;
+    position: sticky; bottom: 0; background: #fff;
+    text-align: center; font-size: 13px; font-weight: 700;
+    color: #e11d2e !important; text-decoration: none !important;
+}
+.ls-all:hover { text-decoration: underline !important; }
+.ls-empty { padding: 22px 10px; text-align: center; font-size: 13px; color: #6b7280; }
+.ls-empty strong { display: block; color: #111827; font-size: 14px; margin-bottom: 2px; word-break: break-word; }
+/* The header's .main-bg rule forces brand text colour on every a/span/i with
+   !important, so the preview's own colours need a more specific selector. */
+.main-bg:not(.bg_alt) .ls-results .ls-name { color: #111827 !important; }
+.main-bg:not(.bg_alt) .ls-results .ls-cat { color: #6b7280 !important; }
+.main-bg:not(.bg_alt) .ls-results .ls-price,
+.main-bg:not(.bg_alt) .ls-results .ls-all,
+.main-bg:not(.bg_alt) .ls-results .ls-all i { color: #e11d2e !important; }
+/* Skeleton rows shown while the first results load */
+.ls-skel { display: flex; align-items: center; gap: 12px; padding: 8px; }
+.ls-skel i, .ls-skel b, .ls-skel u {
+    display: block; border-radius: 6px;
+    background: linear-gradient(90deg, #f1f5f9 25%, #e5e7eb 37%, #f1f5f9 63%); background-size: 400% 100%;
+    animation: lsShimmer 1.2s ease infinite;
+}
+.ls-skel i { flex: 0 0 52px; height: 52px; border-radius: 8px; }
+.ls-skel span { flex: 1; }
+.ls-skel b { height: 11px; width: 80%; margin-bottom: 8px; }
+.ls-skel u { height: 9px; width: 45%; }
+@keyframes lsShimmer { 0% { background-position: 100% 50%; } 100% { background-position: 0 50%; } }
+@media (prefers-reduced-motion: reduce) { .ls-item, .ls-skel i, .ls-skel b, .ls-skel u { animation: none; } }
 
 /* ===========================================================
    🎨 PREMIUM MOBILE MENU — Brand New Design
@@ -731,16 +854,26 @@ body.hide-header .topbar {
 }
 </style>
 
-@if(isset($information) && $information->topbar_active == 1 && !empty($information->topbar_notice))
-<div class="topbar">
-<div class="container position-relative">
+@if(isset($information) && $information->topbar_active == 1 && !empty(trim((string) $information->topbar_notice)))
+@php
+    // Admin types either a full URL or a site path ("/products"); anything else is treated as a path.
+    $topbarLink = trim((string) ($information->topbar_link ?? ''));
+    if ($topbarLink !== '' && !preg_match('#^(https?:)?//#i', $topbarLink)) {
+        $topbarLink = url(ltrim($topbarLink, '/'));
+    }
+@endphp
+<div class="topbar" id="announcementBar" role="region" aria-label="Announcement">
+<div class="container">
+<i class="fas fa-bullhorn topbar-icon" aria-hidden="true"></i>
 <div class="topbar-notice">
 <div class="notice-track">
 <span class="notice-text">{{ $information->topbar_notice }}</span>
-<span class="notice-text">{{ $information->topbar_notice }}</span>
-<span class="notice-text">{{ $information->topbar_notice }}</span>
+<span class="notice-text" aria-hidden="true">{{ $information->topbar_notice }}</span>
 </div>
 </div>
+@if($topbarLink !== '')
+<a href="{{ $topbarLink }}" class="topbar-cta">{{ trim((string) $information->topbar_link_text) ?: 'Shop Now' }} <i class="fas fa-arrow-right"></i></a>
+@endif
 </div>
 </div>
 @endif
@@ -750,8 +883,9 @@ body.hide-header .topbar {
 <div class="container">
 <div class="header-navbar-clean">
 <div class="desktop-logo-clean">
-<a href="{{ route('front.home')}}">
+<a href="{{ route('front.home')}}" class="logo-lockup">
 <img src="{{ asset('uploads/img/'.$information->site_logo)}}" alt="Site Logo">
+<span class="logo-tagline">Importer &amp; Wholesaler</span>
 </a>
 </div>
 <div class="desktop-menu-clean">
@@ -774,17 +908,23 @@ body.hide-header .topbar {
 </div>
 <div class="desktop-icons-clean">
 <ul class="action-list-clean">
-<li><a href="javascript:void(0)" onclick="document.getElementById('desktop-search-dropdown').classList.toggle('active'); $('#desktop-search-input').focus();"><i class="fas fa-search"></i></a></li>
-<li><a href="{{ route('front.order.track') }}"><i class="fas fa-truck"></i></a></li>
-<li><a href="tel:{{ $information->owner_phone }}"><i class="fas fa-phone-alt"></i></a></li>
+<li><a href="javascript:void(0)" onclick="document.getElementById('desktop-search-dropdown').classList.toggle('active'); $('#desktop-search-input').focus();"><svg class="nav-ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6"/></svg></a></li>
+<li><a href="{{ route('front.order.track') }}"><svg class="nav-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M1.5 5.5h12v10.5h-12z"/><path d="M13.5 9h4.2l3.8 3.8V16h-8z"/><circle cx="6" cy="18" r="2"/><circle cx="17.5" cy="18" r="2"/></svg></a></li>
+<li><a href="tel:{{ $information->owner_phone }}"><svg class="nav-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8.1 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.8.7a2 2 0 0 1 1.7 2z"/></svg></a></li>
 @guest
-<li><a href="{{ route('login') }}"><i class="far fa-user"></i></a></li>
+<li><a href="{{ route('login') }}"><svg class="nav-ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21v-1a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v1"/></svg></a></li>
 @else
-<li><a href="{{ route('front.dashboard.index') }}"><i class="fas fa-user-check"></i></a></li>
+<li><a href="{{ route('front.dashboard.index') }}"><svg class="nav-ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="9.5" cy="8" r="4"/><path d="M2 21v-1a6 6 0 0 1 6-6h3a6 6 0 0 1 4.5 2"/><path d="M16 18.5l2.2 2.2 4.3-4.6"/></svg></a></li>
 @endguest
 <li>
+<a href="{{ route('front.wishlist.index') }}" title="Wishlist" aria-label="Wishlist">
+<svg class="nav-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20.5s-7.5-4.4-9.6-9.1C1 8.1 2.9 4.5 6.5 4.5c2 0 3.6 1 4.6 2.5.3.4.6.4.9 0 1-1.5 2.6-2.5 4.6-2.5 3.6 0 5.5 3.6 4.1 6.9-2.1 4.7-9.6 9.1-9.6 9.1z"/></svg>
+<span class="custom-cart-badge wl-count" @if(wishlistCount() === 0) hidden @endif>{{ wishlistCount() }}</span>
+</a>
+</li>
+<li>
 <a href="{{ route('front.carts.index')}}?segment={{request()->segment(1)}}" class="cart-dropdown-btn">
-<i class="fas fa-shopping-bag"></i>
+<svg class="nav-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7.5h14l1.2 13.5H3.8z"/><path d="M8.5 10.5V6.5a3.5 3.5 0 0 1 7 0v4"/></svg>
 <span class="custom-cart-badge cart-count">{{ getTotalCart()}}</span>
 </a>
 </li>
@@ -794,13 +934,17 @@ body.hide-header .topbar {
 <div id="desktop-search-dropdown" class="desktop-search-wrapper">
 <form action="{{ route('front.products.index') }}" class="search-form m-0">
 <div class="search-box">
-<input type="search" id="desktop-search-input" name="q" value="{{ request('q') ?? '' }}" placeholder="Search here..." autocomplete="off">
-<button type="submit"><i class="fas fa-search"></i></button>
+<svg class="ls-lead" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6"/></svg>
+<input type="search" id="desktop-search-input" name="q" value="{{ request('q') ?? '' }}" placeholder="Search by product name or SKU..." autocomplete="off" aria-label="Search products">
+<span class="ls-spinner"></span>
+<button type="submit" aria-label="Search"><i class="fas fa-search"></i></button>
 </div>
+<div class="ls-results" aria-live="polite"></div>
 </form>
 </div>
 </div>
 </div>
+<div class="scroll-progress" aria-hidden="true"><span></span></div>
 </header>
 
 <header class="mobile header axil-header">
@@ -813,14 +957,14 @@ body.hide-header .topbar {
 </button>
 </div>
 <div class="mobile-logo text-center" style="flex: 2;">
-<a href="{{ route('front.home')}}"><img src="{{ asset('uploads/img/'.$information->site_logo)}}" alt="Site Logo"></a>
+<a href="{{ route('front.home')}}" class="logo-lockup"><img src="{{ asset('uploads/img/'.$information->site_logo)}}" alt="Site Logo"><span class="logo-tagline">Importer &amp; Wholesaler</span></a>
 </div>
 <div class="mobile-icons" style="flex: 1; display: flex; justify-content: flex-end; gap: 10px; align-items:center;">
 <a href="javascript:void(0)" class="mobile-search-toggle-btn">
-<i class="fas fa-search"></i>
+<svg class="nav-ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6"/></svg>
 </a>
 <a href="{{ route('front.carts.index')}}?segment={{request()->segment(1)}}" class="cart-dropdown-btn" style="position: relative;">
-<i class="fas fa-shopping-bag"></i>
+<svg class="nav-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7.5h14l1.2 13.5H3.8z"/><path d="M8.5 10.5V6.5a3.5 3.5 0 0 1 7 0v4"/></svg>
 <span class="custom-cart-badge cart-count">{{ getTotalCart()}}</span>
 </a>
 </div>
@@ -828,13 +972,17 @@ body.hide-header .topbar {
 <div id="mobile-search-dropdown" class="mobile-top-search-outside">
 <form action="{{ route('front.products.index') }}" class="search-form m-0">
 <div class="search-box">
-<input type="search" id="mobile-search-input" name="q" value="{{ request('q') ?? '' }}" placeholder="Search for products..." autocomplete="off">
-<button type="submit"><i class="fas fa-search"></i></button>
+<svg class="ls-lead" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6"/></svg>
+<input type="search" id="mobile-search-input" name="q" value="{{ request('q') ?? '' }}" placeholder="Search by product name or SKU..." autocomplete="off" aria-label="Search products">
+<span class="ls-spinner"></span>
+<button type="submit" aria-label="Search"><i class="fas fa-search"></i></button>
 </div>
+<div class="ls-results" aria-live="polite"></div>
 </form>
 </div>
 </div>
 </div>
+<div class="scroll-progress" aria-hidden="true"><span></span></div>
 </header>
 
 {{-- ✨ PREMIUM MOBILE MENU --}}
@@ -886,6 +1034,10 @@ body.hide-header .topbar {
         <a href="{{ route('front.order.track') }}" class="pmm-quick-item">
             <div class="pmm-quick-icon"><i class="fas fa-truck"></i></div>
             <span class="pmm-quick-label">Track</span>
+        </a>
+        <a href="{{ route('front.wishlist.index') }}" class="pmm-quick-item">
+            <div class="pmm-quick-icon"><i class="far fa-heart"></i></div>
+            <span class="pmm-quick-label">Wishlist</span>
         </a>
         @auth
             <a href="{{ route('front.dashboard.index') }}" class="pmm-quick-item">
@@ -1004,6 +1156,172 @@ $(document).on('click', function(e) {
         $('#mobile-search-dropdown').removeClass('active');
     }
 });
+
+// Announcement bar: scroll the text only when it does not fit, at a steady reading speed.
+(function(){
+    var bar = document.getElementById('announcementBar');
+    if(!bar) return;
+    var box = bar.querySelector('.topbar-notice'), text = bar.querySelector('.notice-text');
+    function fit(){
+        bar.classList.remove('is-scrolling');
+        // room the text may use = the row minus icon, button and gaps
+        var row = bar.querySelector('.container'), used = 0;
+        Array.prototype.forEach.call(row.children, function(el){ if(el !== box) used += el.getBoundingClientRect().width + 14; });
+        var room = row.clientWidth - parseFloat(getComputedStyle(row).paddingLeft) - parseFloat(getComputedStyle(row).paddingRight) - used;
+        if(text.getBoundingClientRect().width > room){
+            bar.classList.add('is-scrolling');
+            bar.style.setProperty('--notice-time', Math.max(12, (text.getBoundingClientRect().width + 64) / 70) + 's');
+        }
+    }
+    fit();
+    window.addEventListener('resize', fit);
+    if(document.fonts && document.fonts.ready) document.fonts.ready.then(fit);
+})();
+
+// Wishlist hearts. Any element with .wl-toggle[data-product] saves / removes that
+// product; every heart for the same product and the nav count follow the answer.
+(function(){
+    var URL = @json(route('front.wishlist.toggle'));
+    var PAGE = @json(route('front.wishlist.index'));
+
+    document.addEventListener('click', function(e){
+        var btn = e.target.closest ? e.target.closest('.wl-toggle[data-product]') : null;
+        if(!btn) return;
+        e.preventDefault();
+        e.stopPropagation();
+        if(btn.classList.contains('is-busy')) return;
+
+        var id = btn.getAttribute('data-product');
+        var token = document.querySelector('meta[name="csrf-token"]');
+        btn.classList.add('is-busy');
+
+        $.ajax({ type: 'POST', url: URL, data: { product_id: id, _token: token ? token.getAttribute('content') : '' } })
+            .done(function(res){
+                if(!res || !res.status){ if(window.toastr) toastr.error((res && res.msg) || 'Could not update your wishlist'); return; }
+
+                document.querySelectorAll('.wl-toggle[data-product="' + id + '"]').forEach(function(el){
+                    el.classList.toggle('is-saved', !!res.saved);
+                    el.setAttribute('aria-pressed', res.saved ? 'true' : 'false');
+                    el.setAttribute('title', res.saved ? 'Remove from Wishlist' : 'Add to Wishlist');
+                    var label = el.querySelector('[data-wl-label]');
+                    if(label) label.textContent = res.saved ? 'Saved to Wishlist' : 'Add to Wishlist';
+                });
+                if(res.saved){ btn.classList.add('wl-pop'); setTimeout(function(){ btn.classList.remove('wl-pop'); }, 400); }
+
+                document.querySelectorAll('.wl-count').forEach(function(el){ el.textContent = res.count; el.hidden = !res.count; });
+
+                if(window.toastr){
+                    if(res.saved) toastr.success('<a href="' + PAGE + '" style="color:inherit;text-decoration:underline;">View wishlist</a>', res.msg, { escapeHtml: false });
+                    else toastr.info(res.msg);
+                }
+                document.dispatchEvent(new CustomEvent('wishlist:changed', { detail: { id: id, saved: !!res.saved, count: res.count } }));
+            })
+            .fail(function(x){
+                var msg = (x.responseJSON && x.responseJSON.msg) || 'Could not update your wishlist. Please try again.';
+                if(window.toastr) toastr.error(msg);
+            })
+            .always(function(){ btn.classList.remove('is-busy'); });
+    }, true);
+})();
+
+// Scroll progress bars (one per header, only one header is visible at a time).
+(function(){
+    var bars = document.querySelectorAll('.scroll-progress span');
+    if(!bars.length) return;
+    var ticking = false;
+    function draw(){
+        ticking = false;
+        var doc = document.documentElement;
+        var max = doc.scrollHeight - window.innerHeight;
+        var ratio = max > 0 ? Math.min(1, Math.max(0, window.scrollY / max)) : 0;
+        for(var i = 0; i < bars.length; i++) bars[i].style.transform = 'scaleX(' + ratio + ')';
+    }
+    function queue(){ if(!ticking){ ticking = true; window.requestAnimationFrame(draw); } }
+    window.addEventListener('scroll', queue, { passive: true });
+    window.addEventListener('resize', queue);
+    window.addEventListener('load', queue);
+    draw();
+})();
+
+// Live search preview for the header search boxes (desktop + mobile).
+(function(){
+    var ENDPOINT = @json(route('front.products.liveSearch'));
+    var LIST_URL = @json(route('front.products.index'));
+    var CURRENCY = @json(['BDT' => '৳ ', 'Dollar' => '$ '][$information->currency ?? 'BDT'] ?? '');
+    var MIN = 2;
+
+    function esc(t){ return $('<div>').text(t == null ? '' : t).html(); }
+    function money(n){ return CURRENCY + Number(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+    function highlight(name, q){
+        var i = name.toLowerCase().indexOf(q.toLowerCase());
+        if (i < 0) return esc(name);
+        return esc(name.slice(0, i)) + '<mark>' + esc(name.slice(i, i + q.length)) + '</mark>' + esc(name.slice(i + q.length));
+    }
+    function skeleton(){
+        var row = '<div class="ls-skel"><i></i><span><b></b><u></u></span></div>';
+        return row + row + row;
+    }
+
+    $('.search-form').each(function(){
+        var $form = $(this), $input = $form.find('input[name="q"]'), $box = $form.find('.ls-results');
+        var timer = null, xhr = null, lastQ = null;
+
+        function close(){ $box.removeClass('open').empty(); $form.removeClass('ls-loading'); lastQ = null; }
+
+        function render(q, res){
+            var html = '';
+            if (!res.items.length) {
+                html = '<div class="ls-empty"><strong>No results for "' + esc(q) + '"</strong>Try a different or shorter keyword.</div>';
+            } else {
+                res.items.forEach(function(p){
+                    html += '<a class="ls-item" href="' + esc(p.url) + '">'
+                         +  '<img class="ls-thumb" src="' + esc(p.image) + '" alt="" loading="lazy">'
+                         +  '<span class="ls-info"><span class="ls-name">' + highlight(p.name, q) + '</span>'
+                         +  '<span class="ls-cat">' + [p.category ? esc(p.category) : '', p.sku ? 'SKU: ' + highlight(p.sku, q) : ''].filter(Boolean).join(' &middot; ') + '</span></span>'
+                         +  '<span class="ls-price">' + money(p.price) + (p.old_price ? '<del>' + money(p.old_price) + '</del>' : '') + '</span>'
+                         +  '</a>';
+                });
+                if (res.total > res.items.length) {
+                    html += '<a class="ls-all" href="' + LIST_URL + '?q=' + encodeURIComponent(q) + '">View all ' + res.total + ' results <i class="fas fa-arrow-right"></i></a>';
+                }
+            }
+            $box.html(html).addClass('open');
+        }
+
+        function search(){
+            var q = $.trim($input.val());
+            if (q.length < MIN) { if (xhr) xhr.abort(); close(); return; }
+            if (q === lastQ) return;
+            lastQ = q;
+            if (xhr) xhr.abort();
+            $form.addClass('ls-loading');
+            if (!$box.find('.ls-item').length) $box.html(skeleton()).addClass('open');
+            xhr = $.getJSON(ENDPOINT, { q: q })
+                .done(function(res){ render(q, res); })
+                .fail(function(x, status){
+                    if (status === 'abort') return;
+                    $box.html('<div class="ls-empty">Search is unavailable right now. Press Enter to see all results.</div>').addClass('open');
+                })
+                .always(function(x, status){ if (status !== 'abort') $form.removeClass('ls-loading'); });
+        }
+
+        $input.on('input', function(){ clearTimeout(timer); timer = setTimeout(search, 280); });
+        $input.on('focus', function(){ if (!$box.hasClass('open')) search(); });
+        $input.on('keydown', function(e){
+            var $items = $box.find('.ls-item'), $cur = $items.filter('.ls-active'), idx = $items.index($cur);
+            if (e.key === 'Escape') { close(); $input.blur(); $form.closest('.desktop-search-wrapper, .mobile-top-search-outside').removeClass('active'); return; }
+            if (!$items.length) return;
+            if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+                e.preventDefault();
+                idx = e.key === 'ArrowDown' ? (idx + 1) % $items.length : (idx <= 0 ? $items.length - 1 : idx - 1);
+                $items.removeClass('ls-active').eq(idx).addClass('ls-active')[0].scrollIntoView({ block: 'nearest' });
+            } else if (e.key === 'Enter' && $cur.length) {
+                e.preventDefault();
+                window.location.href = $cur.attr('href');
+            }
+        });
+    });
+})();
 
 $(document).on('click', '.cart-dropdown-btn', function() {
 $('body').addClass('hide-header');

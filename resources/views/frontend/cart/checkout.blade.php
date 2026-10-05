@@ -3,15 +3,16 @@
 
 <style>
   :root{
-    --primary:#00276C;
-    --primary2:#033199;
+    /* the page's accent pair = the site's brand colour and a darker shade of it */
+    --primary: {{ themeAccent() }};
+    --primary2: color-mix(in srgb, var(--primary) 78%, #000);
     --bg:#f5f6fa;
     --card:#ffffff;
     --text:#0f172a;
     --muted:#64748b;
     --border:rgba(2,6,23,.10);
-    --shadow:0 18px 50px rgba(0,39,108,.12);
-    --shadow2:0 14px 30px rgba(0,39,108,.18);
+    --shadow:0 18px 50px color-mix(in srgb, var(--primary) 12%, transparent);
+    --shadow2:0 14px 30px color-mix(in srgb, var(--primary) 18%, transparent);
     --radius:18px;
   }
 
@@ -50,21 +51,21 @@
   .btn-verify:hover { transform: translateY(-2px); box-shadow: 0 12px 25px rgba(226, 19, 110, 0.4); }
 
   input[type='text'], input[type='number'], #selectCourier {
-    border: 1px solid rgba(0,39,108,.35) !important;
+    border: 1px solid color-mix(in srgb, var(--primary) 35%, transparent) !important;
     border-radius: 14px !important;
-    box-shadow: 0 6px 16px rgba(0,39,108,.06);
+    box-shadow: 0 6px 16px color-mix(in srgb, var(--primary) 6%, transparent);
     transition: box-shadow .2s ease, border-color .2s ease, transform .2s ease;
   }
   input[type='text']:focus, input[type='number']:focus, #selectCourier:focus{
-    border-color: rgba(0,39,108,.80) !important;
-    box-shadow: 0 0 0 4px rgba(0,39,108,.14), 0 10px 22px rgba(0,39,108,.12) !important;
+    border-color: color-mix(in srgb, var(--primary) 80%, transparent) !important;
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--primary) 14%, transparent), 0 10px 22px color-mix(in srgb, var(--primary) 12%, transparent) !important;
     outline: none !important; transform: translateY(-1px);
   }
   .form-group label, .hind{ font-family: 'Hind Siliguri', sans-serif; }
 
   .section-content{
-    background: radial-gradient(circle at 12% 10%, rgba(0,39,108,.06), transparent 45%),
-                radial-gradient(circle at 88% 14%, rgba(3,49,153,.06), transparent 42%),
+    background: radial-gradient(circle at 12% 10%, color-mix(in srgb, var(--primary) 6%, transparent), transparent 45%),
+                radial-gradient(circle at 88% 14%, color-mix(in srgb, var(--primary2) 6%, transparent), transparent 42%),
                 linear-gradient(180deg, #f5f6fa, #f5f6fa) !important;
   }
   aside.card, .orderDetails{
@@ -89,7 +90,7 @@
   .ship-card{
     position:relative; padding:14px 16px; border-radius:16px;
     background: linear-gradient(180deg, rgba(255,255,255,1), rgba(255,255,255,.98));
-    border: 2px solid rgba(0,39,108,.12);
+    border: 2px solid color-mix(in srgb, var(--primary) 12%, transparent);
     text-align:center;
     box-shadow: 0 10px 22px rgba(2,6,23,.06);
     transition: all .35s cubic-bezier(.4, 0, .2, 1);
@@ -116,7 +117,7 @@
     justify-content: center;
     transform: scale(0) rotate(-180deg);
     transition: transform .4s cubic-bezier(.34, 1.56, .64, 1);
-    box-shadow: 0 4px 10px rgba(0,39,108,.35);
+    box-shadow: 0 4px 10px color-mix(in srgb, var(--primary) 35%, transparent);
     opacity: 0;
   }
 
@@ -125,7 +126,7 @@
     content: "";
     position: absolute;
     inset: 0;
-    background: linear-gradient(135deg, rgba(0,39,108,.05) 0%, rgba(3,49,153,.08) 100%);
+    background: linear-gradient(135deg, color-mix(in srgb, var(--primary) 5%, transparent) 0%, color-mix(in srgb, var(--primary2) 8%, transparent) 100%);
     opacity: 0;
     transition: opacity .35s ease;
     z-index: 0;
@@ -147,14 +148,14 @@
 
   .ship-option:hover .ship-card{
     transform: translateY(-2px);
-    border-color: rgba(0,39,108,.32);
-    box-shadow: 0 14px 28px rgba(0,39,108,.10);
+    border-color: color-mix(in srgb, var(--primary) 32%, transparent);
+    box-shadow: 0 14px 28px color-mix(in srgb, var(--primary) 10%, transparent);
   }
 
   /* ✅ SELECTED STATE - 2px solid primary border + animation */
   .ship-option input[type="radio"]:checked + .ship-card{
     border: 2px solid var(--primary);
-    box-shadow: 0 0 0 4px rgba(0,39,108,.15), 0 18px 45px rgba(0,39,108,.25);
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--primary) 15%, transparent), 0 18px 45px color-mix(in srgb, var(--primary) 25%, transparent);
     transform: translateY(-3px);
     animation: selectedPop .5s cubic-bezier(.34, 1.56, .64, 1);
   }
@@ -168,7 +169,7 @@
   }
   .ship-option input[type="radio"]:checked + .ship-card .ship-amount {
     transform: scale(1.08);
-    box-shadow: 0 6px 14px rgba(0,39,108,.35);
+    box-shadow: 0 6px 14px color-mix(in srgb, var(--primary) 35%, transparent);
   }
 
   @keyframes selectedPop {
@@ -180,8 +181,8 @@
 
   /* Soft pulsing glow on selected card */
   @keyframes selectedGlow {
-    0%, 100% { box-shadow: 0 0 0 4px rgba(0,39,108,.15), 0 18px 45px rgba(0,39,108,.25); }
-    50%      { box-shadow: 0 0 0 6px rgba(0,39,108,.22), 0 22px 50px rgba(0,39,108,.32); }
+    0%, 100% { box-shadow: 0 0 0 4px color-mix(in srgb, var(--primary) 15%, transparent), 0 18px 45px color-mix(in srgb, var(--primary) 25%, transparent); }
+    50%      { box-shadow: 0 0 0 6px color-mix(in srgb, var(--primary) 22%, transparent), 0 22px 50px color-mix(in srgb, var(--primary) 32%, transparent); }
   }
   .ship-option input[type="radio"]:checked + .ship-card {
     animation: selectedPop .5s cubic-bezier(.34, 1.56, .64, 1),
@@ -190,13 +191,13 @@
 
   .payment-card-label { cursor: pointer; transition: all 0.2s; }
   .payment-card-label:hover { background-color: #f8f9fa; }
-  input[name="payment_method"]:checked + label { color: #00276C !important; }
+  input[name="payment_method"]:checked + label { color: var(--primary) !important; }
 
   #chk_btn{
     border-radius: 16px !important;
     background: linear-gradient(90deg, var(--primary) 0%, var(--primary2) 100%) !important;
     border: 1px solid rgba(255,255,255,.18) !important;
-    box-shadow: 0 18px 40px rgba(0,39,108,.28) !important;
+    box-shadow: 0 18px 40px color-mix(in srgb, var(--primary) 28%, transparent) !important;
     transition: transform .18s ease, box-shadow .18s ease !important;
   }
   #chk_btn:hover{ transform: translateY(-2px) !important; filter: brightness(1.05) !important; }
@@ -230,10 +231,10 @@
   .reco-card { flex:0 0 152px; border:1px solid #eceff3; border-radius:11px; padding:9px; background:#fcfdfe; display:flex; flex-direction:column; }
   .reco-card img { width:100%; height:96px; object-fit:contain; border-radius:7px; background:#fff; }
   .reco-name { font-size:12.5px; line-height:1.35; margin:7px 0 4px; color:#333; font-family:'Hind Siliguri',sans-serif; flex:1; }
-  .reco-price { font-size:14px; font-weight:700; color:#00276C; margin-bottom:7px; }
+  .reco-price { font-size:14px; font-weight:700; color:var(--primary); margin-bottom:7px; }
   .reco-price s { font-size:11.5px; font-weight:400; color:#9aa1ad; margin-left:4px; }
   .reco-btn { width:100%; border:none; border-radius:7px; padding:7px 4px; font-size:12.5px; font-weight:700;
-              background:#00276C; color:#fff; cursor:pointer; font-family:'Hind Siliguri',sans-serif; transition:.15s; }
+              background:var(--primary); color:#fff; cursor:pointer; font-family:'Hind Siliguri',sans-serif; transition:.15s; }
   .reco-btn:hover { filter:brightness(1.15); }
   .reco-btn:disabled { background:#16624a; cursor:default; filter:none; }
   @media (max-width:576px){ .reco-card { flex-basis:136px; } .reco-card img { height:84px; } }
@@ -242,6 +243,15 @@
     .ship-radio-wrap{ grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
     .ship-card::after { width: 20px; height: 20px; font-size: 11px; }
   }
+
+  /* Confirm button: solid accent with white text (the header's .main-bg rule would
+     otherwise paint the label in the brand colour on top of it). */
+  #chk_btn, #chk_btn *{ color: #fff !important; }
+  #chk_btn{ background: var(--primary) !important; border: 0; transition: filter .18s ease, transform .18s ease; }
+  #chk_btn:hover{ filter: brightness(.93); transform: translateY(-1px); }
+  main .text-primary, #otpModal .text-primary{ color: var(--primary) !important; }
+  .payment-card-label .form-check-input:checked{ background-color: var(--primary) !important; border-color: var(--primary) !important; }
+  .payment-card-label .form-check-input:focus{ box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 20%, transparent); border-color: var(--primary); }
 </style>
 
 @php
@@ -285,7 +295,7 @@ $isWeightBased = $globalSetting && $globalSetting->charge_type == 'weight_based'
 
                         <div class="mb-3">
                             <label class="form-label fs-2 text-dark hind">{{ $bangla_text->name_text }}</label>
-                            <input type="text" name="first_name" id="name" class="form-control rounded-3" required>
+                            <input type="text" name="first_name" id="name" class="form-control rounded-3" required placeholder="আপনার সম্পূর্ণ নাম লিখুন">
                         </div>
 
                         <div class="mb-3">
@@ -412,7 +422,7 @@ $isWeightBased = $globalSetting && $globalSetting->charge_type == 'weight_based'
                             @endif
 
                             @if(isset($info->ssl_active) && $info->ssl_active == 1)
-                            <div class="card bg-white border shadow-sm rounded-3 mb-2 payment-card-label" style="border: 1px solid #00276C !important;">
+                            <div class="card bg-white border shadow-sm rounded-3 mb-2 payment-card-label" style="border: 1px solid var(--primary) !important;">
                                 <div class="card-body d-flex align-items-center gap-3 p-3">
                                     <input type="radio" value="online" id="payment_online"
                                            {{ (!isset($info->cod_active) || $info->cod_active == 0) && (!isset($info->bkash_active) || $info->bkash_active == 0) && (!isset($info->eps_active) || $info->eps_active == 0) && (!isset($info->nagad_active) || $info->nagad_active == 0) && (!isset($info->uddoktapay_active) || $info->uddoktapay_active == 0) ? 'checked' : '' }}
@@ -503,7 +513,7 @@ $isWeightBased = $globalSetting && $globalSetting->charge_type == 'weight_based'
                                        style="height: 100%; background: transparent; font-size: 15px; flex-grow: 1;">
                                 <button type="button" id="coupon_btn" onclick="applyCoupon()"
                                         class="btn h-100"
-                                        style="padding: 0 24px; font-weight: bold; background-color: #00276C; color: white; border-radius: 6px; border: none; font-size: 14px; white-space: nowrap;">
+                                        style="padding: 0 24px; font-weight: bold; background-color: var(--primary); color: white; border-radius: 6px; border: none; font-size: 14px; white-space: nowrap;">
                                     APPLY
                                 </button>
                             </div>

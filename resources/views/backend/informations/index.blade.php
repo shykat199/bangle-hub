@@ -287,26 +287,68 @@
                             </div>
                         </div>
                         
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {{-- Announcement bar: the strip above the header on every storefront page --}}
+        <div class="accordion-item" id="announcement">
+            <h2 class="accordion-header" id="headingAnnouncement">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseAnnouncement" aria-expanded="false">
+                    <span class="header-icon"><i class="mdi mdi-bullhorn-outline"></i></span>
+                    Announcement Bar
+                    <span class="badge ms-2 {{ $information->topbar_active == 1 ? 'bg-success' : 'bg-secondary' }}">{{ $information->topbar_active == 1 ? 'ON' : 'OFF' }}</span>
+                    <i class="mdi mdi-chevron-down custom-chevron"></i>
+                </button>
+            </h2>
+            <div id="collapseAnnouncement" class="accordion-collapse collapse" aria-labelledby="headingAnnouncement" data-bs-parent="#settingsAccordion">
+                <div class="accordion-body">
+                    <div class="row g-4">
                         <div class="col-12">
-                            <div class="d-flex justify-content-between align-items-center mb-2">
-                                <label class="form-label mb-0">Topbar Announcement</label>
-                                <div class="form-check form-switch">
-                                    <input class="form-check-input" type="checkbox" role="switch" id="topbarSwitch" name="topbar_active" value="1" {{ $information->topbar_active == 1 ? 'checked' : '' }}>
-                                    <label class="form-check-label" for="topbarSwitch">Show/Hide</label>
-                                </div>
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" role="switch" id="topbarSwitch" name="topbar_active" value="1" {{ $information->topbar_active == 1 ? 'checked' : '' }}>
+                                <label class="form-check-label fw-bold" for="topbarSwitch">Show the announcement bar on the website</label>
                             </div>
-                            <textarea class="form-control" name="topbar_notice" rows="2">{{ $information->topbar_notice }}</textarea>
+                        </div>
+
+                        <div class="col-12">
+                            <label class="form-label" for="topbarNotice">Announcement text</label>
+                            <textarea class="form-control" id="topbarNotice" name="topbar_notice" rows="2" placeholder="e.g. Free delivery on orders over ৳2000 this week!">{{ $information->topbar_notice }}</textarea>
+                            <small class="text-muted">A short line is shown centred. A long line scrolls across the bar automatically.</small>
+                        </div>
+
+                        <div class="col-md-8">
+                            <label class="form-label" for="topbarLink">Link (optional)</label>
+                            <input type="text" class="form-control" id="topbarLink" name="topbar_link" maxlength="500"
+                                   value="{{ $information->topbar_link }}" placeholder="/products or https://...">
+                            <small class="text-muted">Where the button takes the customer. Leave empty for a text-only announcement.</small>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label" for="topbarLinkText">Button text</label>
+                            <input type="text" class="form-control" id="topbarLinkText" name="topbar_link_text" maxlength="60"
+                                   value="{{ $information->topbar_link_text }}" placeholder="Shop Now">
+                            <small class="text-muted">Used only when a link is set.</small>
                         </div>
 
                         <div class="col-md-6">
-                            <label class="form-label">Topbar Background Color</label>
-                            <input type="color" class="form-control form-control-color" name="topbar_bg_color"
+                            <label class="form-label">Background color</label>
+                            <input type="color" class="form-control form-control-color" id="topbarBg" name="topbar_bg_color"
                                    value="{{ $information->topbar_bg_color ?? '#000000' }}">
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label">Topbar Text Color</label>
-                            <input type="color" class="form-control form-control-color" name="topbar_text_color"
+                            <label class="form-label">Text color</label>
+                            <input type="color" class="form-control form-control-color" id="topbarFg" name="topbar_text_color"
                                    value="{{ $information->topbar_text_color ?? '#ffffff' }}">
+                        </div>
+
+                        <div class="col-12">
+                            <label class="form-label">Preview</label>
+                            <div id="topbarPreview" style="display:flex;align-items:center;justify-content:center;gap:12px;min-height:46px;padding:8px 16px;border-radius:8px;border:1px solid #e5e7eb;font-size:15px;font-weight:600;overflow:hidden;">
+                                <i class="mdi mdi-bullhorn"></i>
+                                <span id="topbarPreviewText" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"></span>
+                                <span id="topbarPreviewBtn" style="flex:0 0 auto;padding:5px 14px;border-radius:999px;font-size:13px;font-weight:700;"></span>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -1346,6 +1388,34 @@
             }
         });
     }
+
+    // Announcement bar: live preview, and open that section when linked with #announcement.
+    document.addEventListener('DOMContentLoaded', function() {
+        var text = document.getElementById('topbarNotice'), link = document.getElementById('topbarLink'),
+            label = document.getElementById('topbarLinkText'), bg = document.getElementById('topbarBg'),
+            fg = document.getElementById('topbarFg'), on = document.getElementById('topbarSwitch'),
+            box = document.getElementById('topbarPreview');
+        if (!box) return;
+
+        function paint() {
+            box.style.background = bg.value;
+            box.style.color = fg.value;
+            box.style.opacity = on.checked ? '1' : '.45';
+            document.getElementById('topbarPreviewText').textContent = text.value.trim() || 'Your announcement text';
+            var btn = document.getElementById('topbarPreviewBtn');
+            btn.style.display = link.value.trim() ? '' : 'none';
+            btn.style.background = fg.value;
+            btn.style.color = bg.value;
+            btn.textContent = label.value.trim() || 'Shop Now';
+        }
+        [text, link, label, bg, fg, on].forEach(function(el) { el.addEventListener('input', paint); el.addEventListener('change', paint); });
+        paint();
+
+        if (window.location.hash === '#announcement' && window.bootstrap) {
+            new bootstrap.Collapse(document.getElementById('collapseAnnouncement'), { toggle: true });
+            setTimeout(function() { document.getElementById('announcement').scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 350);
+        }
+    });
 
     document.addEventListener('DOMContentLoaded', function() {
         setupPreview('site_logo', 'preview_logo');

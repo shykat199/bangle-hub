@@ -297,6 +297,8 @@
         transition: left .9s var(--ease-out);
     }
     .footer-logo-link:hover::before{ left: 140%; }
+    .footer-logo-link{ flex-direction: column; gap: 5px; text-decoration: none !important; }
+    .footer-logo-tagline{ font-size: 10.5px; letter-spacing: .22em; color: var(--footer-text) !important; }
     .footer-logo-img{
         max-height: 46px; width: auto; object-fit: contain;
         filter: drop-shadow(0 4px 10px rgba(0,0,0,.30));
@@ -368,34 +370,14 @@
         z-index: 5; pointer-events: auto; cursor: pointer;
         overflow: hidden;
         isolation: isolate;
-        transition:
-            transform .3s var(--ease-out),
-            background .3s ease, border-color .3s ease,
-            color .3s ease, box-shadow .35s ease;
+        transition: background .2s ease, border-color .2s ease, color .2s ease;
     }
-    .footer-pill-link::before{
-        content:""; position:absolute; inset:0; border-radius:999px;
-        background: linear-gradient(135deg, var(--footer-grad1), var(--footer-grad2));
-        opacity: 0;
-        transition: opacity .35s ease;
-        z-index: -1;
-    }
-    .footer-pill-link::after{
-        content:""; position:absolute; top:0; left:-130%;
-        width: 60%; height: 100%;
-        background: linear-gradient(120deg, transparent, rgba(255,255,255,.45), transparent);
-        transform: skewX(-20deg);
-        transition: left .8s var(--ease-out);
-        z-index: -1;
-    }
+    /* plain hover: the pill fills with the footer accent, no gradient or shine sweep */
     .footer-pill-link:hover{
-        transform: translateY(-2px);
-        border-color: transparent !important;
-        color: var(--pill-hover-text) !important;
-        box-shadow: 0 10px 20px rgba(0,0,0,.28);
+        background: var(--footer-grad1);
+        border-color: var(--footer-grad1) !important;
+        color: #fff !important;
     }
-    .footer-pill-link:hover::before{ opacity: 1; }
-    .footer-pill-link:hover::after{ left: 130%; }
 
     .footer-legal-links{ gap: 8px 16px; }
     .footer-link-underline{
@@ -537,7 +519,7 @@
     .premium-payment-box::after{
         content:""; position: absolute; top:0; left:-130%;
         width: 60%; height: 100%;
-        background: linear-gradient(120deg, transparent, rgba(13,110,253,.20), transparent);
+        background: linear-gradient(120deg, transparent, color-mix(in srgb, var(--footer-grad1) 20%, transparent), transparent);
         transform: skewX(-20deg);
         transition: left 1s var(--ease-out);
     }
@@ -871,6 +853,7 @@
                         alt="Logo"
                         class="footer-logo-img img-fluid"
                     >
+                    <span class="logo-tagline footer-logo-tagline">Importer &amp; Wholesaler</span>
                 </a>
                 @if(!empty($info->address))
                     <div class="mt-2">

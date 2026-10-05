@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Support\Str;
 use Illuminate\Http\Request;
 use App\Models\Product;
+use App\Support\ImageOptimizer;
 use App\Models\Information;
 use App\Models\ProductStock;
 use App\Models\Category;
@@ -238,7 +239,7 @@ class ProductController extends Controller
 
         $categories = Category::where('parent_id', null)->get();
         $brands = Type::orderBy('name')->get();
-        $items = $query->latest()->paginate(30);
+        $items = $query->latest('id')->paginate(30);
 
         return view('backend.products.index', compact('items', 'q', 'categories', 'cat_id', 'brands', 'brand_id', 'product_type', 'stock_status', 'stockCounts', 'lowLimit'));
     }
@@ -439,6 +440,7 @@ class ProductController extends Controller
                     $constraint->upsize();
                 });
                 $image->save($destinationPath . $image_name);
+                ImageOptimizer::generate($destinationPath . $image_name);
                 $data['image'] = $image_name;
 
                 $destinationPathThumbnail = public_path('thumb_products/');
@@ -447,6 +449,7 @@ class ProductController extends Controller
                     $constraint->upsize();
                 });
                 $image->save($destinationPathThumbnail . $image_name);
+                ImageOptimizer::generate($destinationPathThumbnail . $image_name);
             }
 
             // Create Product
@@ -475,6 +478,7 @@ class ProductController extends Controller
                         $constraint->upsize();
                     });
                     $img->save($destinationPath . $image_name);
+                    ImageOptimizer::generate($destinationPath . $image_name);
                     $image_data[] = ['image' => $image_name, 'sort_order' => ++$nextOrder];
                 }
                 if (!empty($image_data)) {
@@ -508,6 +512,7 @@ class ProductController extends Controller
                         $ext = strtolower($vImage->getClientOriginalExtension());
                         $varImageName = 'var-' . time() . '-' . rand(1000, 9999) . '.' . $ext;
                         $vImage->move(public_path('products/'), $varImageName);
+                        ImageOptimizer::generate(public_path('products/' . $varImageName));
                     }
 
                     $var = new Variation();
@@ -768,6 +773,13 @@ class ProductController extends Controller
             $src = public_path($folder . '/' . $fileName);
             if (file_exists($src) && copy($src, public_path($folder . '/' . $newName))) {
                 $copiedFiles[] = public_path($folder . '/' . $newName);
+
+                // the copy gets the same WebP/AVIF siblings as the original
+                foreach (['.webp', '.avif'] as $suffix) {
+                    if (file_exists($src . $suffix) && copy($src . $suffix, public_path($folder . '/' . $newName) . $suffix)) {
+                        $copiedFiles[] = public_path($folder . '/' . $newName) . $suffix;
+                    }
+                }
             }
         }
 
@@ -860,6 +872,7 @@ class ProductController extends Controller
                     $constraint->upsize();
                 });
                 $image->save($destinationPath . $image_name);
+                ImageOptimizer::generate($destinationPath . $image_name);
                 $data['image'] = $image_name;
                 $newMainImage = $image_name;
 
@@ -869,6 +882,7 @@ class ProductController extends Controller
                     $constraint->upsize();
                 });
                 $image->save($destinationPathThumbnail . $image_name);
+                ImageOptimizer::generate($destinationPathThumbnail . $image_name);
             }
 
             // Update Product
@@ -899,6 +913,7 @@ class ProductController extends Controller
                         $constraint->upsize();
                     });
                     $img->save($destinationPath . $image_name);
+                    ImageOptimizer::generate($destinationPath . $image_name);
                     $image_data[] = ['image' => $image_name, 'sort_order' => ++$nextOrder];
                 }
                 if (!empty($image_data)) {
@@ -996,6 +1011,7 @@ class ProductController extends Controller
                     $ext = strtolower($vImage->getClientOriginalExtension());
                     $varImageName = 'var-' . time() . '-' . rand(1000, 9999) . '.' . $ext;
                     $vImage->move(public_path('products/'), $varImageName);
+                    ImageOptimizer::generate(public_path('products/' . $varImageName));
                 }
 
                 if ($vId) {
@@ -1086,36 +1102,88 @@ class ProductController extends Controller
 
         DB::beginTransaction();
         try {
-            $product = Product::findOrFail($id);
-            deleteImage('products', $product->image);
-            // store()/update() মূল ছবির পাশাপাশি thumb_products/-এও একটা 500px কপি রাখে।
-            // এতদিন delete-এ শুধু products/ মুছত, ফলে থাম্বনেইলগুলো অনাথ হয়ে জমতে থাকত।
-            deleteImage('thumb_products', $product->image);
-            deleteImage('products', $product->optional_image);
-
-            if ($product->images()->count()) {
-                foreach ($product->images as $image) {
-                    deleteImage('products', $image->image);
-                }
-                $product->images()->delete();
-            }
-
-            foreach ($product->variations as $dv) {
-                if ($dv->image) {
-                    deleteImage('products', $dv->image);
-                }
-                ProductStock::where('product_id', $product->id)->where('variation_id', $dv->id)->delete();
-                $dv->delete();
-            }
-
-            $product->categories()->detach();
-            $product->delete();
+            $this->deleteProduct(Product::findOrFail($id));
             DB::commit();
             return response()->json(['status' => true, 'msg' => 'Product Is Deleted !!']);
         } catch (\Exception $e) {
             DB::rollback();
             return response()->json(['status' => false, 'msg' => $e->getMessage()]);
         }
+    }
+
+    /**
+     * Delete the products ticked on the admin list in one go.
+     */
+    public function bulkDestroy(Request $request)
+    {
+        if (!auth()->user()->can('product.delete')) {
+            abort(403, 'unauthorized');
+        }
+
+        $request->validate([
+            'product_ids'   => 'required|array|min:1',
+            'product_ids.*' => 'integer',
+        ]);
+
+        $query = Product::whereIn('id', $request->product_ids);
+
+        // Same rule as the list: non-admins only ever touch their own products.
+        if (auth()->user()->hasRole('admin') == false) {
+            $query->where('user_id', auth()->user()->id);
+        }
+
+        $deleted = 0;
+        $failed = 0;
+        foreach ($query->get() as $product) {
+            DB::beginTransaction();
+            try {
+                $this->deleteProduct($product);
+                DB::commit();
+                $deleted++;
+            } catch (\Exception $e) {
+                DB::rollback();
+                $failed++;
+            }
+        }
+
+        if ($deleted === 0) {
+            return response()->json(['status' => false, 'msg' => 'No product could be deleted !!']);
+        }
+
+        $msg = $deleted . ' Product(s) Deleted !!';
+        if ($failed > 0) {
+            $msg .= ' ' . $failed . ' could not be deleted.';
+        }
+
+        return response()->json(['status' => true, 'msg' => $msg]);
+    }
+
+    /** Removes a product with its images, variations, stock rows and category links. */
+    private function deleteProduct(Product $product): void
+    {
+        deleteImage('products', $product->image);
+        // store()/update() মূল ছবির পাশাপাশি thumb_products/-এও একটা 500px কপি রাখে।
+        // এতদিন delete-এ শুধু products/ মুছত, ফলে থাম্বনেইলগুলো অনাথ হয়ে জমতে থাকত।
+        deleteImage('thumb_products', $product->image);
+        deleteImage('products', $product->optional_image);
+
+        if ($product->images()->count()) {
+            foreach ($product->images as $image) {
+                deleteImage('products', $image->image);
+            }
+            $product->images()->delete();
+        }
+
+        foreach ($product->variations as $dv) {
+            if ($dv->image) {
+                deleteImage('products', $dv->image);
+            }
+            ProductStock::where('product_id', $product->id)->where('variation_id', $dv->id)->delete();
+            $dv->delete();
+        }
+
+        $product->categories()->detach();
+        $product->delete();
     }
 
     public function deleteImage($id)

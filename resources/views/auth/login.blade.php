@@ -16,11 +16,13 @@
         :root{
             --brand-gradient: {!! $brandGradient !!};
             --brand-text: {{ $brandText }};
+            /* solid accent for buttons and links: the header gradient can be white on this theme */
+            --auth-accent: {{ themeAccent() }};
         }
 
         .auth-page {
             /* ✅ updated to match brand vibe (still soft like yours) */
-            background: radial-gradient(circle at top, rgba(13,110,253,.12) 0, rgba(0,39,108,.08) 25%, #ffffff 60%);
+            background: radial-gradient(circle at top, color-mix(in srgb, var(--auth-accent) 10%, transparent) 0, color-mix(in srgb, var(--auth-accent) 5%, transparent) 25%, #ffffff 60%);
         }
 
         .axil-checkout-area {
@@ -119,9 +121,8 @@
             font-weight: 600;
             border: none;
             font-size: 15px;
-            /* ✅ same as header button */
-            background: var(--brand-gradient);
-            color: var(--brand-text);
+            background: var(--auth-accent);
+            color: #fff;
             margin-top: 8px;
             display: inline-flex;
             justify-content: center;
@@ -132,29 +133,34 @@
 
         .auth-btn:hover {
             filter: brightness(1.06);
-            box-shadow: 0 15px 30px rgba(0,39,108,.35);
+            box-shadow: 0 12px 24px color-mix(in srgb, var(--auth-accent) 32%, transparent);
             transform: translateY(-1px);
         }
 
+        /* "New here?" — a divider, then a clear secondary button to the sign-up page */
         .auth-extra {
+            margin-top: 20px;
             text-align: center;
-            font-size: 12px;
-            margin-top: 10px;
-            color: #6b7280;
         }
-
+        .auth-extra-label {
+            display: flex; align-items: center; gap: 12px;
+            margin-bottom: 12px;
+            font-size: 13px; font-weight: 600; color: #6b7280;
+        }
+        .auth-extra-label::before,
+        .auth-extra-label::after { content: ""; flex: 1; height: 1px; background: #e5e7eb; }
         .auth-extra a {
-            /* ✅ link follows brand */
-            color: transparent;
-            background: var(--brand-gradient);
-            -webkit-background-clip: text;
-            background-clip: text;
-            font-weight: 700;
-            text-decoration: none;
+            display: flex; align-items: center; justify-content: center; gap: 8px;
+            width: 100%; padding: 11px 14px; border-radius: 999px;
+            border: 1.5px solid var(--auth-accent); background: #fff;
+            color: var(--auth-accent) !important; font-size: 15px; font-weight: 600;
+            text-decoration: none !important; transition: background .18s ease, color .18s ease;
         }
-        .auth-extra a:hover{
-            text-decoration: underline;
+        .auth-extra a:hover {
+            background: var(--auth-accent); color: #fff !important;
         }
+        .auth-extra a:hover i { color: #fff !important; }
+        .auth-extra a i { font-size: 13px; color: inherit !important; }
 
         .invalid-feedback {
             display: block;
@@ -241,8 +247,8 @@
 
                                     {{-- REGISTER LINK --}}
                                     <div class="auth-extra">
-                                        New here?
-                                        <a href="{{ url('register') }}">Create an account</a>
+                                        <div class="auth-extra-label">New here?</div>
+                                        <a href="{{ url('register') }}"><i class="fas fa-user-plus"></i> Create an account</a>
                                     </div>
 
                                 </div>
