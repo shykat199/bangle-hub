@@ -104,6 +104,9 @@
             <a class="btn btn-sm btn-outline-danger popular_update" href="{{ route('admin.popularCatgeory')}}?is_popular=0">Deactivate Popular</a>
             <a class="btn btn-sm btn-info popular_update" href="{{ route('admin.popularCatgeory')}}?is_menu=1">Activate Menu</a>
             <a class="btn btn-sm btn-outline-danger popular_update" href="{{ route('admin.popularCatgeory')}}?is_menu=0">Deactivate Menu</a>
+            @can('category.edit')
+              <a class="btn btn-sm btn-dark" href="{{ route('admin.categories.sort') }}"><i class="mdi mdi-sort"></i> Sort Categories</a>
+            @endcan
           </div>
           <form class="d-flex gap-2" method="get">
             <input type="search" class="form-control form-control-sm" name="q" placeholder="Search..." value="{{ $q??'' }}">

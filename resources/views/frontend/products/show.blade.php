@@ -665,8 +665,8 @@
     .pdx-thumb:hover{ border-color: color-mix(in srgb, var(--pd-accent) 45%, var(--pdx-line)); }
     .pdx-thumb.is-active{ border: 2px solid var(--pd-accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--pd-accent) 14%, transparent); }
     .pdx-thumb .pdx-play{ position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(17,24,39,.35); color: #fff; font-size: 18px; }
-    .pdx-thumb-out{ position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,.6); }
-    .pdx-thumb-out span{ font-size: 9px; font-weight: 800; text-transform: uppercase; color: #fff; background: #ef4444; padding: 2px 5px; border-radius: 4px; transform: rotate(-12deg); }
+    .pdx-thumb-out{ position: absolute; inset: 0; overflow: hidden; }
+    .pdx-thumb-out span{ position: absolute; top: 50%; left: -15%; right: -15%; padding: 2px 0; transform: translateY(-50%) rotate(-12deg); background: rgba(229,62,80,.84); color: #fff; text-align: center; font-size: 9px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
 
     .pdx-stage{
         position: relative; aspect-ratio: 1; overflow: hidden; border-radius: 14px; background: var(--pdx-soft);
@@ -706,8 +706,13 @@
     .pdx-stage.is-zoomed-in .pdx-nav-btn, .pdx-stage.is-zoomed-in .pdx-badges{ opacity: 0; }
     .pdx-dots{ display: none; }
 
-    .pdx-out-overlay{ position: absolute; inset: 0; z-index: 2; display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,.55); pointer-events: none; }
-    .pdx-out-overlay span{ padding: 8px 22px; border-radius: 8px; border: 3px solid #ef4444; color: #ef4444; font-size: 22px; font-weight: 900; text-transform: uppercase; letter-spacing: .06em; transform: rotate(-10deg); background: rgba(255,255,255,.85); }
+    /* out of stock: a diagonal ribbon right across the picture, same as the product cards */
+    .pdx-out-overlay{ position: absolute; inset: 0; z-index: 2; overflow: hidden; pointer-events: none; container-type: inline-size; }
+    .pdx-out-overlay span{
+        position: absolute; top: 50%; left: -12%; right: -12%; padding: .6em 0; transform: translateY(-50%) rotate(-12deg);
+        background: rgba(229,62,80,.84); color: #fff; text-align: center; white-space: nowrap; text-shadow: 0 1px 2px rgba(0,0,0,.18);
+        font-size: 22px; font-size: clamp(15px, 5.2cqw, 30px); font-weight: 800; line-height: 1.2; letter-spacing: .14em; text-transform: uppercase;
+    }
 
     /* lightbox */
     .pdx-lightbox{ position: fixed; inset: 0; z-index: 100000; display: none; background: rgba(10,12,18,.94); }
@@ -723,49 +728,50 @@
     .pdx-lb-count{ position: absolute; top: 22px; left: 20px; color: rgba(255,255,255,.8); font-size: 14px; font-weight: 600; }
 
     /* ---------- info column ---------- */
-    .pdx-chips{ display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
+    .pdx-chips{ display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
     .pdx-chip{
-        display: inline-flex; align-items: center; gap: 7px; padding: 7px 13px; border-radius: 8px;
-        border: 1px solid var(--pdx-line); background: #fff; font-size: 13.5px; font-weight: 500; color: var(--pdx-ink); text-decoration: none !important;
+        display: inline-flex; align-items: center; gap: 6px; padding: 5px 11px; border-radius: 8px;
+        border: 1px solid var(--pdx-line); background: #fff; font-size: 13px; font-weight: 500; color: var(--pdx-ink); text-decoration: none !important;
     }
-    .pdx-chip i{ color: var(--pd-accent); font-size: 14px; }
+    .pdx-chip i{ color: var(--pd-accent); font-size: 13px; }
     a.pdx-chip:hover{ border-color: var(--pd-accent); color: var(--pd-accent); }
-    .pdx-title{ margin: 0 0 10px; font-size: 32px; font-weight: 800; line-height: 1.2; letter-spacing: -.015em; color: var(--pdx-ink); }
+    .pdx-title{ margin: 0 0 8px; font-size: 24px; font-weight: 800; line-height: 1.25; letter-spacing: -.01em; color: var(--pdx-ink); }
     .pdx-meta{ display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; font-size: 15px; color: #374151; }
     .pdx-stars{ color: #f59e0b; font-size: 15px; letter-spacing: 1px; }
     .pdx-stars .far{ color: #d1d5db; }
     .pdx-meta .all-reviews-button{ color: var(--pdx-muted); text-decoration: none; font-size: 14px; }
     .pdx-meta .all-reviews-button:hover{ color: var(--pd-accent); text-decoration: underline; }
     .pdx-meta-sep{ width: 1px; height: 16px; background: #d1d5db; }
-    .pdx-short{ margin-top: 14px; font-size: 16px; line-height: 1.65; color: #374151; }
+    .pdx-short{ margin-top: 10px; font-size: 15px; line-height: 1.6; color: #374151; }
     .pdx-short p{ margin: 0 0 6px; } .pdx-short p:last-child{ margin: 0; }
 
+    /* price box: one slim strip on every screen. The price row, the small print and the
+       stock / minimum order facts share a line and wrap on their own when it gets narrow. */
     .pdx-pricebox{
-        display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 18px; align-items: center;
-        margin-top: 18px; padding: 16px 18px; border-radius: 12px; background: var(--pdx-soft); border: 1px solid var(--pdx-line);
+        display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 12px;
+        margin-top: 10px; padding: 7px 14px 8px; border-radius: 10px; background: var(--pdx-soft); border: 1px solid var(--pdx-line);
     }
-    .pdx-price{ padding-right: 18px; border-right: 1px solid #dcdfe4; }
-    .pdx-price-label{ display: block; font-size: 15px; font-weight: 600; color: var(--pdx-ink); margin-bottom: 2px; }
-    .pdx-price-row{ display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; }
-    .pdx-price-now{ font-size: 34px; font-weight: 800; line-height: 1.1; color: var(--pd-accent); white-space: nowrap; }
+    .pdx-price{ display: contents; }
+    .pdx-price-row{ display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 8px; }
+    .pdx-price-now{ font-size: 26px; font-weight: 800; line-height: 1.2; color: var(--pd-accent); white-space: nowrap; }
     .pdx-price-now.price-flash{ animation: pdxFlash .6s ease; }
     @keyframes pdxFlash{ 0%{ transform: scale(1); } 40%{ transform: scale(1.06); } 100%{ transform: scale(1); } }
-    .pdx-price-row del{ font-size: 17px; color: #9ca3af; }
-    .pdx-save{ padding: 3px 9px; border-radius: 999px; background: #dcfce7; color: #15803d; font-size: 12.5px; font-weight: 700; }
-    .pdx-price-note{ display: block; margin-top: 3px; font-size: 13.5px; color: var(--pdx-muted); }
-    .pdx-facts{ display: grid; grid-template-columns: repeat(auto-fit, minmax(118px, 1fr)); gap: 12px; }
-    .pdx-fact{ display: flex; align-items: center; gap: 10px; min-width: 0; }
-    .pdx-fact > i{ flex: 0 0 auto; width: 38px; height: 38px; border-radius: 10px; display: flex; align-items: center; justify-content: center; background: #fff; border: 1px solid var(--pdx-line); color: var(--pd-accent); font-size: 16px; }
-    .pdx-fact small{ display: block; font-size: 12px; color: var(--pdx-muted); line-height: 1.2; }
-    .pdx-fact strong{ display: block; font-size: 14.5px; font-weight: 700; color: var(--pdx-ink); line-height: 1.3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .pdx-price-row del{ font-size: 14.5px; color: #9ca3af; }
+    .pdx-save{ padding: 1px 8px; border-radius: 999px; background: #dcfce7; color: #15803d; font-size: 11.5px; font-weight: 700; }
+    .pdx-price-note{ font-size: 12.5px; line-height: 1.5; color: var(--pdx-muted); }
+    .pdx-facts{ display: flex; flex-wrap: wrap; gap: 0 14px; margin-left: auto; }
+    .pdx-fact{ min-width: 0; }
+    .pdx-fact > i{ display: none; }
+    .pdx-fact small, .pdx-fact strong{ display: inline; font-size: 12.5px; line-height: 1.5; white-space: nowrap; }
+    .pdx-fact small{ color: var(--pdx-muted); }
+    .pdx-fact small::after{ content: ": "; }
+    .pdx-fact strong{ font-weight: 700; color: var(--pdx-ink); }
     .pdx-fact strong.is-low{ color: #ea580c; }
     .pdx-fact strong.is-out{ color: #dc2626; }
 
-    .pdx-alert{ display: flex; align-items: center; gap: 10px; margin-top: 14px; padding: 11px 14px; border-radius: 10px; background: #fef2f2; color: #b91c1c; font-size: 14px; font-weight: 600; }
-
     /* variants */
-    .pdx-variants{ display: flex; flex-direction: column; gap: 16px; margin-top: 20px; }
-    .pdx-vlabel{ display: block; margin-bottom: 9px; font-size: 15px; font-weight: 700; color: var(--pdx-ink); }
+    .pdx-variants{ display: flex; flex-direction: column; gap: 12px; margin-top: 14px; }
+    .pdx-vlabel{ display: block; margin-bottom: 7px; font-size: 14.5px; font-weight: 700; color: var(--pdx-ink); }
     .pdx-vlabel .pd-variant-picked{ font-weight: 500; color: var(--pdx-muted); margin-left: 4px; }
     .pdx-opts{ display: flex; flex-wrap: wrap; gap: 9px; }
     .pdx-opt{
@@ -788,17 +794,26 @@
     .pdx-opt.is-out .pdx-opt-img{ opacity: .45; filter: grayscale(1); }
     .pdx-opt.is-out.active{ color: #9ca3af; }
 
-    /* quantity + note */
-    .pdx-qty-row{ display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 16px; align-items: end; margin-top: 20px; }
-    .pdx-qty-label{ display: block; margin-bottom: 8px; font-size: 15px; font-weight: 700; }
-    .pdx-qty{ display: inline-flex; align-items: center; height: 48px; border: 1.5px solid var(--pdx-line); border-radius: 10px; overflow: hidden; background: #fff; }
-    .pdx-qty button{ width: 46px; height: 100%; border: 0; background: var(--pdx-soft); color: var(--pdx-ink); font-size: 20px; cursor: pointer; transition: background .2s ease, color .2s ease; }
+    /* quantity + note: a bordered row with the label on the left and a stepper of
+       separate round buttons on the right; the wholesale note sits beside it */
+    .pdx-qty-row{ display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 16px; align-items: stretch; margin-top: 16px; }
+    .pdx-qty-row > div:first-child{
+        display: flex; align-items: center; justify-content: space-between; gap: 28px;
+        padding: 8px 10px 8px 16px; border: 1px solid var(--pdx-line); border-radius: 12px; background: #fff;
+    }
+    .pdx-qty-row > div:only-child{ grid-column: 1 / -1; }
+    .pdx-qty-label{ display: block; margin: 0; font-size: 15px; font-weight: 700; white-space: nowrap; }
+    .pdx-qty{ display: inline-flex; align-items: center; gap: 4px; }
+    .pdx-qty button{
+        width: 40px; height: 40px; padding: 0; border-radius: 50%; border: 1.5px solid var(--pd-accent);
+        background: #fff; color: var(--pd-accent); font-size: 20px; line-height: 1; cursor: pointer; transition: background .2s ease, color .2s ease;
+    }
     .pdx-qty button:hover{ background: var(--pd-accent); color: #fff; }
     /* the theme pads every input on its sides, which squeezed the number out of view */
     .pdx-qty input{
-        width: 76px; min-width: 76px; height: 100% !important; padding: 0 4px !important; margin: 0; border: 0 !important;
+        width: 52px; min-width: 52px; height: 40px !important; padding: 0 4px !important; margin: 0; border: 0 !important;
         box-sizing: border-box; text-align: center; font-size: 17px; font-weight: 700; line-height: 1;
-        color: var(--pdx-ink); background: #fff; box-shadow: none !important; -moz-appearance: textfield;
+        color: var(--pdx-ink); background: none; box-shadow: none !important; -moz-appearance: textfield;
     }
     .pdx-qty input::-webkit-outer-spin-button, .pdx-qty input::-webkit-inner-spin-button{ -webkit-appearance: none; margin: 0; }
     .pdx-qty input.qty-bump{ animation: pdxFlash .3s ease; }
@@ -808,7 +823,7 @@
     .pdx-qty-note strong{ display: block; color: var(--pd-accent); font-weight: 700; }
 
     /* buttons */
-    .pdx-actions{ display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-top: 20px; }
+    .pdx-actions{ display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-top: 16px; }
     .pdx-btn{
         display: inline-flex; align-items: center; justify-content: center; gap: 10px; height: 54px; padding: 0 16px;
         border-radius: 10px; border: 2px solid var(--pd-accent); font-size: 17px; font-weight: 700; cursor: pointer;
@@ -829,6 +844,18 @@
     .pdx-actions .is-span{ grid-column: 1 / -1; }
 
     .pdx .notify-me-wrap{ margin-top: 12px; }
+
+    /* delivery charge */
+    .pdx-delivery{ margin-top: 16px; padding: 12px 14px; border: 1px solid var(--pdx-line); border-radius: 12px; background: #fff; }
+    .pdx-delivery-head{ display: flex; align-items: center; gap: 8px; margin-bottom: 10px; font-size: 14.5px; font-weight: 700; color: var(--pdx-ink); }
+    .pdx-delivery-head i{ color: var(--pd-accent); }
+    .pdx-delivery-grid{ display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+    .pdx-delivery-item{ display: flex; align-items: center; gap: 10px; min-width: 0; padding: 9px 12px; border-radius: 10px; background: var(--pdx-soft); }
+    .pdx-delivery-item > i{ flex: 0 0 auto; width: 18px; text-align: center; font-size: 16px; color: var(--pd-accent); }
+    .pdx-delivery-item small{ display: block; font-size: 12.5px; line-height: 1.25; color: var(--pdx-muted); }
+    .pdx-delivery-item strong{ display: block; font-size: 15.5px; font-weight: 800; line-height: 1.3; color: var(--pdx-ink); white-space: nowrap; }
+    .pdx-delivery-item strong.is-free{ color: #15803d; }
+    .pdx-delivery-note{ margin: 8px 0 0; font-size: 12.5px; line-height: 1.4; color: var(--pdx-muted); }
 
     /* trust row */
     .pdx-trust{ display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin: 22px 0 0; padding: 16px 0; border-top: 1px solid var(--pdx-line); border-bottom: 1px solid var(--pdx-line); list-style: none; }
@@ -880,23 +907,46 @@
     /* ---------- responsive ---------- */
     @media (max-width: 1199.98px){
         .pdx-top{ gap: 24px; }
-        .pdx-title{ font-size: 27px; }
-        .pdx-pricebox{ grid-template-columns: 1fr; }
-        .pdx-price{ padding: 0 0 14px; border-right: 0; border-bottom: 1px solid #dcdfe4; }
+        .pdx-title{ font-size: 22px; }
         .pdx-trust{ grid-template-columns: repeat(2, minmax(0, 1fr)); }
     }
     @media (max-width: 991.98px){
-        .pdx-top, .pdx-bottom{ grid-template-columns: 1fr; }
+        .pdx-top, .pdx-bottom{ grid-template-columns: minmax(0, 1fr); }
         .pdx-gallery{ position: static; grid-template-columns: 1fr; }
+
+        /* One column: the buying panel is flattened so its parts can be put in a new order.
+           picture, variants (so the picture change is seen on tap), title, price,
+           Notify Me, quantity, buttons, then everything else as written. */
+        .pdx-top{ gap: 0; }
+        .pdx-info, .pdx-info > form{ display: contents; }
+        .pdx-gallery{ order: -9; }
+        .pdx-variants{ order: -8; margin-top: 16px; }
+        .pdx-title{ order: -7; margin: 18px 0 8px; font-size: 22px; }
+        .pdx-meta{ order: -6; }
+        .pdx-pricebox{ order: -5; }
+        .pdx .notify-me-wrap{ order: -3; }
+        .pdx-qty-row{ order: -2; }
+        .pdx-actions{ order: -1; }
+        .pdx-delivery{ order: -1; }
+        .pdx-chips{ margin: 20px 0 0; }
+        /* out of stock: Notify Me stands in for the quantity and the two dead buy buttons */
+        .pdx-top.is-stock-out .pdx-qty-row,
+        .pdx-top.is-stock-out .pdx-cart-btn,
+        .pdx-top.is-stock-out .pdx-order-btn{ display: none; }
         .pdx-thumbs{ order: 2; flex-direction: row; max-height: none; overflow-x: auto; overflow-y: hidden; }
         .pdx-thumb{ width: 72px; }
         .pdx-nav-btn{ opacity: 1; width: 38px; height: 38px; }
         .pdx-related-grid{ grid-template-columns: repeat(3, minmax(0, 1fr)); }
     }
+    @media (min-width: 768px) and (max-width: 991.98px){
+        .pdx-gallery{ width: 100%; max-width: 560px; justify-self: center; }
+    }
     @media (max-width: 767.98px){
         .pdx-crumbs{ font-size: 13px; padding: 12px 0 10px; }
         .pdx-crumbs li:not(:first-child):not(.is-current){ max-width: 110px; overflow: hidden; text-overflow: ellipsis; }
-        .pdx-title{ font-size: 22px; }
+        .pdx-title{ margin: 14px 0 6px; font-size: 17px; font-weight: 700; line-height: 1.35; letter-spacing: 0; }
+        .pdx-meta{ gap: 6px 10px; font-size: 13px; }
+        .pdx-stars, .pdx-meta .all-reviews-button{ font-size: 13px; }
         .pdx-meta-sep{ display: none; }
         .pdx-stage{ border-radius: 12px; }
         .pdx-nav-btn{ display: none; }
@@ -904,13 +954,39 @@
         .pdx-dots span{ width: 7px; height: 7px; border-radius: 7px; background: rgba(17,24,39,.25); transition: width .25s ease, background .25s ease; }
         .pdx-dots span.is-active{ width: 20px; background: var(--pd-accent); }
         .pdx-zoom-btn{ width: 38px; height: 38px; font-size: 15px; right: 10px; bottom: 10px; }
-        .pdx-thumb{ width: 62px; border-radius: 8px; }
-        .pdx-chips{ gap: 6px; }
+        .pdx-gallery{ gap: 10px; }
+        .pdx-thumbs{ gap: 8px; }
+        .pdx-thumb{ width: 52px; border-radius: 8px; }
+        .pdx-variants{ gap: 12px; margin-top: 12px; }
+        .pdx-vlabel{ margin-bottom: 7px; font-size: 13.5px; }
+        .pdx-opts{ gap: 8px; }
+        .pdx-opt{ min-height: 38px; padding: 5px 12px; gap: 7px; border-radius: 9px; font-size: 13.5px; }
+        .pdx-opt.has-img{ padding: 4px 11px 4px 4px; }
+        .pdx-opt-img{ width: 34px; height: 34px; }
+        .pdx-pricebox{ gap: 0 10px; padding: 6px 12px 7px; }
+        .pdx-price-note, .pdx-fact small, .pdx-fact strong{ font-size: 12px; }
+        .pdx .notify-me-wrap{ margin-top: 10px; }
+        /* quantity: a little smaller, and no sticky hover fill after a tap */
+        .pdx-qty-row{ margin-top: 12px; }
+        .pdx-qty-row > div:first-child{ gap: 12px; padding: 7px 8px 7px 14px; }
+        .pdx-qty-label{ font-size: 14px; }
+        .pdx-qty button, .pdx-qty button:hover{ width: 38px; height: 38px; background: #fff; color: var(--pd-accent); }
+        .pdx-qty button:active{ background: var(--pd-accent); color: #fff; }
+        .pdx-qty input{ width: 46px; min-width: 46px; height: 38px !important; font-size: 16px; }
+        .pdx-qty-note{ padding: 8px 12px; font-size: 12.5px; }
+        .pdx-qty-note i{ font-size: 17px; }
+        .pdx-actions{ gap: 10px; margin-top: 14px; }
+        .pdx-delivery{ margin-top: 14px; padding: 10px 12px; }
+        .pdx-delivery-head{ margin-bottom: 8px; font-size: 14px; }
+        .pdx-delivery-grid{ gap: 8px; }
+        .pdx-delivery-item{ gap: 8px; padding: 8px 10px; }
+        .pdx-delivery-item small{ font-size: 12px; }
+        .pdx-delivery-item strong{ font-size: 14.5px; }
+        .pdx-chips{ gap: 6px; margin-top: 18px; }
         .pdx-chip{ padding: 5px 10px; font-size: 12.5px; }
         .pdx-short{ font-size: 14.5px; }
-        .pdx-price-now{ font-size: 28px; }
-        .pdx-facts{ grid-template-columns: repeat(2, minmax(0, 1fr)); }
-        .pdx-qty-row{ grid-template-columns: 1fr; gap: 12px; }
+        .pdx-price-now{ font-size: 24px; }
+        .pdx-qty-row{ grid-template-columns: 1fr; gap: 10px; }
         .pdx-btn{ height: 50px; font-size: 15px; padding: 0 10px; gap: 8px; }
         .pdx-btn i{ font-size: 16px; }
         .pdx-trust strong{ font-size: 13px; } .pdx-trust small{ font-size: 11.5px; } .pdx-trust i{ font-size: 20px; }
@@ -969,7 +1045,7 @@
         </ol>
     </nav>
 
-    <div class="pdx-top">
+    <div class="pdx-top {{ $inStock ? '' : 'is-stock-out' }}" id="pdxTop">
 
         {{-- ===== GALLERY ===== --}}
         <div class="pdx-gallery" id="pdxGallery">
@@ -1066,28 +1142,19 @@
 
             <div class="pdx-pricebox" id="pdxPriceBox">
                 <div class="pdx-price">
-                    <span class="pdx-price-label">{{ $isWholesale ? 'Wholesale Price' : 'Price' }}</span>
                     <div class="pdx-price-row">
                         <span class="pdx-price-now" id="pdxPriceNow">{{ biz_format_currency($initFinal) }}</span>
                         <del id="product-old-price" style="{{ $initSavePct > 0 ? '' : 'display:none;' }}">{{ $initSavePct > 0 ? biz_format_currency($initRaw) : '' }}</del>
                         <span class="pdx-save" id="pdSaveBadge" style="{{ $initSavePct > 0 ? '' : 'display:none;' }}">{{ $fmtOff($initOff) }} {{ $currSymbol }} off</span>
                     </div>
-                    <span class="pdx-price-note">Price per piece</span>
+                    <span class="pdx-price-note">{{ $isWholesale ? 'Wholesale price per piece' : 'Price per piece' }}</span>
                 </div>
                 <div class="pdx-facts">
                     @if($isWholesale)
                         <div class="pdx-fact"><i class="fas fa-shield-alt"></i><div><small>Minimum Order</small><strong>{{ $minOrderQty }} Pcs</strong></div></div>
                     @endif
                     <div class="pdx-fact"><i class="fas fa-cubes"></i><div><small>Stock Available</small><strong id="stock-text-element" class="{{ !$inStock ? 'is-out' : ((int) $initialStock <= $lowStockLimit ? 'is-low' : '') }}">{{ $inStock ? ((int) $initialStock).' Pcs' : 'Out of stock' }}</strong></div></div>
-                    @if(!empty($singleProduct->sku))
-                        <div class="pdx-fact"><i class="fas fa-barcode"></i><div><small>SKU</small><strong title="{{ $singleProduct->sku }}">{{ $singleProduct->sku }}</strong></div></div>
-                    @endif
                 </div>
-            </div>
-
-            <div class="pdx-alert" id="pdStockOutAlert" style="{{ $inStock ? 'display:none;' : '' }}">
-                <i class="fas fa-exclamation-circle"></i>
-                <span id="pdStockOutAlertText">{{ $productOut ? 'This product is currently out of stock.' : 'This variant is currently out of stock. Please choose another option.' }}</span>
             </div>
 
             <form action="{{ route('front.carts.storeCart') }}" id="cart_submit" method="POST">
@@ -1206,6 +1273,39 @@
                     </button>
                 </div>
             </form>
+
+            {{-- Delivery charge: the same areas and amounts the checkout offers --}}
+            @php
+                $shipCharges = $charges->whereNotNull('status')->values();
+                $isFreeShip  = ($singleProduct->is_free_shipping ?? 0) == 1;
+                $zoneCount   = $shipCharges->countBy('zone');
+                $zoneLabel   = ['inside' => 'Inside Dhaka', 'outside' => 'Outside Dhaka'];
+                // weight based mode: checkout works the charge out from the parcel weight instead
+                $shipByWeight = optional($charges->first())->charge_type === 'weight_based' && (float) ($singleProduct->weight ?? 0) > 0;
+            @endphp
+            @if($shipCharges->isNotEmpty())
+                <div class="pdx-delivery">
+                    <div class="pdx-delivery-head"><i class="fas fa-truck"></i> Delivery Charge</div>
+                    <div class="pdx-delivery-grid">
+                        @foreach($shipCharges as $charge)
+                            <div class="pdx-delivery-item">
+                                <i class="fas {{ $charge->zone === 'inside' ? 'fa-map-marker-alt' : 'fa-map-marked-alt' }}"></i>
+                                <div>
+                                    <small>{{ ($zoneCount[$charge->zone] ?? 0) === 1 && isset($zoneLabel[$charge->zone]) ? $zoneLabel[$charge->zone] : $charge->title }}</small>
+                                    @if($isFreeShip)
+                                        <strong class="is-free">Free</strong>
+                                    @else
+                                        <strong>{{ biz_format_currency($charge->amount) }}</strong>
+                                    @endif
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+                    @if($shipByWeight && !$isFreeShip)
+                        <p class="pdx-delivery-note">The final charge depends on the parcel weight and is shown at checkout.</p>
+                    @endif
+                </div>
+            @endif
 
             <ul class="pdx-trust">
                 <li><i class="fas fa-shipping-fast"></i><div><strong>Direct Import</strong><small>China | India | Dubai</small></div></li>
@@ -2018,14 +2118,12 @@ window.__PRODUCT_OUT__ = @json($productOut);
   }
 
   // Selected variant out of stock → same look as a stock-out product:
-  // image badge, warning, "Out of Stock" button, everything disabled.
+  // image badge, "Out of Stock" button, everything disabled.
+  // On small screens the .is-stock-out class swaps quantity + buy buttons for Notify Me.
   function setStockState(isOut){
     $('.pdx-cart-btn, .pdx-order-btn').prop('disabled', isOut);
     $('#pdStockOutOverlay, #pdThumbStockOut').toggle(isOut);
-    $('#pdStockOutAlert').toggle(isOut);
-    $('#pdStockOutAlertText').text(window.__PRODUCT_OUT__
-      ? 'This product is currently out of stock.'
-      : 'This variant is currently out of stock. Please choose another option.');
+    $('#pdxTop').toggleClass('is-stock-out', isOut);
     $('.pdx-qty').toggleClass('is-disabled', isOut);
     if(isOut) $('.pdx-qty input[name="quantity"]').val({{ $minOrderQty }});
 

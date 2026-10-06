@@ -43,6 +43,10 @@ class CategoryController extends Controller
         }
     
         $data['url'] = $slug;
+
+        // A new category goes to the end of its own list (main categories, or its parent's subcategories).
+        $siblings = empty($data['parent_id']) ? Category::whereNull('parent_id') : Category::where('parent_id', $data['parent_id']);
+        $data['sort_order'] = (int) $siblings->max('sort_order') + 1;
         
         if($request->hasFile('image')) {
             $image = Image::make($request->file('image'));
@@ -64,6 +68,45 @@ class CategoryController extends Controller
     public function show($id)
     {
         
+    }
+
+    // Drag & drop page for the order categories appear in on the storefront menus.
+    public function sort()
+    {
+        if(!auth()->user()->can('category.edit'))
+        {
+            abort(403, 'unauthorized');
+        }
+
+        $cats = Category::whereNull('parent_id')->ordered()->with('subcats')->get();
+        return view('backend.categories.sort', compact('cats'));
+    }
+
+    // Saves one list: the main categories (no parent_id) or one category's subcategories.
+    public function saveSort(Request $request)
+    {
+        if(!auth()->user()->can('category.edit'))
+        {
+            abort(403, 'unauthorized');
+        }
+
+        $request->validate([
+            'ids'       => 'required|array|min:1',
+            'ids.*'     => 'integer',
+            'parent_id' => 'nullable|integer',
+        ]);
+
+        $parentId = $request->filled('parent_id') ? (int) $request->parent_id : null;
+
+        DB::transaction(function () use ($request, $parentId) {
+            foreach (array_values($request->ids) as $position => $id) {
+                Category::where('id', $id)
+                    ->when($parentId, fn ($q) => $q->where('parent_id', $parentId), fn ($q) => $q->whereNull('parent_id'))
+                    ->update(['sort_order' => $position + 1]);
+            }
+        });
+
+        return response()->json(['status' => true]);
     }
 
     public function edit($id)

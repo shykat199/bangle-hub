@@ -300,6 +300,11 @@
     .fa-spin          { animation: fa-spin 2s linear infinite !important; }
     .spinner-border   { animation: spinner-border .75s linear infinite !important; }
     .spinner-grow     { animation: spinner-grow .75s linear infinite !important; }
+    /* the announcement bar carries a message: its text must keep scrolling (a cheap transform-only animation) */
+    .topbar.is-scrolling .notice-track {
+        animation-duration: var(--notice-time, 30s) !important;
+        animation-iteration-count: infinite !important;
+    }
 
     /* backdrop blur re-renders on every scroll frame on fixed/sticky elements */
     *, *::before, *::after {

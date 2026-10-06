@@ -181,7 +181,7 @@ class ProductController extends Controller
         $types = Type::whereIn('id', $base()->whereNotNull('products.type_id')->distinct()->select('products.type_id'))
             ->orderBy('name')->get();
 
-        $cats = Category::whereNull('parent_id')->get();
+        $cats = Category::whereNull('parent_id')->ordered()->get();
         // On the shop page categories are a filter — an empty one would only ever give "no products".
         if (!$cat) {
             $cats = $cats->filter(fn ($c) => Product::where('status', 1)->inCategory([$c->id])->exists())->values();

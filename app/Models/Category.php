@@ -30,7 +30,13 @@ class Category extends Model
 
     public function subcats()
     {
-        return $this->hasMany(Category::class, 'parent_id')->orderBy('name');
+        return $this->hasMany(Category::class, 'parent_id')->orderBy('sort_order')->orderBy('name');
+    }
+
+    // The order set on the admin "Sort Categories" page.
+    public function scopeOrdered($query)
+    {
+        return $query->orderBy('sort_order')->orderBy('id');
     }
 
     public function subcatsRecursive()

@@ -110,16 +110,15 @@
     .axil-product.product-style-one .free-shipping-badge{ background: #16a34a !important; font-size: 11px !important; }
     .axil-product.product-style-one .free-shipping-badge i{ font-size: 10px; }
 
-    /* out of stock: soft veil and a stamp */
+    /* out of stock: a diagonal ribbon right across the picture */
     .axil-product.product-style-one .stock-out-overlay{
-        position: absolute; inset: 0; z-index: 2; display: flex; align-items: center; justify-content: center;
-        background: rgba(255,255,255,.55); pointer-events: none;
+        position: absolute; inset: 0; z-index: 2; overflow: hidden; pointer-events: none; container-type: inline-size;
     }
     .axil-product.product-style-one .stock-out-stamp{
-        padding: 4px 12px; border: 2px solid #ef4444; border-radius: 6px; background: rgba(255,255,255,.9);
-        color: #ef4444; font-size: 13px; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; transform: rotate(-8deg);
+        position: absolute; top: 50%; left: -12%; right: -12%; padding: .6em 0; transform: translateY(-50%) rotate(-12deg);
+        background: rgba(229,62,80,.84); color: #fff; text-align: center; white-space: nowrap; text-shadow: 0 1px 2px rgba(0,0,0,.18);
+        font-size: 13px; font-size: clamp(11px, 6.2cqw, 20px); font-weight: 800; line-height: 1.2; letter-spacing: .14em; text-transform: uppercase;
     }
-    .axil-product.product-style-one[data-is-out="1"] .thumbnail img.product_img{ filter: grayscale(.6) contrast(1.02); }
 
     /* text */
     .axil-product.product-style-one .product-content{
@@ -177,7 +176,6 @@
         .axil-product.product-style-one .add-to-cart-btn svg{ width: 17px; height: 17px; }
         .axil-product.product-style-one .product-badget{ font-size: 10.5px; padding: 2px 7px; }
         .axil-product.product-style-one .free-shipping-badge{ font-size: 10px; padding: 2px 6px; }
-        .axil-product.product-style-one .stock-out-stamp{ font-size: 11px; padding: 3px 8px; }
     }
     @media (prefers-reduced-motion: reduce){
         .axil-product.product-style-one, .axil-product.product-style-one *{ transition: none !important; }
@@ -310,9 +308,9 @@ document.addEventListener('DOMContentLoaded', function() {
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20.5s-7.5-4.4-9.6-9.1C1 8.1 2.9 4.5 6.5 4.5c2 0 3.6 1 4.6 2.5.3.4.6.4.9 0 1-1.5 2.6-2.5 4.6-2.5 3.6 0 5.5 3.6 4.1 6.9-2.1 4.7-9.6 9.1-9.6 9.1z"/></svg>
         </button>
 
-        {{-- Big STOCK OUT overlay across the image --}}
+        {{-- OUT OF STOCK ribbon across the image --}}
         @if($isOut)
-            <div class="stock-out-overlay" aria-label="Stock Out">
+            <div class="stock-out-overlay" aria-label="Out of Stock">
                 <span class="stock-out-stamp">Out of Stock</span>
             </div>
         @endif

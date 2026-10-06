@@ -297,8 +297,7 @@
         transition: left .9s var(--ease-out);
     }
     .footer-logo-link:hover::before{ left: 140%; }
-    .footer-logo-link{ flex-direction: column; gap: 5px; text-decoration: none !important; }
-    .footer-logo-tagline{ font-size: 10.5px; letter-spacing: .22em; color: var(--footer-text) !important; }
+    .footer-logo-link{ text-decoration: none !important; }
     .footer-logo-img{
         max-height: 46px; width: auto; object-fit: contain;
         filter: drop-shadow(0 4px 10px rgba(0,0,0,.30));
@@ -853,7 +852,6 @@
                         alt="Logo"
                         class="footer-logo-img img-fluid"
                     >
-                    <span class="logo-tagline footer-logo-tagline">Importer &amp; Wholesaler</span>
                 </a>
                 @if(!empty($info->address))
                     <div class="mt-2">

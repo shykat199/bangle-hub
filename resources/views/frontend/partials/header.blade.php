@@ -3,8 +3,12 @@ use App\Models\Information;
 use App\Models\Category;
 // Same row the admin Settings page edits (newest), so toggles like the announcement bar take effect.
 $information = Information::orderBy('id', 'desc')->first();
-// Every top-level category, for the "All Categories" menu (desktop) and the mobile menu.
-$allCategories = Category::whereNull('parent_id')->with('subcats')->get();
+// Every top-level category, for the "All Categories" menu (desktop) and the mobile menu,
+// in the order set on the admin "Sort Categories" page.
+$allCategories = Category::whereNull('parent_id')->ordered()->with('subcats')->get();
+// Nav bar categories: the ones switched on in admin "Home Category Manage", in its serial order.
+$navCategories = \App\Models\HomeCategory::with('category')->where('status', 1)->orderBy('serial')->get()
+    ->pluck('category')->filter()->unique('id')->values();
 $brandGradient = $information->gradient_code ?? 'linear-gradient(90deg,#0d6efd,#00276C)';
 $brandText     = $information->primary_color ?? '#ffffff';
 $topbarBg      = $information->topbar_bg_color ?? '#000000';
@@ -54,7 +58,8 @@ body { font-family: 'Hind Siliguri', sans-serif; }
             mask-image: linear-gradient(90deg, transparent 0, #000 28px, #000 calc(100% - 28px), transparent 100%); }
 .topbar.is-scrolling .notice-track { gap: 64px; padding-right: 64px; will-change: transform; animation: noticeScroll var(--notice-time, 30s) linear infinite; }
 .topbar.is-scrolling .notice-text + .notice-text { display: inline; }
-.topbar.is-scrolling .topbar-notice:hover .notice-track { animation-play-state: paused; }
+/* pause under a mouse only: on touch screens :hover sticks after a tap and would freeze the text */
+@media (hover: hover) { .topbar.is-scrolling .topbar-notice:hover .notice-track { animation-play-state: paused; } }
 .topbar-cta {
     flex: 0 0 auto; display: inline-flex; align-items: center; gap: 6px;
     padding: 7px 16px; border-radius: 999px; white-space: nowrap;
@@ -75,13 +80,7 @@ body { font-family: 'Hind Siliguri', sans-serif; }
     .topbar.is-scrolling .topbar-notice { overflow-x: auto; -webkit-mask-image: none; mask-image: none; }
 }
 @keyframes noticeScroll { from { transform: translateX(0); } to { transform: translateX(-50%); } }
-/* Logo with its subtitle underneath (header and footer share .logo-tagline) */
-.logo-lockup { display: inline-flex; flex-direction: column; align-items: center; gap: 3px; text-decoration: none !important; }
-.logo-tagline {
-    display: block; white-space: nowrap; line-height: 1;
-    font-size: 9.5px; font-weight: 800; letter-spacing: .2em; text-transform: uppercase;
-    color: {{ themeAccent('#1f2937') }} !important; -webkit-font-smoothing: antialiased;
-}
+.logo-lockup { display: inline-flex; flex-direction: column; align-items: center; text-decoration: none !important; }
 
 /* ===========================================================
    DESKTOP HEADER (992px+): a top row with logo, search, help, account,
@@ -172,7 +171,17 @@ body { font-family: 'Hind Siliguri', sans-serif; }
 .hx-cats-all { display: block; margin: 8px 12px 2px; padding: 9px; border-radius: 8px; text-align: center; font-weight: 700; font-size: 13.5px; background: var(--hx-soft); color: var(--hx-accent) !important; }
 .hx-cats-all i { font-size: 11px; margin-left: 4px; }
 
-.hx-links { display: flex; align-items: center; gap: 30px; list-style: none; margin: 0; padding: 0; min-width: 0; }
+/* one row that scrolls sideways when the links do not fit; the scrollbar itself is hidden */
+.hx-links {
+    display: flex; align-items: center; gap: 30px; list-style: none; margin: 0; padding: 0; flex: 1 1 auto; min-width: 0;
+    overflow-x: auto; overflow-y: hidden; scrollbar-width: none; -ms-overflow-style: none; overscroll-behavior-x: contain;
+}
+.hx-links::-webkit-scrollbar { display: none; }
+.hx-links li { flex: 0 0 auto; }
+/* a soft fade on the side that still has links to scroll to */
+.hx-links.can-right { -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 44px), transparent); mask-image: linear-gradient(to right, #000 calc(100% - 44px), transparent); }
+.hx-links.can-left { -webkit-mask-image: linear-gradient(to right, transparent, #000 44px); mask-image: linear-gradient(to right, transparent, #000 44px); }
+.hx-links.can-left.can-right { -webkit-mask-image: linear-gradient(to right, transparent, #000 44px, #000 calc(100% - 44px), transparent); mask-image: linear-gradient(to right, transparent, #000 44px, #000 calc(100% - 44px), transparent); }
 .hx-links a {
     position: relative; display: inline-flex; align-items: center; height: 58px;
     font-size: 15.5px; font-weight: 600; color: var(--hx-ink); white-space: nowrap; transition: color .2s ease;
@@ -265,7 +274,6 @@ border-radius: 50% !important; box-shadow: 0 2px 5px rgba(0,0,0,0.2) !important;
 .axil-mainmenu-mobile { padding: 10px 0; border-bottom: none; box-shadow: 0 2px 10px rgba(0,0,0,0.05); width: 100%; transition: all 0.3s ease; position: relative;}
 .mobile-header-navbar { display: flex; align-items: center; justify-content: space-between; padding: 0 !important; } 
 .mobile-logo img { max-height: 30px; }
-.mobile-logo .logo-tagline { font-size: 8px; letter-spacing: .16em; }
 .mobile-nav-toggler { background: transparent !important; border: none !important; font-size: 24px !important; padding: 5px !important; color: var(--brand-text) !important; box-shadow: none !important; margin: 0 !important; outline: none;}
 .mobile-icons a { background: transparent !important; border: none !important; box-shadow: none !important; color: var(--brand-text) !important; font-size: 20px; padding: 5px !important; margin: 0 !important;}
 /* search, track, dashboard (logged in) and cart must still fit beside the logo on small phones */
@@ -942,7 +950,6 @@ body.hide-header .topbar {
     <div class="hx-logo">
         <a href="{{ route('front.home') }}" class="logo-lockup">
             <img src="{{ asset('uploads/img/'.$information->site_logo) }}" alt="{{ $information->site_name ?: 'Site Logo' }}">
-            <span class="logo-tagline">Importer &amp; Wholesaler</span>
         </a>
     </div>
 
@@ -1029,13 +1036,13 @@ body.hide-header .topbar {
     </div>
 
     <ul class="hx-links">
-        <li><a href="{{ route('front.home') }}" class="{{ request()->routeIs('front.home') ? 'is-active' : '' }}">Home</a></li>
         <li><a href="{{ route('front.products.index') }}" class="{{ request()->routeIs('front.products.index') && !request('sort') ? 'is-active' : '' }}">Shop</a></li>
         <li><a href="{{ route('front.products.index', ['sort' => 'latest']) }}" class="{{ request('sort') === 'latest' ? 'is-active' : '' }}">New Arrivals</a></li>
         <li><a href="{{ route('front.products.index', ['sort' => 'best_selling']) }}" class="{{ request('sort') === 'best_selling' ? 'is-active' : '' }}">Best Sellers</a></li>
         <li><a href="{{ route('front.aboutUs') }}" class="{{ request()->routeIs('front.aboutUs') ? 'is-active' : '' }}">Wholesale Info</a></li>
-        <li><a href="{{ route('front.order.track') }}" class="{{ request()->routeIs('front.order.track') ? 'is-active' : '' }}">Track Order</a></li>
-        <li><a href="{{ route('front.contactUs') }}" class="{{ request()->routeIs('front.contactUs') ? 'is-active' : '' }}">Contact</a></li>
+        @foreach($navCategories as $navCat)
+            <li><a href="{{ route('front.category', [$navCat->url]) }}" class="{{ request()->routeIs('front.category') && request()->route('slug') === $navCat->url ? 'is-active' : '' }}">{{ $navCat->name }}</a></li>
+        @endforeach
     </ul>
 
     <div class="hx-badge">
@@ -1057,7 +1064,7 @@ body.hide-header .topbar {
 </button>
 </div>
 <div class="mobile-logo text-center" style="flex: 2;">
-<a href="{{ route('front.home')}}" class="logo-lockup"><img src="{{ asset('uploads/img/'.$information->site_logo)}}" alt="Site Logo"><span class="logo-tagline">Importer &amp; Wholesaler</span></a>
+<a href="{{ route('front.home')}}" class="logo-lockup"><img src="{{ asset('uploads/img/'.$information->site_logo)}}" alt="Site Logo"></a>
 </div>
 <div class="mobile-icons" style="flex: 1; display: flex; justify-content: flex-end; gap: 10px; align-items:center;">
 <a href="javascript:void(0)" class="mobile-search-toggle-btn">
@@ -1234,6 +1241,27 @@ body.hide-header .topbar {
 
 <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
 <script>
+// Nav bar links: the mouse wheel scrolls the row sideways (its scrollbar is hidden),
+// the edge fades show where more links are, and the current page's link starts in view.
+(function(){
+    var row = document.querySelector('.hx-links');
+    if(!row) return;
+    function edges(){
+        var max = row.scrollWidth - row.clientWidth;
+        row.classList.toggle('can-left', row.scrollLeft > 2);
+        row.classList.toggle('can-right', row.scrollLeft < max - 2);
+    }
+    row.addEventListener('wheel', function(e){
+        if(row.scrollWidth <= row.clientWidth || Math.abs(e.deltaX) > Math.abs(e.deltaY)) return;
+        e.preventDefault();
+        row.scrollLeft += e.deltaY;
+    }, { passive: false });
+    row.addEventListener('scroll', edges, { passive: true });
+    window.addEventListener('resize', edges);
+    var active = row.querySelector('a.is-active');
+    if(active) row.scrollLeft += active.getBoundingClientRect().left - row.getBoundingClientRect().left - (row.clientWidth - active.offsetWidth) / 2;
+    edges();
+})();
 $(function(){
 function onScroll(){
 var st = $(window).scrollTop();

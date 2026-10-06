@@ -409,6 +409,8 @@ Route::group(['prefix' => 'admin','middleware' => ['auth','staff'],'as'=>'admin.
     Route::get('/home-category/remove-cover/{id}', [CategoryController::class, 'removeHomeCover'])->name('remove_homecat_cover');
 
     Route::get('/popular-category',[CategoryController::class,'popularCatgeory'])->name('popularCatgeory');
+    Route::get('/category-sort',[CategoryController::class,'sort'])->name('categories.sort');
+    Route::post('/category-sort',[CategoryController::class,'saveSort'])->name('categories.saveSort');
     Route::resource('categories',CategoryController::class);
     Route::resource('sliders',SliderController::class);
     Route::resource('orders',OrderController::class);
