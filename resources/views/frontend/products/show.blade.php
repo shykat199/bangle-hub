@@ -553,10 +553,7 @@
     /* Order Now uses the brand colour on this page, same red as the nav. */
     :root{ --order-btn-bg: var(--pd-accent); --order-btn-text: #fff; }
     /* --- kept: share --- */
-    .pd-share{ display: flex; align-items: center; flex-wrap: wrap; gap: 12px; margin-top: 20px; }
     .pd-share-label{ font-size: 13px; font-weight: 700; color: var(--text); }
-    .pd-share-sep{ width: 1px; height: 20px; background: var(--pd-line); }
-    @media (max-width: 575.98px){ .pd-share-sep{ flex: 0 0 100%; height: 0; } }
     .pd-share-label i{ color: var(--pd-accent); margin-right: 4px; }
     .pd-share-links{ display: flex; flex-wrap: wrap; gap: 8px; }
     .pd-share-btn{
@@ -650,6 +647,18 @@
     .pdx-crumbs a:hover{ color: var(--pd-accent); }
     .pdx-crumbs li.is-current{ flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; color: var(--pdx-ink); }
 
+    /* breadcrumb row: crumbs on the left, share links on the right */
+    .pdx-head{ display: flex; align-items: center; gap: 16px; }
+    .pdx-head > nav{ flex: 1 1 auto; min-width: 0; }
+    .pdx-head-share{ position: relative; flex: 0 0 auto; display: flex; align-items: center; gap: 10px; }
+    .pdx-head-share .pd-share-links{ flex-wrap: nowrap; gap: 6px; }
+    .pdx-head-share .pd-share-btn{ width: 32px; height: 32px; font-size: 13.5px; }
+    .pdx-share-toggle{
+        display: none; align-items: center; gap: 6px; height: 30px; padding: 0 12px; border-radius: 999px;
+        border: 1px solid var(--pd-accent-ring); background: var(--pd-accent-soft); color: var(--pd-accent); font-size: 13px; font-weight: 700; line-height: 1; cursor: pointer;
+    }
+    .pdx-share-toggle i{ font-size: 12px; }
+
     .pdx-top{ display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 32px; align-items: start; }
 
     /* ---------- gallery ---------- */
@@ -729,43 +738,75 @@
 
     /* ---------- info column ---------- */
     .pdx-chips{ display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
+    /* highlighted like the header's "Wholesale Only" badge: accent tint, accent border and text */
     .pdx-chip{
-        display: inline-flex; align-items: center; gap: 6px; padding: 5px 11px; border-radius: 8px;
-        border: 1px solid var(--pdx-line); background: #fff; font-size: 13px; font-weight: 500; color: var(--pdx-ink); text-decoration: none !important;
+        display: inline-flex; align-items: center; gap: 7px; padding: 7px 14px; border-radius: 8px;
+        border: 1px solid var(--pd-accent-ring); background: var(--pd-accent-soft); font-size: 14.5px; font-weight: 700; line-height: 1.3; color: var(--pd-accent); text-decoration: none !important;
     }
-    .pdx-chip i{ color: var(--pd-accent); font-size: 13px; }
-    a.pdx-chip:hover{ border-color: var(--pd-accent); color: var(--pd-accent); }
-    .pdx-title{ margin: 0 0 8px; font-size: 24px; font-weight: 800; line-height: 1.25; letter-spacing: -.01em; color: var(--pdx-ink); }
+    .pdx-chip i{ color: var(--pd-accent); font-size: 14px; }
+    a.pdx-chip:hover{ border-color: var(--pd-accent); background: var(--pd-accent); color: #fff; }
+    a.pdx-chip:hover i{ color: #fff; }
+    .pdx-title{ margin: 0 0 8px; font-size: 20px; font-weight: 800; line-height: 1.25; letter-spacing: -.01em; color: var(--pdx-ink); }
     .pdx-meta{ display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; font-size: 15px; color: #374151; }
     .pdx-stars{ color: #f59e0b; font-size: 15px; letter-spacing: 1px; }
     .pdx-stars .far{ color: #d1d5db; }
     .pdx-meta .all-reviews-button{ color: var(--pdx-muted); text-decoration: none; font-size: 14px; }
     .pdx-meta .all-reviews-button:hover{ color: var(--pd-accent); text-decoration: underline; }
     .pdx-meta-sep{ width: 1px; height: 16px; background: #d1d5db; }
+    /* wishlist sits at the right end of the row. The wrapper is a size container: when the
+       row is too narrow for the label to fit beside the SKU, the button becomes a round heart
+       pinned to the right edge, and the rest of the row wraps beside it. */
+    .pdx-meta-wrap{ container: pdxmeta / inline-size; }
+    .pdx-meta .pdx-wl{
+        margin-left: auto; flex: 0 0 auto; gap: 6px; width: auto; height: 32px; padding: 0 12px; border-radius: 999px;
+        border: 1px solid var(--pd-accent-ring); background: var(--pd-accent-soft); color: var(--pd-accent); font-size: 13px; font-weight: 700; line-height: 1; white-space: nowrap;
+        transition: border-color .2s ease;
+    }
+    .pdx-meta .pdx-wl:hover{ border-color: var(--pd-accent); }
+    .pdx-meta .pdx-wl svg{ width: 16px; height: 16px; }
+    @container pdxmeta (max-width: 619.98px){
+        .pdx-meta{ position: relative; min-height: 32px; padding-right: 42px; }
+        .pdx-meta .pdx-wl{ position: absolute; top: 50%; right: 0; transform: translateY(-50%); width: 32px; margin: 0; padding: 0; justify-content: center; }
+        .pdx-meta .pdx-wl [data-wl-label]{ position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+    }
     .pdx-short{ margin-top: 10px; font-size: 15px; line-height: 1.6; color: #374151; }
     .pdx-short p{ margin: 0 0 6px; } .pdx-short p:last-child{ margin: 0; }
 
-    /* price box: one slim strip on every screen. The price row, the small print and the
-       stock / minimum order facts share a line and wrap on their own when it gets narrow. */
+    /* price box: the price, then pills (small print, minimum order, stock) that stretch
+       to fill the row. The script at the bottom shrinks the pills (--pb-fit) until it all
+       sits on one line; when that would make them unreadable it lets the row wrap instead. */
     .pdx-pricebox{
-        display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 12px;
-        margin-top: 10px; padding: 7px 14px 8px; border-radius: 10px; background: var(--pdx-soft); border: 1px solid var(--pdx-line);
+        --pb-base: 13px; --pb-pad: 10px; --pb-gap: 8px; --pb-fit: 1;
+        display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px calc(var(--pb-gap) * var(--pb-fit));
+        margin-top: 10px; padding: 7px 14px 9px; border-radius: 10px; background: var(--pdx-soft); border: 1px solid var(--pdx-line);
     }
     .pdx-price{ display: contents; }
-    .pdx-price-row{ display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 8px; }
+    .pdx-price-row{ flex: 0 1 auto; display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 8px; }
+    .pdx-pricebox.is-one-line{ flex-wrap: nowrap; }
+    .pdx-pricebox.is-tight{ --pb-pad: 6px; --pb-gap: 6px; }
+    .pdx-pricebox.is-tight .pdx-fact > i{ display: none; }
+    .pdx-pricebox.is-one-line .pdx-price-row{ flex: 0 0 auto; flex-wrap: nowrap; }
+    .pdx-pricebox.is-measuring .pdx-fact, .pdx-pricebox.is-measuring .pdx-price-note{ flex: 0 0 auto; }
     .pdx-price-now{ font-size: 26px; font-weight: 800; line-height: 1.2; color: var(--pd-accent); white-space: nowrap; }
     .pdx-price-now.price-flash{ animation: pdxFlash .6s ease; }
     @keyframes pdxFlash{ 0%{ transform: scale(1); } 40%{ transform: scale(1.06); } 100%{ transform: scale(1); } }
     .pdx-price-row del{ font-size: 14.5px; color: #9ca3af; }
     .pdx-save{ padding: 1px 8px; border-radius: 999px; background: #dcfce7; color: #15803d; font-size: 11.5px; font-weight: 700; }
-    .pdx-price-note{ font-size: 12.5px; line-height: 1.5; color: var(--pdx-muted); }
-    .pdx-facts{ display: flex; flex-wrap: wrap; gap: 0 14px; margin-left: auto; }
-    .pdx-fact{ min-width: 0; }
-    .pdx-fact > i{ display: none; }
-    .pdx-fact small, .pdx-fact strong{ display: inline; font-size: 12.5px; line-height: 1.5; white-space: nowrap; }
-    .pdx-fact small{ color: var(--pdx-muted); }
+    /* the small print and the facts are pills: accent tint for the price note and the
+       minimum order, and a status colour for stock (green, orange when low, red when out) */
+    .pdx-price-note, .pdx-fact{
+        flex: 1 1 auto; display: inline-flex; align-items: center; justify-content: center; gap: calc(6px * var(--pb-fit)); min-width: 0; padding: 3px calc(var(--pb-pad) * var(--pb-fit)); border-radius: 7px;
+        border: 1px solid var(--pd-accent-ring); background: #fff; font-size: calc(var(--pb-base) * var(--pb-fit)); font-weight: 700; line-height: 1.5; color: var(--pd-accent); white-space: nowrap;
+    }
+    .pdx-facts{ display: contents; }
+    .pdx-fact > i{ font-size: .92em; color: inherit; }
+    .pdx-fact small, .pdx-fact strong{ display: inline; font-size: inherit; line-height: 1.5; white-space: nowrap; }
+    .pdx-fact small{ font-weight: 600; color: #374151; }
     .pdx-fact small::after{ content: ": "; }
-    .pdx-fact strong{ font-weight: 700; color: var(--pdx-ink); }
+    .pdx-fact strong{ font-weight: 800; color: inherit; }
+    .pdx-fact.is-stock{ border-color: #bbf7d0; background: #f0fdf4; color: #15803d; }
+    .pdx-fact.is-stock:has(strong.is-low){ border-color: #fed7aa; background: #fff7ed; color: #ea580c; }
+    .pdx-fact.is-stock:has(strong.is-out){ border-color: #fecaca; background: #fef2f2; color: #dc2626; }
     .pdx-fact strong.is-low{ color: #ea580c; }
     .pdx-fact strong.is-out{ color: #dc2626; }
 
@@ -863,7 +904,6 @@
     .pdx-trust i{ flex: 0 0 auto; font-size: 24px; color: var(--pd-accent); }
     .pdx-trust strong{ display: block; font-size: 14px; font-weight: 700; line-height: 1.25; }
     .pdx-trust small{ display: block; font-size: 12.5px; color: var(--pdx-muted); line-height: 1.3; }
-    .pdx .pd-share{ margin-top: 16px; }
 
     /* ---------- bottom: tabs + related ---------- */
     .pdx-bottom{ display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 24px; align-items: start; margin-top: 40px; }
@@ -903,11 +943,18 @@
     .pdx-related-head a i{ font-size: 12px; margin-left: 3px; }
     .pdx-related-grid{ display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
     @media (max-width: 1399.98px){ .pdx-related-grid{ grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+    /* related cards: a slightly bigger price than the shared product card gives */
+    .pdx-related-grid .axil-product.product-style-one .product-price-variant span.current-price{ font-size: 18px !important; }
+    .pdx-related-grid .axil-product.product-style-one .product-price-variant span.old-price{ font-size: 13px !important; }
+    @media (max-width: 575.98px){
+        .pdx-related-grid .axil-product.product-style-one .product-price-variant span.current-price{ font-size: 16px !important; }
+        .pdx-related-grid .axil-product.product-style-one .product-price-variant span.old-price{ font-size: 12px !important; }
+    }
 
     /* ---------- responsive ---------- */
     @media (max-width: 1199.98px){
         .pdx-top{ gap: 24px; }
-        .pdx-title{ font-size: 22px; }
+        .pdx-title{ font-size: 19px; }
         .pdx-trust{ grid-template-columns: repeat(2, minmax(0, 1fr)); }
     }
     @media (max-width: 991.98px){
@@ -921,8 +968,8 @@
         .pdx-info, .pdx-info > form{ display: contents; }
         .pdx-gallery{ order: -9; }
         .pdx-variants{ order: -8; margin-top: 16px; }
-        .pdx-title{ order: -7; margin: 18px 0 8px; font-size: 22px; }
-        .pdx-meta{ order: -6; }
+        .pdx-title{ order: -7; margin: 18px 0 8px; font-size: 19px; }
+        .pdx-meta-wrap{ order: -6; }
         .pdx-pricebox{ order: -5; }
         .pdx .notify-me-wrap{ order: -3; }
         .pdx-qty-row{ order: -2; }
@@ -943,8 +990,18 @@
     }
     @media (max-width: 767.98px){
         .pdx-crumbs{ font-size: 13px; padding: 12px 0 10px; }
+        /* phones: one "Share" button; the links open in a small panel under it */
+        .pdx-head{ gap: 10px; }
+        .pdx-head-share .pd-share-label{ display: none; }
+        .pdx-share-toggle{ display: inline-flex; }
+        .pdx-head-share .pd-share-links{
+            display: none; position: absolute; top: calc(100% + 6px); right: 0; z-index: 20; padding: 8px; border-radius: 12px;
+            background: #fff; border: 1px solid var(--pdx-line); box-shadow: 0 14px 30px -12px rgba(15,23,42,.3);
+        }
+        .pdx-head-share.is-open .pd-share-links{ display: flex; }
+        .pdx-head-share .pd-share-btn{ width: 36px; height: 36px; font-size: 15px; }
         .pdx-crumbs li:not(:first-child):not(.is-current){ max-width: 110px; overflow: hidden; text-overflow: ellipsis; }
-        .pdx-title{ margin: 14px 0 6px; font-size: 17px; font-weight: 700; line-height: 1.35; letter-spacing: 0; }
+        .pdx-title{ margin: 14px 0 6px; font-size: 16px; font-weight: 700; line-height: 1.35; letter-spacing: 0; }
         .pdx-meta{ gap: 6px 10px; font-size: 13px; }
         .pdx-stars, .pdx-meta .all-reviews-button{ font-size: 13px; }
         .pdx-meta-sep{ display: none; }
@@ -963,8 +1020,10 @@
         .pdx-opt{ min-height: 38px; padding: 5px 12px; gap: 7px; border-radius: 9px; font-size: 13.5px; }
         .pdx-opt.has-img{ padding: 4px 11px 4px 4px; }
         .pdx-opt-img{ width: 34px; height: 34px; }
-        .pdx-pricebox{ gap: 0 10px; padding: 6px 12px 7px; }
-        .pdx-price-note, .pdx-fact small, .pdx-fact strong{ font-size: 12px; }
+        /* phones: no icons and slightly smaller pills, so more of them fit a row */
+        .pdx-pricebox{ --pb-base: clamp(11px, 3.2vw, 12.5px); --pb-pad: 7px; --pb-gap: 6px; padding: 6px 12px 8px; }
+        .pdx-fact > i{ display: none; }
+        .pdx-price-note, .pdx-fact{ padding-top: 2px; padding-bottom: 2px; }
         .pdx .notify-me-wrap{ margin-top: 10px; }
         /* quantity: a little smaller, and no sticky hover fill after a tap */
         .pdx-qty-row{ margin-top: 12px; }
@@ -983,7 +1042,8 @@
         .pdx-delivery-item small{ font-size: 12px; }
         .pdx-delivery-item strong{ font-size: 14.5px; }
         .pdx-chips{ gap: 6px; margin-top: 18px; }
-        .pdx-chip{ padding: 5px 10px; font-size: 12.5px; }
+        .pdx-chip{ padding: 6px 11px; font-size: 13.5px; }
+        .pdx-chip i{ font-size: 13px; }
         .pdx-short{ font-size: 14.5px; }
         .pdx-price-now{ font-size: 24px; }
         .pdx-qty-row{ grid-template-columns: 1fr; gap: 10px; }
@@ -1032,6 +1092,11 @@
 <main class="main-wrapper pdx">
 <div class="container">
 
+    @php
+        $shareUrl  = route('front.products.show', ['product' => $singleProduct->slug ?: $singleProduct->id]);
+        $shareText = $singleProduct->name;
+    @endphp
+    <div class="pdx-head">
     <nav aria-label="Breadcrumb">
         <ol class="pdx-crumbs">
             <li><a href="{{ route('front.home') }}">Home</a></li>
@@ -1044,6 +1109,26 @@
             <li class="is-current" aria-current="page" title="{{ $singleProduct->name }}">{{ $singleProduct->name }}</li>
         </ol>
     </nav>
+    {{-- Share: links sit beside the breadcrumb; on phones they fold into one "Share" button --}}
+    <div class="pdx-head-share" id="pdxShare">
+        <span class="pd-share-label"><i class="fas fa-share-alt"></i> Share</span>
+        <button type="button" class="pdx-share-toggle" aria-expanded="false" aria-controls="pdxShareLinks"><i class="fas fa-share-alt"></i> Share</button>
+        <div class="pd-share-links" id="pdxShareLinks">
+            <a class="pd-share-btn is-fb" target="_blank" rel="noopener" title="Share on Facebook" aria-label="Share on Facebook"
+               href="https://www.facebook.com/sharer/sharer.php?u={{ urlencode($shareUrl) }}"><i class="fab fa-facebook-f"></i></a>
+            <a class="pd-share-btn is-msg" target="_blank" rel="noopener" title="Share on Messenger" aria-label="Share on Messenger"
+               href="fb-messenger://share/?link={{ urlencode($shareUrl) }}"><i class="fab fa-facebook-messenger"></i></a>
+            <a class="pd-share-btn is-wa" target="_blank" rel="noopener" title="Share on WhatsApp" aria-label="Share on WhatsApp"
+               href="https://wa.me/?text={{ urlencode($shareText.' '.$shareUrl) }}"><i class="fab fa-whatsapp"></i></a>
+            <a class="pd-share-btn is-tg" target="_blank" rel="noopener" title="Share on Telegram" aria-label="Share on Telegram"
+               href="https://t.me/share/url?url={{ urlencode($shareUrl) }}&text={{ urlencode($shareText) }}"><i class="fab fa-telegram-plane"></i></a>
+            <a class="pd-share-btn is-x" target="_blank" rel="noopener" title="Share on X" aria-label="Share on X"
+               href="https://twitter.com/intent/tweet?url={{ urlencode($shareUrl) }}&text={{ urlencode($shareText) }}"><i class="fab fa-twitter"></i></a>
+            <button type="button" class="pd-share-btn is-copy" id="pdShareCopy" title="Copy link" aria-label="Copy link"
+                    data-url="{{ $shareUrl }}" data-title="{{ $shareText }}"><i class="fas fa-link"></i></button>
+        </div>
+    </div>
+    </div>
 
     <div class="pdx-top {{ $inStock ? '' : 'is-stock-out' }}" id="pdxTop">
 
@@ -1119,6 +1204,7 @@
 
             <h1 class="pdx-title">{{ $singleProduct->name }}</h1>
 
+            <div class="pdx-meta-wrap">
             <div class="pdx-meta">
                 <span class="pdx-stars" aria-label="Rated {{ number_format($averageRating, 1) }} out of 5">
                     @for($st = 1; $st <= 5; $st++)
@@ -1134,6 +1220,14 @@
                     <span class="pdx-meta-sep" aria-hidden="true"></span>
                     <span>SKU: {{ $singleProduct->sku }}</span>
                 @endif
+                {{-- Wishlist: a labelled pill at the end of the row; just the heart when the row is narrow --}}
+                <button type="button" class="wl-toggle wl-btn pdx-wl {{ inWishlist($singleProduct->id) ? 'is-saved' : '' }}"
+                        data-product="{{ $singleProduct->id }}" aria-pressed="{{ inWishlist($singleProduct->id) ? 'true' : 'false' }}"
+                        title="{{ inWishlist($singleProduct->id) ? 'Remove from Wishlist' : 'Add to Wishlist' }}">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20.5s-7.5-4.4-9.6-9.1C1 8.1 2.9 4.5 6.5 4.5c2 0 3.6 1 4.6 2.5.3.4.6.4.9 0 1-1.5 2.6-2.5 4.6-2.5 3.6 0 5.5 3.6 4.1 6.9-2.1 4.7-9.6 9.1-9.6 9.1z"/></svg>
+                    <span data-wl-label>{{ inWishlist($singleProduct->id) ? 'Saved to Wishlist' : 'Add to Wishlist' }}</span>
+                </button>
+            </div>
             </div>
 
             @if(!empty($singleProduct->short_description))
@@ -1151,9 +1245,9 @@
                 </div>
                 <div class="pdx-facts">
                     @if($isWholesale)
-                        <div class="pdx-fact"><i class="fas fa-shield-alt"></i><div><small>Minimum Order</small><strong>{{ $minOrderQty }} Pcs</strong></div></div>
+                        <div class="pdx-fact"><i class="fas fa-boxes"></i><div><small>Minimum Order</small><strong>{{ $minOrderQty }} Pcs</strong></div></div>
                     @endif
-                    <div class="pdx-fact"><i class="fas fa-cubes"></i><div><small>Stock Available</small><strong id="stock-text-element" class="{{ !$inStock ? 'is-out' : ((int) $initialStock <= $lowStockLimit ? 'is-low' : '') }}">{{ $inStock ? ((int) $initialStock).' Pcs' : 'Out of stock' }}</strong></div></div>
+                    <div class="pdx-fact is-stock"><i class="fas fa-cubes"></i><div><small>Stock Available</small><strong id="stock-text-element" class="{{ !$inStock ? 'is-out' : ((int) $initialStock <= $lowStockLimit ? 'is-low' : '') }}">{{ $inStock ? ((int) $initialStock).' Pcs' : 'Out of stock' }}</strong></div></div>
                 </div>
             </div>
 
@@ -1314,33 +1408,6 @@
                 <li><i class="fas fa-shield-alt"></i><div><strong>Genuine Quality</strong><small>Trusted Supplier</small></div></li>
             </ul>
 
-            @php
-                $shareUrl  = route('front.products.show', ['product' => $singleProduct->slug ?: $singleProduct->id]);
-                $shareText = $singleProduct->name;
-            @endphp
-            <div class="pd-share">
-                <button type="button" class="wl-toggle wl-btn {{ inWishlist($singleProduct->id) ? 'is-saved' : '' }}"
-                        data-product="{{ $singleProduct->id }}" aria-pressed="{{ inWishlist($singleProduct->id) ? 'true' : 'false' }}">
-                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20.5s-7.5-4.4-9.6-9.1C1 8.1 2.9 4.5 6.5 4.5c2 0 3.6 1 4.6 2.5.3.4.6.4.9 0 1-1.5 2.6-2.5 4.6-2.5 3.6 0 5.5 3.6 4.1 6.9-2.1 4.7-9.6 9.1-9.6 9.1z"/></svg>
-                    <span data-wl-label>{{ inWishlist($singleProduct->id) ? 'Saved to Wishlist' : 'Add to Wishlist' }}</span>
-                </button>
-                <span class="pd-share-sep"></span>
-                <span class="pd-share-label"><i class="fas fa-share-alt"></i> Share</span>
-                <div class="pd-share-links">
-                    <a class="pd-share-btn is-fb" target="_blank" rel="noopener" title="Share on Facebook" aria-label="Share on Facebook"
-                       href="https://www.facebook.com/sharer/sharer.php?u={{ urlencode($shareUrl) }}"><i class="fab fa-facebook-f"></i></a>
-                    <a class="pd-share-btn is-msg" target="_blank" rel="noopener" title="Share on Messenger" aria-label="Share on Messenger"
-                       href="fb-messenger://share/?link={{ urlencode($shareUrl) }}"><i class="fab fa-facebook-messenger"></i></a>
-                    <a class="pd-share-btn is-wa" target="_blank" rel="noopener" title="Share on WhatsApp" aria-label="Share on WhatsApp"
-                       href="https://wa.me/?text={{ urlencode($shareText.' '.$shareUrl) }}"><i class="fab fa-whatsapp"></i></a>
-                    <a class="pd-share-btn is-tg" target="_blank" rel="noopener" title="Share on Telegram" aria-label="Share on Telegram"
-                       href="https://t.me/share/url?url={{ urlencode($shareUrl) }}&text={{ urlencode($shareText) }}"><i class="fab fa-telegram-plane"></i></a>
-                    <a class="pd-share-btn is-x" target="_blank" rel="noopener" title="Share on X" aria-label="Share on X"
-                       href="https://twitter.com/intent/tweet?url={{ urlencode($shareUrl) }}&text={{ urlencode($shareText) }}"><i class="fab fa-twitter"></i></a>
-                    <button type="button" class="pd-share-btn is-copy" id="pdShareCopy" title="Copy link" aria-label="Copy link"
-                            data-url="{{ $shareUrl }}" data-title="{{ $shareText }}"><i class="fas fa-link"></i></button>
-                </div>
-            </div>
         </div>
     </div>
 
@@ -2446,6 +2513,20 @@ window.__PRODUCT_OUT__ = @json($productOut);
   window.pdxGallery = { showFirstImage: function(){ show(firstImage); } };
 })();
 
+// Share on phones: the "Share" button beside the breadcrumb opens / closes the links panel.
+(function(){
+  const wrap = document.getElementById('pdxShare');
+  if(!wrap) return;
+  const toggle = wrap.querySelector('.pdx-share-toggle');
+  function setOpen(open){
+    wrap.classList.toggle('is-open', open);
+    toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+  }
+  toggle.addEventListener('click', function(){ setOpen(!wrap.classList.contains('is-open')); });
+  document.addEventListener('click', function(e){ if(!wrap.contains(e.target)) setOpen(false); });
+  document.addEventListener('keydown', function(e){ if(e.key === 'Escape') setOpen(false); });
+})();
+
 // Share row: "copy link" button (falls back to a hidden textarea on older browsers / http).
 (function(){
   const btn = document.getElementById('pdShareCopy');
@@ -2471,6 +2552,78 @@ window.__PRODUCT_OUT__ = @json($productOut);
     document.body.removeChild(ta);
     done(ok);
   });
+})();
+
+// Price box on one line. The pills are measured at full size; if the price and the pills
+// do not fit the row, the pills first lose their icons and some padding (is-tight) and are
+// then scaled down (--pb-fit) just enough to fit. Below 10px text they would be unreadable,
+// so then the row is left to wrap at full size instead.
+// Runs again when the box is resized or a variant changes the price / stock text.
+(function(){
+  const box = document.getElementById('pdxPriceBox');
+  if(!box) return;
+  const MIN_PX = 10;
+  let lastKey = '';
+
+  function need(){
+    const items = box.querySelectorAll('.pdx-price-row, .pdx-price-note, .pdx-fact');
+    const cs = getComputedStyle(box);
+    let fixed = 0, pills = 0, n = 0;
+    items.forEach(function(el){
+      const w = el.getBoundingClientRect().width;
+      if(!w) return;
+      n++;
+      if(el.classList.contains('pdx-price-row')) fixed += w; else pills += w;
+    });
+    return {
+      fixed: fixed,
+      pills: pills + Math.max(0, n - 1) * (parseFloat(cs.columnGap) || 0),
+      room: box.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight),
+      base: parseFloat(getComputedStyle(box.querySelector('.pdx-price-note') || box).fontSize) || 13
+    };
+  }
+
+  function fit(){
+    box.style.setProperty('--pb-fit', 1);
+    box.classList.remove('is-tight');
+    box.classList.add('is-one-line', 'is-measuring');
+    let m = need(), scale = 1;
+    if(m.fixed + m.pills > m.room + .5){ box.classList.add('is-tight'); m = need(); }
+    const floor = MIN_PX / m.base;
+    // the pills (text, padding and gaps) scale together; the price keeps its size
+    for(let i = 0; i < 4 && m.fixed + m.pills > m.room + .5; i++){
+      scale = Math.floor(scale * (m.room - m.fixed) / m.pills * 100) / 100 - (i ? .01 : 0);
+      if(scale < floor) break;
+      box.style.setProperty('--pb-fit', scale);
+      m = need();
+    }
+    const ok = scale >= floor && m.fixed + m.pills <= m.room + .5;
+    box.classList.remove('is-measuring');
+    box.classList.toggle('is-one-line', ok);
+    if(!ok){ box.classList.remove('is-tight'); box.style.setProperty('--pb-fit', 1); }
+  }
+
+  let queued = false;
+  function refit(){
+    if(queued) return;
+    queued = true;
+    requestAnimationFrame(function(){ queued = false; lastKey = box.clientWidth + '|' + box.textContent; fit(); });
+  }
+
+  fit();
+  if(document.fonts && document.fonts.ready) document.fonts.ready.then(refit);
+  window.addEventListener('load', refit);
+  if(window.ResizeObserver){
+    new ResizeObserver(function(){ if(box.clientWidth + '|' + box.textContent !== lastKey) refit(); }).observe(box);
+  } else {
+    window.addEventListener('resize', refit);
+  }
+  if(window.MutationObserver){
+    // our own writes land on the box itself, so only changes inside it count
+    new MutationObserver(function(list){
+      if(list.some(function(x){ return x.target !== box; })) refit();
+    }).observe(box, { subtree: true, childList: true, characterData: true, attributes: true, attributeFilter: ['style'] });
+  }
 })();
 
 // Sticky buy bar (small screens). It owns no cart logic: its buttons press the real
