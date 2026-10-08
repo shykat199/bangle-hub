@@ -38,7 +38,7 @@
     // "New" badge for products added in the last 30 days (when there is no discount to show)
     $isNew = $product->created_at && $product->created_at->gt(now()->subDays(30));
     $minQty = method_exists($product, 'minOrderQty') ? (int) $product->minOrderQty() : 1;
-    $cartIcon = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 4h2.2l2.2 10.5a1.6 1.6 0 0 0 1.6 1.3h8.2a1.6 1.6 0 0 0 1.6-1.2L20.5 8H6.2"/><circle cx="9.5" cy="19.5" r="1.4"/><circle cx="17" cy="19.5" r="1.4"/></svg>';
+    $cartIcon = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2.5 3.5h2.3l2.3 11.6a1.7 1.7 0 0 0 1.7 1.4h8.4a1.7 1.7 0 0 0 1.6-1.3L21 7H5.5"/><circle cx="9.3" cy="20.4" r="1.3"/><circle cx="17" cy="20.4" r="1.3"/><path d="M13.1 9.75v4M11.1 11.75h4" stroke-width="1.6"/></svg>';
 @endphp
 
 @once

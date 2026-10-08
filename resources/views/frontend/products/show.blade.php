@@ -1333,7 +1333,7 @@
                 <template id="orderNowLabel">@if(($singleProduct->is_free_shipping ?? 0) == 1)<i class="fas fa-shipping-fast"></i> {{ $bangla_text->fshipping_text ?? 'Free Shipping' }}@else<i class="fas fa-bolt"></i> {{ $dt->order_now_text ?? 'Order Now' }}@endif</template>
                 <div class="pdx-actions">
                     <button type="submit" class="pdx-btn is-outline pdx-cart-btn" {{ $inStock ? '' : 'disabled' }}>
-                        <i class="fas fa-shopping-cart"></i> <span>Add to Cart</span>
+                        <i class="fas fa-cart-plus"></i> <span>Add to Cart</span>
                     </button>
                     <button type="submit" class="pdx-btn is-solid pdx-order-btn" {{ $inStock ? '' : 'disabled' }}>
                         @if(!$inStock)
@@ -1585,7 +1585,7 @@
     </div>
     <div class="pd-buy-bar__actions">
         <button type="button" class="pd-buy-bar__btn is-cart" id="pdBarCart" aria-label="Add to Cart">
-            <i class="fas fa-shopping-cart"></i> <span>Add to Cart</span>
+            <i class="fas fa-cart-plus"></i> <span>Add to Cart</span>
         </button>
         <button type="button" class="pd-buy-bar__btn is-buy" id="pdBarBuy"><i class="fas fa-shopping-bag"></i> Buy Now</button>
     </div>
