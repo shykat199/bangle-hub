@@ -110,6 +110,22 @@
     .axil-product.product-style-one .free-shipping-badge{ background: #16a34a !important; font-size: 11px !important; }
     .axil-product.product-style-one .free-shipping-badge i{ font-size: 10px; }
 
+    /* badge shine: a light streak sweeps across every badge while the card is hovered
+       (the "Out of Stock" ribbon is not a badge, so it stays still) */
+    .axil-product.product-style-one .label-block > *{ position: relative; overflow: hidden; }
+    .axil-product.product-style-one .label-block > *::after{
+        content: ""; position: absolute; top: 0; bottom: 0; left: 0; width: 55%; pointer-events: none;
+        background: linear-gradient(100deg, transparent 0%, rgba(255,255,255,.75) 50%, transparent 100%);
+        transform: translateX(-130%) skewX(-20deg);
+    }
+    @media (hover: hover){
+        .axil-product.product-style-one:hover .label-block > *::after{ animation: pcBadgeShine 1.5s ease-in-out infinite; }
+    }
+    @keyframes pcBadgeShine{
+        0%{ transform: translateX(-130%) skewX(-20deg); }
+        60%, 100%{ transform: translateX(320%) skewX(-20deg); }
+    }
+
     /* out of stock: a diagonal ribbon right across the picture */
     .axil-product.product-style-one .stock-out-overlay{
         position: absolute; inset: 0; z-index: 2; overflow: hidden; pointer-events: none; container-type: inline-size;
@@ -179,6 +195,7 @@
     }
     @media (prefers-reduced-motion: reduce){
         .axil-product.product-style-one, .axil-product.product-style-one *{ transition: none !important; }
+        .axil-product.product-style-one .label-block > *::after{ animation: none !important; }
     }
 </style>
 
