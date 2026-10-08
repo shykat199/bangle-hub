@@ -1039,7 +1039,10 @@ body.hide-header .topbar {
     </div>
 
     <ul class="hx-links">
-        <li><a href="{{ route('front.products.index') }}" class="{{ request()->routeIs('front.products.index') ? 'is-active' : '' }}">Shop</a></li>
+        <li><a href="{{ route('front.products.index') }}" class="{{ request()->routeIs('front.products.index') && !in_array(request('sort'), ['latest', 'best_selling'], true) ? 'is-active' : '' }}">Shop</a></li>
+        <li><a href="{{ route('front.products.index', ['sort' => 'latest']) }}" class="{{ request('sort') === 'latest' ? 'is-active' : '' }}">New Arrivals</a></li>
+        {{-- ordered by units actually sold (order_details), see ProductController::applySort --}}
+        <li><a href="{{ route('front.products.index', ['sort' => 'best_selling']) }}" class="{{ request('sort') === 'best_selling' ? 'is-active' : '' }}">Best Selling</a></li>
         @foreach($navCategories as $navCat)
             <li><a href="{{ route('front.category', [$navCat->url]) }}" class="{{ request()->routeIs('front.category') && request()->route('slug') === $navCat->url ? 'is-active' : '' }}">{{ $navCat->name }}</a></li>
         @endforeach
