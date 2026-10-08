@@ -156,10 +156,10 @@
     .axil-product.product-style-one .price-wrap{ display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 6px; min-width: 0; }
     /* the theme styles span.price with stronger selectors, hence !important */
     .axil-product.product-style-one .product-price-variant span.current-price{
-        margin: 0 !important; font-size: 16px !important; font-weight: 800 !important; line-height: 1.2 !important; color: var(--pc-accent) !important; white-space: nowrap;
+        margin: 0 !important; font-size: 21px !important; font-weight: 800 !important; line-height: 1.2 !important; color: var(--pc-accent) !important; white-space: nowrap;
     }
     .axil-product.product-style-one .product-price-variant span.old-price{
-        margin: 0 !important; font-size: 12px !important; font-weight: 500 !important; color: #9ca3af !important; text-decoration: line-through; white-space: nowrap;
+        margin: 0 !important; font-size: 14.5px !important; font-weight: 500 !important; color: #9ca3af !important; text-decoration: line-through; white-space: nowrap;
     }
     .axil-product.product-style-one[data-is-out="1"] .product-price-variant span.current-price{ color: #9ca3af !important; }
 
@@ -186,8 +186,8 @@
         .axil-product.product-style-one .product-content{ padding: 8px 9px 10px !important; }
         .axil-product.product-style-one .product-content .title{ font-size: 13px !important; }
         .axil-product.product-style-one .pc-sub{ font-size: 11.5px; }
-        .axil-product.product-style-one .product-price-variant span.current-price{ font-size: 14.5px !important; }
-        .axil-product.product-style-one .product-price-variant span.old-price{ font-size: 11px !important; }
+        .axil-product.product-style-one .product-price-variant span.current-price{ font-size: 18px !important; }
+        .axil-product.product-style-one .product-price-variant span.old-price{ font-size: 12.5px !important; }
         .axil-product.product-style-one .add-to-cart-btn{ width: 34px; height: 34px; border-radius: 7px; }
         .axil-product.product-style-one .add-to-cart-btn svg{ width: 17px; height: 17px; }
         .axil-product.product-style-one .product-badget{ font-size: 10.5px; padding: 2px 7px; }
