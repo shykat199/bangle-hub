@@ -177,6 +177,9 @@ body { font-family: 'Hind Siliguri', sans-serif; }
     overflow-x: auto; overflow-y: hidden; scrollbar-width: none; -ms-overflow-style: none; overscroll-behavior-x: contain;
 }
 .hx-links::-webkit-scrollbar { display: none; }
+/* the row can also be dragged sideways with the mouse */
+.hx-links.can-left, .hx-links.can-right { cursor: grab; }
+.hx-links.is-dragging, .hx-links.is-dragging a { cursor: grabbing; -webkit-user-select: none; user-select: none; }
 .hx-links li { flex: 0 0 auto; }
 /* a soft fade on the side that still has links to scroll to */
 .hx-links.can-right { -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 44px), transparent); mask-image: linear-gradient(to right, #000 calc(100% - 44px), transparent); }
@@ -1036,10 +1039,7 @@ body.hide-header .topbar {
     </div>
 
     <ul class="hx-links">
-        <li><a href="{{ route('front.products.index') }}" class="{{ request()->routeIs('front.products.index') && !request('sort') ? 'is-active' : '' }}">Shop</a></li>
-        <li><a href="{{ route('front.products.index', ['sort' => 'latest']) }}" class="{{ request('sort') === 'latest' ? 'is-active' : '' }}">New Arrivals</a></li>
-        <li><a href="{{ route('front.products.index', ['sort' => 'best_selling']) }}" class="{{ request('sort') === 'best_selling' ? 'is-active' : '' }}">Best Sellers</a></li>
-        <li><a href="{{ route('front.aboutUs') }}" class="{{ request()->routeIs('front.aboutUs') ? 'is-active' : '' }}">Wholesale Info</a></li>
+        <li><a href="{{ route('front.products.index') }}" class="{{ request()->routeIs('front.products.index') ? 'is-active' : '' }}">Shop</a></li>
         @foreach($navCategories as $navCat)
             <li><a href="{{ route('front.category', [$navCat->url]) }}" class="{{ request()->routeIs('front.category') && request()->route('slug') === $navCat->url ? 'is-active' : '' }}">{{ $navCat->name }}</a></li>
         @endforeach
@@ -1256,6 +1256,33 @@ body.hide-header .topbar {
         e.preventDefault();
         row.scrollLeft += e.deltaY;
     }, { passive: false });
+    // Click and drag with the mouse slides the row too (touch screens already scroll it natively).
+    var dragging = false, moved = false, startX = 0, startLeft = 0;
+    row.addEventListener('mousedown', function(e){
+        moved = false;
+        if(e.button !== 0 || row.scrollWidth <= row.clientWidth) return;
+        dragging = true; startX = e.pageX; startLeft = row.scrollLeft;
+    });
+    document.addEventListener('mousemove', function(e){
+        if(!dragging) return;
+        var dx = e.pageX - startX;
+        if(!moved && Math.abs(dx) < 5) return;
+        moved = true;
+        row.classList.add('is-dragging');
+        e.preventDefault();
+        row.scrollLeft = startLeft - dx;
+    });
+    document.addEventListener('mouseup', function(){
+        dragging = false;
+        row.classList.remove('is-dragging');
+    });
+    // a drag must not open the link the mouse was released on, nor start the browser's own link drag
+    row.addEventListener('click', function(e){
+        if(!moved) return;
+        moved = false;
+        e.preventDefault(); e.stopPropagation();
+    }, true);
+    row.addEventListener('dragstart', function(e){ e.preventDefault(); });
     row.addEventListener('scroll', edges, { passive: true });
     window.addEventListener('resize', edges);
     var active = row.querySelector('a.is-active');
