@@ -70,7 +70,9 @@ body:has(#mobileFilters.show) .premium-float-stack{ display: none !important; }
 .mob-top .dots-btn i{ font-size: 15px; }
 
 /* grid: dim while a filter request is running; image boxes shimmer until the lazy image arrives */
-#product_data{ transition: opacity .18s ease; }
+/* align-content: the grid keeps a min-height for the loader; without this a single row of
+   cards stretches to fill it and the price drops far below the title */
+#product_data{ transition: opacity .18s ease; align-content: flex-start; }
 #product_data.loading{ opacity: .5; pointer-events: none; }
 .product-loading:after{
     content: ""; inset: 80px auto auto 50%; width: 38px; height: 38px; margin-left: -19px;
