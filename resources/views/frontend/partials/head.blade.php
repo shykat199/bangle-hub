@@ -13,6 +13,10 @@
               'meta_description',
               $information->site_name . ' is an online marketplace in Bangladesh offering quality products, fair prices, and reliable service.'
           )">
+    @hasSection('meta_keywords')
+        <meta name="keywords" content="@yield('meta_keywords')">
+    @endif
+    @stack('meta')
 
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">

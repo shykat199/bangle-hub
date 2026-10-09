@@ -296,6 +296,26 @@
             </div>
           </div>
 
+          <div class="soft-card mb-3">
+            <div class="section-title">SEO</div>
+            <div class="row g-3">
+              <div class="col-lg-6">
+                <label class="form-label">SEO Title (Optional)</label>
+                <input type="text" name="meta_title" class="form-control" maxlength="255" placeholder="Leave blank to use the product name">
+              </div>
+
+              <div class="col-lg-6">
+                <label class="form-label">SEO Keywords (Optional)</label>
+                <input type="text" name="meta_keywords" class="form-control" maxlength="500" placeholder="keyword one, keyword two, keyword three">
+              </div>
+
+              <div class="col-12">
+                <label class="form-label">SEO Description (Optional)</label>
+                <textarea class="form-control" name="meta_description" rows="3" maxlength="1000" placeholder="Leave blank to use the short description"></textarea>
+              </div>
+            </div>
+          </div>
+
           <div class="d-flex justify-content-end">
             <button type="submit" class="btn btn-success px-4">Save</button>
           </div>

@@ -141,7 +141,39 @@
     $hasMultipleVariants = count($varMap) > 1;
     $showSize  = $hasMultipleVariants && (count($sizesMap) > 0);
     $showColor = $hasMultipleVariants && (count($colorsMap) > 0);
+
+    // SEO: what the admin typed on the product form wins; blank fields fall back
+    // to the product's own name / description so the page never ships empty tags.
+    $seoTitle       = trim((string) $singleProduct->meta_title) ?: $singleProduct->name;
+    $seoKeywords    = trim((string) $singleProduct->meta_keywords);
+    $seoDescription = trim((string) $singleProduct->meta_description);
+    if ($seoDescription === '') {
+        // Tags become spaces first — strip_tags() alone glues "</p><p>" neighbours into one word.
+        $seoPlain = fn ($html) => trim(preg_replace('/\s+/u', ' ', html_entity_decode(strip_tags(preg_replace('/<[^>]+>/', ' ', (string) $html)), ENT_QUOTES | ENT_HTML5, 'UTF-8')));
+        $seoDescription = \Illuminate\Support\Str::limit(
+            $seoPlain($singleProduct->short_description) ?: $seoPlain($singleProduct->body) ?: $singleProduct->name,
+            160
+        );
+    }
+    $seoUrl         = route('front.products.show', ['product' => $singleProduct->slug ?: $singleProduct->id]);
 @endphp
+
+@section('title', $seoTitle)
+@section('meta_description', $seoDescription)
+@if($seoKeywords !== '')
+    @section('meta_keywords', $seoKeywords)
+@endif
+
+@push('meta')
+    <link rel="canonical" href="{{ $seoUrl }}">
+    <meta property="og:type" content="product">
+    <meta property="og:title" content="{{ $seoTitle }}">
+    <meta property="og:description" content="{{ $seoDescription }}">
+    <meta property="og:url" content="{{ $seoUrl }}">
+    {{-- original file, not getImage(): that may hand back AVIF, which link previews can't read --}}
+    <meta property="og:image" content="{{ asset('products/' . $singleProduct->image) }}">
+    <meta name="twitter:card" content="summary_large_image">
+@endpush
 
 @push('css')
 <style>

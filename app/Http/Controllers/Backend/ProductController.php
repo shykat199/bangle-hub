@@ -409,6 +409,9 @@ class ProductController extends Controller
             'weight' => 'nullable|numeric', 
             'is_wholesale' => 'nullable|boolean',
             'min_order_qty' => 'nullable|required_if:is_wholesale,1|integer|min:1',
+            'meta_title' => 'nullable|string|max:255',
+            'meta_keywords' => 'nullable|string|max:500',
+            'meta_description' => 'nullable|string|max:1000',
         ]);
 
         $data['is_wholesale'] = $request->boolean('is_wholesale');
@@ -825,6 +828,9 @@ class ProductController extends Controller
             'weight' => 'nullable|numeric', 
             'is_wholesale' => 'nullable|boolean',
             'min_order_qty' => 'nullable|required_if:is_wholesale,1|integer|min:1',
+            'meta_title' => 'nullable|string|max:255',
+            'meta_keywords' => 'nullable|string|max:500',
+            'meta_description' => 'nullable|string|max:1000',
         ]);
 
         $data['is_wholesale'] = $request->boolean('is_wholesale');

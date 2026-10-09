@@ -604,6 +604,29 @@
               <label class="form-label">Product Body</label>
               <textarea class="form-control" name="body" id="body" rows="6">{!! $item->body !!}</textarea>
             </div>
+          </div>
+
+          <hr class="my-3">
+
+          <div class="section-heading">
+            <h5>SEO</h5>
+            <span class="badge-tag">Step 6</span>
+          </div>
+          <div class="row g-3">
+            <div class="col-lg-6">
+              <label class="form-label">SEO Title (Optional)</label>
+              <input type="text" name="meta_title" class="form-control" maxlength="255" placeholder="Leave blank to use the product name" value="{{ $item->meta_title }}">
+            </div>
+
+            <div class="col-lg-6">
+              <label class="form-label">SEO Keywords (Optional)</label>
+              <input type="text" name="meta_keywords" class="form-control" maxlength="500" placeholder="keyword one, keyword two, keyword three" value="{{ $item->meta_keywords }}">
+            </div>
+
+            <div class="col-12">
+              <label class="form-label">SEO Description (Optional)</label>
+              <textarea class="form-control" name="meta_description" rows="3" maxlength="1000" placeholder="Leave blank to use the short description">{{ $item->meta_description }}</textarea>
+            </div>
 
             <div class="col-12 mt-3 d-flex justify-content-end">
               <button type="submit" class="btn btn-primary px-4">Update Product</button>
