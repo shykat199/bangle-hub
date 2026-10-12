@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Backend;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 use App\Models\AdminText;
 use App\Models\Information; // ✅ Information মডেল যুক্ত করা হয়েছে
 
@@ -63,5 +64,54 @@ class AdminTextController extends Controller
         }
 
         return back()->with('success','Dynamic Text & Colors Updated Successfully!');
+    }
+
+    // Homepage bottom strip: shop block, three feature items and the contact button.
+    public function homeStripEdit()
+    {
+        $text  = AdminText::first() ?? new AdminText();
+        $strip = $text->homeStrip();
+        $icons = AdminText::HOME_STRIP_ICONS;
+        $info  = Information::orderBy('id', 'desc')->first();
+
+        return view('backend.admin_texts.home_strip', compact('strip', 'icons', 'info'));
+    }
+
+    public function homeStripUpdate(Request $request)
+    {
+        $data = $request->validate([
+            'shop_label'     => 'nullable|string|max:80',
+            'shop_name'      => 'nullable|string|max:120',
+            'shop_address'   => 'nullable|string|max:255',
+            'items'          => 'nullable|array|max:3',
+            'items.*.icon'   => ['nullable', 'string', Rule::in(array_keys(AdminText::HOME_STRIP_ICONS))],
+            'items.*.title'  => 'nullable|string|max:60',
+            'items.*.text'   => 'nullable|string|max:120',
+            'contact_label'  => 'nullable|string|max:40',
+            'contact_phone'  => 'nullable|string|max:30',
+        ]);
+
+        $items = [];
+        foreach (array_values($data['items'] ?? []) as $item) {
+            $items[] = [
+                'icon'  => $item['icon'] ?? 'fa-check-circle',
+                'title' => trim($item['title'] ?? ''),
+                'text'  => trim($item['text'] ?? ''),
+            ];
+        }
+
+        $text = AdminText::first() ?? new AdminText();
+        $text->home_strip = [
+            'active'        => $request->boolean('active'),
+            'shop_label'    => trim($data['shop_label'] ?? ''),
+            'shop_name'     => trim($data['shop_name'] ?? ''),
+            'shop_address'  => trim($data['shop_address'] ?? ''),
+            'items'         => $items,
+            'contact_label' => trim($data['contact_label'] ?? ''),
+            'contact_phone' => trim($data['contact_phone'] ?? ''),
+        ];
+        $text->save();
+
+        return back()->with('success', 'Home Bottom Strip Updated Successfully!');
     }
 }

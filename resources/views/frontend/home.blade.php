@@ -9,6 +9,15 @@
     $viewAllText = $adminText->view_all_text ?? 'View All';
     $info        = Information::orderBy('id', 'desc')->first();
 
+    // Bottom strip is edited in Admin > Front Page > Home Bottom Strip; blank
+    // shop name / address / phone fall back to the site's own.
+    $strip        = ($adminText ?? new AdminText)->homeStrip();
+    $stripItems   = array_values(array_filter($strip['items'], fn ($item) => !empty($item['title'])));
+    $stripName    = $strip['shop_name'] ?: ($info->site_name ?: config('app.name'));
+    $stripAddress = $strip['shop_address'] ?: ($info->address ?? '');
+    $stripPhone   = $strip['contact_phone'] ?: ($info->owner_phone ?? '');
+    $stripCols    = '1.35fr ' . str_repeat('1fr ', count($stripItems)) . 'auto';
+
     // Featured Collections: up to 4 products from each home category, interleaved so
     // "All" shows a mix. Each card remembers its category for the tab filter.
     $featuredTabs  = [];
@@ -223,7 +232,7 @@
 
     /* ---------- bottom strip ---------- */
     .hp-strip{ margin-top: var(--hp-space); background: #f6f7f9; border-top: 1px solid var(--hp-line); }
-    .hp-strip-grid{ display: grid; grid-template-columns: 1.35fr 1fr 1.25fr 1fr auto; align-items: center; gap: 0; padding: 24px 0; }
+    .hp-strip-grid{ display: grid; grid-template-columns: var(--hp-strip-cols, 1.35fr 1fr 1.25fr 1fr auto); align-items: center; gap: 0; padding: 24px 0; }
     .hp-strip-item{ display: flex; align-items: center; gap: 14px; padding: 6px 22px; position: relative; min-width: 0; }
     .hp-strip-item + .hp-strip-item::before{ content: ""; position: absolute; left: 0; top: 10%; bottom: 10%; width: 1px; background: #dcdfe4; }
     .hp-strip-item:first-child{ padding-left: 0; }
@@ -448,29 +457,31 @@
     </div>
 
     {{-- BOTTOM STRIP --}}
+    @if($strip['active'])
     <section class="hp-strip">
         <div class="container">
-            <div class="hp-strip-grid">
+            <div class="hp-strip-grid" @if(count($stripItems) !== 3) style="--hp-strip-cols: {{ $stripCols }}" @endif>
                 <div class="hp-strip-item hp-strip-shop">
                     <i class="fas fa-map-marker-alt"></i>
                     <div>
-                        <small>Visit Our Wholesale Shop</small>
-                        <span class="hp-strip-name d-block">{{ $info->site_name ?: config('app.name') }}</span>
-                        @if(!empty($info->address))<span class="hp-strip-addr d-block">{{ $info->address }}</span>@endif
+                        @if(!empty($strip['shop_label']))<small>{{ $strip['shop_label'] }}</small>@endif
+                        <span class="hp-strip-name d-block">{{ $stripName }}</span>
+                        @if(!empty($stripAddress))<span class="hp-strip-addr d-block">{{ $stripAddress }}</span>@endif
                     </div>
                 </div>
-                <div class="hp-strip-item"><i class="fas fa-handshake"></i><div><strong>Wholesale Only</strong><small>Retail Not Available</small></div></div>
-                <div class="hp-strip-item"><i class="fas fa-globe-asia"></i><div><strong>Imported Products</strong><small>China | India | Dubai | Malaysia | USA | UK</small></div></div>
-                <div class="hp-strip-item"><i class="fas fa-shield-alt"></i><div><strong>Genuine Quality</strong><small>Trusted by Resellers</small></div></div>
-                @if(!empty($info->owner_phone))
-                    <a href="tel:{{ $info->owner_phone }}" class="hp-contact">
+                @foreach($stripItems as $item)
+                    <div class="hp-strip-item"><i class="fas {{ $item['icon'] }}"></i><div><strong>{{ $item['title'] }}</strong>@if(!empty($item['text']))<small>{{ $item['text'] }}</small>@endif</div></div>
+                @endforeach
+                @if(!empty($stripPhone))
+                    <a href="tel:{{ preg_replace('/[^0-9+]/', '', $stripPhone) }}" class="hp-contact">
                         <i class="fas fa-phone-alt"></i>
-                        <span><small>Contact Us</small><strong>{{ $info->owner_phone }}</strong></span>
+                        <span><small>{{ $strip['contact_label'] ?: 'Contact Us' }}</small><strong>{{ $stripPhone }}</strong></span>
                     </a>
                 @endif
             </div>
         </div>
     </section>
+    @endif
 
 </main>
 

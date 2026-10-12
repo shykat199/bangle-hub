@@ -239,7 +239,7 @@
             <!-- ✅ FRONT PAGE SECTION -->
             @if(auth()->user()->can('page.view') || auth()->user()->can('image.view') || auth()->user()->can('slider.view'))
             @php 
-                $frontOpen = request()->is('admin/pages*') || request()->is('admin/sliders*') || request()->is('admin/styles*') || request()->is('admin/dynamic-text*') || request()->is('admin/home-section-images*') ? 'show' : ''; 
+                $frontOpen = request()->is('admin/pages*') || request()->is('admin/sliders*') || request()->is('admin/styles*') || request()->is('admin/dynamic-text*') || request()->is('admin/home-strip*') || request()->is('admin/home-section-images*') ? 'show' : ''; 
             @endphp
             <li class="menu-item">
                 <button class="menu-link has-dropdown {{ $frontOpen ? '' : 'collapsed' }}" type="button" 
@@ -270,6 +270,7 @@
                         @endif
 
                         <li><a href="{{ route('admin.dynamic_text.edit') }}" class="sub-link {{ nav_active(['admin.dynamic_text.*']) }}"><i class="mdi mdi-format-text"></i><span>{{ adm_text('dynamic_text','Dynamic Text') }}</span></a></li>
+                        <li><a href="{{ route('admin.home_strip.edit') }}" class="sub-link {{ nav_active(['admin.home_strip.*']) }}"><i class="mdi mdi-page-layout-footer"></i><span>Home Bottom Strip</span></a></li>
                     </ul>
                 </div>
             </li>

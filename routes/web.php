@@ -283,6 +283,8 @@ Route::group(['prefix' => 'admin','middleware' => ['auth','staff'],'as'=>'admin.
 
         Route::get('/dynamic-text', [AdminTextController::class, 'edit'])->name('dynamic_text.edit');
         Route::post('/dynamic-text', [AdminTextController::class, 'update'])->name('dynamic_text.update');
+        Route::get('/home-strip', [AdminTextController::class, 'homeStripEdit'])->name('home_strip.edit');
+        Route::post('/home-strip', [AdminTextController::class, 'homeStripUpdate'])->name('home_strip.update');
 
         Route::get('/Ip-block', [IPBlockController::class, 'index'])->name('ipblock');
         Route::get('/Ip-block/delete/{id}', [IPBlockController::class, 'delete'])->name('ipblock.delete');
