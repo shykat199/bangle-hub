@@ -66,6 +66,16 @@
                     </div>
                 </div>
 
+                @if($order->is_preorder)
+                <div style="background-color:#fff4e5; border:1px solid #fcd9a8; border-radius:6px; padding:12px 14px; margin-bottom:20px; font-size:14px; color:#92400e;">
+                    <strong>PRE-ORDER</strong> &mdash; {{ $order->preorderDeliveryLabel() ?: 'no delivery estimate set' }}<br>
+                    Payment mode: {{ $order->isAdvancePreorder() ? 'Advance' : 'Full' }}
+                    @if($order->isAdvancePreorder()) &middot; Advance: {{ number_format($order->advance_amount, 2) }} @endif
+                    &middot; Paid: {{ number_format($order->advance_paid, 2) }}
+                    &middot; <strong>Due: {{ number_format($order->due_amount, 2) }}</strong>
+                </div>
+                @endif
+
                 <div class="label">Order Summary</div>
                 <table class="product-table">
                     <thead>

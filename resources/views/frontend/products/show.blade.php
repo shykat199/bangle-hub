@@ -23,6 +23,10 @@
     $sizesMap = [];
     $colorsMap= [];
 
+    // Pre-order: each entry of $varMap carries its own state, so the badge,
+    // button, delivery text and payment options follow the picked variation.
+    $preorders = app(\App\Services\PreOrderService::class);
+
     if($singleProduct->variations && $singleProduct->variations->count() > 0){
         foreach($singleProduct->variations as $v){
             $sid = (int)($v->size_id ?? 0);
@@ -52,6 +56,13 @@
 
             $varImage = $v->image ? getImage('products', $v->image) : null;
 
+            // single: the lone variation row holds no settings of its own
+            $preorderInfo = $preorders->displayData(
+                $singleProduct,
+                ($singleProduct->type ?? 'single') === 'variable' ? $v : null,
+                $final
+            );
+
             $key = $sid.'|'.$cid;
             $varMap[$key] = [
                 'id' => (int)$v->id,
@@ -63,6 +74,7 @@
                 'price'=> $final,
                 'stock'=> $stock,
                 'image'=> $varImage, 
+                'preorder' => $preorderInfo,
             ];
         }
     }
@@ -96,6 +108,7 @@
             'price'    => (float)$mFinal,
             'stock'    => (int)$singleProduct->stock_quantity,
             'image'    => null,
+            'preorder' => $preorders->displayData($singleProduct, null, (float) $mFinal),
         ];
         
         $defaultSizeId  = $DEFAULT_SIZE_ID;
@@ -117,6 +130,13 @@
     // Whole product unavailable — same rule the cart and product cards use
     $productOut = !productIsOrderable($singleProduct);
     if ($productOut) $inStock = false;
+
+    // First paint for the initial variation; JS (applyAvailability) takes over after that.
+    $initPreorder  = $initialVar['preorder'] ?? ['active' => false, 'closed' => false, 'delivery' => null, 'remaining' => null, 'modes' => [], 'advance' => 0];
+    $preorderOpen  = !$inStock && !empty($initPreorder['active']);
+    $preorderShut  = !$inStock && !empty($initPreorder['closed']);
+    // $inStock keeps meaning "sold from stock"; this one means "has a working buy button".
+    $canBuy        = $inStock || $preorderOpen;
     // --------------------------------
 
     $curr = $info->currency;
@@ -496,6 +516,35 @@
     .comment-list > li:nth-child(1) { animation-delay: 0.1s; }
     .comment-list > li:nth-child(2) { animation-delay: 0.2s; }
     .comment-list > li:nth-child(3) { animation-delay: 0.3s; }
+    /* ===== Pre-order: info panel under the price, payment options ===== */
+    .pdx-preorder{
+        margin: 14px 0 4px; padding: 14px 16px; border-radius: 12px;
+        border: 1px solid #fcd9a8; background: linear-gradient(180deg, #fffaf0 0%, #fff 100%);
+    }
+    .pdx-preorder__head{ display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; margin-bottom: 8px; }
+    .pdx-preorder__eta{ font-size: 15px; font-weight: 700; color: #92400e; }
+    .pdx-preorder__note{ margin: 0 0 8px; font-size: 13.5px; line-height: 1.5; color: #4b5563; }
+    .pdx-preorder__left{ display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 700; color: #b45309; }
+    .pdx-preorder__pay{ margin-top: 12px; padding-top: 12px; border-top: 1px dashed #fcd9a8; }
+    .pdx-preorder__pay-title{ display: block; margin-bottom: 8px; font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: #6b7280; }
+    .pdx-preorder__opts{ display: grid; gap: 8px; }
+    .pdx-preorder__opt{
+        display: flex; align-items: flex-start; gap: 10px; margin: 0; padding: 10px 12px; cursor: pointer;
+        border: 1.5px solid #e5e7eb; border-radius: 10px; background: #fff; transition: border-color .2s ease, background .2s ease;
+    }
+    .pdx-preorder__opt:has(input:checked){ border-color: var(--pd-accent); background: color-mix(in srgb, var(--pd-accent) 5%, #fff); }
+    .pdx .pdx-preorder__opt input[type="radio"]{
+        appearance: auto !important; -webkit-appearance: radio !important; opacity: 1 !important; position: static !important;
+        flex: 0 0 auto; width: 18px; height: 18px; margin: 2px 0 0; accent-color: var(--pd-accent);
+    }
+    .pdx-preorder__opt strong{ display: block; font-size: 14.5px; color: #111827; line-height: 1.35; }
+    .pdx-preorder__opt small{ display: block; font-size: 12.5px; color: #6b7280; line-height: 1.4; }
+    .pdx-fact.is-stock:has(strong.is-preorder){ border-color: #fcd9a8; background: #fffaf0; color: #b45309; }
+    .pdx-fact strong.is-preorder{ color: #b45309; }
+    .pdx-top.is-preorder .pdx-cart-btn{ display: none; }
+    .pdx-top.is-preorder .pdx-order-btn{ grid-column: 1 / -1; }
+    .pd-buy-bar.is-preorder .pd-buy-bar__btn.is-cart{ display: none; }
+
     /* --- kept: notify --- */
     /* ===== Notify Me When Available ===== */
     .notify-me-wrap{ margin-top: 10px; }
@@ -1162,7 +1211,7 @@
     </div>
     </div>
 
-    <div class="pdx-top {{ $inStock ? '' : 'is-stock-out' }}" id="pdxTop">
+    <div class="pdx-top {{ $canBuy ? '' : 'is-stock-out' }} {{ $preorderOpen ? 'is-preorder' : '' }}" id="pdxTop">
 
         {{-- ===== GALLERY ===== --}}
         <div class="pdx-gallery" id="pdxGallery">
@@ -1178,7 +1227,7 @@
                     <button type="button" class="pdx-thumb {{ !$hasVideo && $i === 0 ? 'is-active' : '' }}" data-slide="{{ $slideNo++ }}" aria-label="Picture {{ $i + 1 }}">
                         <img src="{{ $src }}" alt="" @if($i === 0) id="thumb-image" @else loading="lazy" @endif>
                         @if($i === 0)
-                            <span class="pdx-thumb-out" id="pdThumbStockOut" style="{{ $inStock ? 'display:none;' : '' }}"><span>Out</span></span>
+                            <span class="pdx-thumb-out" id="pdThumbStockOut" style="{{ $canBuy ? 'display:none;' : '' }}"><span>Out</span></span>
                         @endif
                     </button>
                 @endforeach
@@ -1206,8 +1255,9 @@
                 <div class="pdx-badges">
                     @if($isNew)<span class="pdx-badge">New Arrival</span>@endif
                     <span class="pdx-badge is-dark" id="pdxOffBadge" style="{{ $initSavePct > 0 ? '' : 'display:none;' }}">{{ $initSavePct }}% Off</span>
+                    <x-preorder-badge variant="image" id="pdxPreorderBadge" style="{{ $preorderOpen ? '' : 'display:none;' }}" />
                 </div>
-                <div class="pdx-out-overlay" id="pdStockOutOverlay" style="{{ $inStock ? 'display:none;' : '' }}"><span>Out of Stock</span></div>
+                <div class="pdx-out-overlay" id="pdStockOutOverlay" style="{{ $canBuy ? 'display:none;' : '' }}"><span id="pdStockOutText">{{ $preorderShut ? 'Pre-Order Closed' : 'Out of Stock' }}</span></div>
 
                 <button type="button" class="pdx-stage-btn pdx-nav-btn is-prev" aria-label="Previous picture"><i class="fas fa-chevron-left"></i></button>
                 <button type="button" class="pdx-stage-btn pdx-nav-btn is-next" aria-label="Next picture"><i class="fas fa-chevron-right"></i></button>
@@ -1279,7 +1329,7 @@
                     @if($isWholesale)
                         <div class="pdx-fact"><i class="fas fa-boxes"></i><div><small>Minimum Order</small><strong>{{ $minOrderQty }} Pcs</strong></div></div>
                     @endif
-                    <div class="pdx-fact is-stock"><i class="fas fa-cubes"></i><div><small>Stock Available</small><strong id="stock-text-element" class="{{ !$inStock ? 'is-out' : ((int) $initialStock <= $lowStockLimit ? 'is-low' : '') }}">{{ $inStock ? ((int) $initialStock).' Pcs' : 'Out of stock' }}</strong></div></div>
+                    <div class="pdx-fact is-stock"><i class="fas fa-cubes"></i><div><small>Stock Available</small><strong id="stock-text-element" class="{{ $preorderOpen ? 'is-preorder' : (!$inStock ? 'is-out' : ((int) $initialStock <= $lowStockLimit ? 'is-low' : '')) }}">{{ $preorderOpen ? 'Pre-order only' : ($inStock ? ((int) $initialStock).' Pcs' : 'Out of stock') }}</strong></div></div>
                 </div>
             </div>
 
@@ -1345,6 +1395,22 @@
                     </div>
                 @endif
 
+                {{-- Pre-order panel: filled per variation by renderPreorder() --}}
+                <div class="pdx-preorder" id="pdxPreorderBox" style="{{ $preorderOpen ? '' : 'display:none;' }}">
+                    <div class="pdx-preorder__head">
+                        <x-preorder-badge />
+                        <span class="pdx-preorder__eta" id="pdxPreorderEta">{{ $initPreorder['delivery'] ?? '' }}</span>
+                    </div>
+                    <p class="pdx-preorder__note">This item is not in stock yet. Place a pre-order now and we will ship it as soon as it arrives.</p>
+                    <span class="pdx-preorder__left" id="pdxPreorderLeft" style="{{ ($preorderOpen && $initPreorder['remaining'] !== null) ? '' : 'display:none;' }}">
+                        <i class="fas fa-fire"></i> <span>Only {{ (int) ($initPreorder['remaining'] ?? 0) }} pre-order slot(s) left</span>
+                    </span>
+                    <div class="pdx-preorder__pay">
+                        <span class="pdx-preorder__pay-title">Payment</span>
+                        <div class="pdx-preorder__opts" id="pdxPreorderOpts"></div>
+                    </div>
+                </div>
+
                 <div class="pdx-qty-row">
                     <div>
                         <span class="pdx-qty-label">Quantity (Pcs)</span>
@@ -1367,8 +1433,12 @@
                     <button type="submit" class="pdx-btn is-outline pdx-cart-btn" {{ $inStock ? '' : 'disabled' }}>
                         <i class="fas fa-cart-plus"></i> <span>Add to Cart</span>
                     </button>
-                    <button type="submit" class="pdx-btn is-solid pdx-order-btn" {{ $inStock ? '' : 'disabled' }}>
-                        @if(!$inStock)
+                    <button type="submit" class="pdx-btn is-solid pdx-order-btn" {{ $canBuy ? '' : 'disabled' }}>
+                        @if($preorderOpen)
+                            <i class="far fa-clock"></i> Pre-Order Now
+                        @elseif($preorderShut)
+                            Pre-Order Closed
+                        @elseif(!$inStock)
                             Out of Stock
                         @elseif(($singleProduct->is_free_shipping ?? 0) == 1)
                             <i class="fas fa-shipping-fast"></i> {{ $bangla_text->fshipping_text ?? 'Free Shipping' }}
@@ -1393,7 +1463,7 @@
                     @endif
                 </div>
 
-                <div class="notify-me-wrap" id="notifyMeWrap" style="{{ $inStock ? 'display:none;' : '' }}">
+                <div class="notify-me-wrap" id="notifyMeWrap" style="{{ $canBuy ? 'display:none;' : '' }}">
                     <button type="button" class="notify-me-btn" id="notifyMeOpen">
                         <i class="far fa-bell"></i> Notify Me When Available
                     </button>
@@ -1610,7 +1680,7 @@
     <div class="pdx-lb-img" id="pdxLbStage"><img src="" alt="{{ $singleProduct->name }}" draggable="false"></div>
 </div>
 {{-- ===== Sticky buy bar (small screens only) — mirrors the price and buttons above ===== --}}
-<div class="pd-buy-bar {{ $inStock ? '' : 'is-out' }}" id="pdBuyBar">
+<div class="pd-buy-bar {{ $canBuy ? '' : 'is-out' }} {{ $preorderOpen ? 'is-preorder' : '' }}" id="pdBuyBar">
     <div class="pd-buy-bar__price">
         <span class="pd-buy-bar__now" id="pdBarPrice">{{ biz_format_currency($initFinal) }}</span>
         <del class="pd-buy-bar__old" id="pdBarOld" style="{{ $initSavePct > 0 ? '' : 'display:none;' }}">{{ $initSavePct > 0 ? biz_format_currency($initRaw) : '' }}</del>
@@ -2027,9 +2097,15 @@ window.__PRODUCT_OUT__ = @json($productOut);
       }
       
       const stock = parseInt((window.__ACTIVE_VAR__ && window.__ACTIVE_VAR__.stock) ? window.__ACTIVE_VAR__.stock : 0);
-      if(stock <= 0 || window.__PRODUCT_OUT__){
+      // out of stock is still buyable when this variation is open for pre-order
+      if((stock <= 0 || window.__PRODUCT_OUT__) && !window.__PREORDER_ACTIVE__){
         toastUnique('warning', 'This product is out of stock.'); return false;
       }
+      // "replace_cart" is a one-shot answer to the mixed-cart question below
+      const replaceCart = form.data('replaceCart') === true;
+      form.removeData('replaceCart');
+      form.find('input[name="replace_cart"]').remove();
+      if(replaceCart) form.append('<input type="hidden" name="replace_cart" value="1">');
 
       let qtyInput = form.find('input[name="quantity"]');
       let currentQty = parseInt(qtyInput.val());
@@ -2118,6 +2194,15 @@ window.__PRODUCT_OUT__ = @json($productOut);
             document.location.href = "{{ url('/checkouts') }}";
             return;
           }
+          // Pre-order and in-stock items are delivered on different dates and never
+          // share a cart. Offer to swap the cart for this item.
+          if (res.mixed_cart) {
+            if (confirm((res.msg || '') + '\n\nEmpty the cart and continue with this item?')) {
+              form.data('replaceCart', true);
+              form.trigger('submit');
+            }
+            return;
+          }
           toastUnique('error', res.msg || 'Could not add this product. Please try again.');
         }
       });
@@ -2143,6 +2228,7 @@ window.__PRODUCT_OUT__ = @json($productOut);
   function renderStock(stock){
     const el = document.getElementById('stock-text-element');
     if(!el) return;
+    el.classList.remove('is-preorder');
     el.classList.toggle('is-out', stock <= 0);
     el.classList.toggle('is-low', stock > 0 && stock <= {{ $lowStockLimit }});
     el.textContent = stock > 0 ? stock + ' Pcs' : 'Out of stock';
@@ -2211,9 +2297,71 @@ window.__PRODUCT_OUT__ = @json($productOut);
     const stock = parseInt(v.stock || 0);
     renderStock(window.__PRODUCT_OUT__ ? 0 : stock);
 
-    setStockState(stock <= 0 || window.__PRODUCT_OUT__);
-    if(window.toggleNotifyMe) window.toggleNotifyMe(stock <= 0 || window.__PRODUCT_OUT__);
+    applyAvailability(v, stock <= 0 || window.__PRODUCT_OUT__);
     markOutOfStockOptions();
+  }
+
+  // Three states for the picked variation:
+  //   in stock            -> normal buttons
+  //   out + pre-order on  -> PRE-ORDER badge, "Pre-Order Now", delivery text, payment options
+  //   out (or pre-order limit used up) -> Out of Stock / Pre-Order Closed + Notify Me
+  function applyAvailability(v, isOut){
+    const po = (v && v.preorder) ? v.preorder : {};
+    const isPreorder = !!(isOut && po.active);
+
+    setStockState(isOut && !isPreorder);
+    if(window.toggleNotifyMe) window.toggleNotifyMe(isOut && !isPreorder);
+    renderPreorder(isPreorder ? po : null, !!(isOut && po.closed), v);
+  }
+
+  function renderPreorder(po, isClosed, v){
+    window.__PREORDER_ACTIVE__ = !!po;
+
+    $('#pdxPreorderBadge, #pdxPreorderBox').toggle(!!po);
+    $('#pdxTop').toggleClass('is-preorder', !!po);
+    $('#pdBuyBar').toggleClass('is-preorder', !!po);
+    $('#pdStockOutText').text(isClosed ? 'Pre-Order Closed' : 'Out of Stock');
+
+    const buyLabel = document.getElementById('pdBarBuy');
+    if(buyLabel){
+      if(!buyLabel.dataset.label) buyLabel.dataset.label = buyLabel.innerHTML;
+      buyLabel.innerHTML = po ? '<i class="far fa-clock"></i> Pre-Order Now' : buyLabel.dataset.label;
+    }
+
+    if(!po){
+      if(isClosed) $('.pdx-order-btn').text('Pre-Order Closed');
+      $('#pdxPreorderOpts').empty();
+      return;
+    }
+
+    $('.pdx-order-btn').html('<i class="far fa-clock"></i> Pre-Order Now');
+
+    const stockEl = document.getElementById('stock-text-element');
+    if(stockEl){
+      stockEl.classList.remove('is-out', 'is-low');
+      stockEl.classList.add('is-preorder');
+      stockEl.textContent = 'Pre-order only';
+    }
+
+    $('#pdxPreorderEta').text(po.delivery || '');
+    const hasLimit = po.remaining !== null && po.remaining !== undefined;
+    $('#pdxPreorderLeft').toggle(hasLimit).find('span').text('Only ' + po.remaining + ' pre-order slot(s) left');
+
+    // Payment options: Full / Advance (the amounts are per piece)
+    const price = parseFloat((v && v.price) || 0);
+    const advance = parseFloat(po.advance || 0);
+    const modes = po.modes || ['full'];
+    const keep = $('#pdxPreorderOpts input[name="payment_mode"]:checked').val();
+    const picked = modes.indexOf(keep) !== -1 ? keep : modes[0];
+    const text = {
+      full:    ['Full payment', 'Pay ' + moneyText(price) + ' per piece.'],
+      advance: ['Advance payment', 'Pay ' + moneyText(advance) + ' per piece now, the remaining ' + moneyText(Math.max(0, price - advance)) + ' on delivery.']
+    };
+    $('#pdxPreorderOpts').html(modes.map(function(mode){
+      return '<label class="pdx-preorder__opt">'
+           + '<input type="radio" name="payment_mode" value="' + mode + '"' + (mode === picked ? ' checked' : '') + '>'
+           + '<span><strong>' + text[mode][0] + '</strong><small>' + text[mode][1] + '</small></span></label>';
+    }).join(''));
   }
 
   // Selected variant out of stock → same look as a stock-out product:
@@ -2238,7 +2386,10 @@ window.__PRODUCT_OUT__ = @json($productOut);
   // Tag each size/colour chip whose combination with the current other choice has no stock.
   function stockOf(sizeId, colorId){
     const v = resolveVariation(sizeId, colorId);
-    return v ? parseInt(v.stock || 0) : null;
+    if(!v) return null;
+    // a variation that takes pre-orders is not "out": it can be picked and bought
+    if(v.preorder && v.preorder.active) return 1;
+    return parseInt(v.stock || 0);
   }
   function markOutOfStockOptions(){
     const hasSize  = $('#sizeOptions').length > 0;
@@ -2264,6 +2415,7 @@ window.__PRODUCT_OUT__ = @json($productOut);
     
     renderStock(0);
     
+    renderPreorder(null, false, null);
     $('.pdx-cart-btn, .pdx-order-btn').prop('disabled', true);
     if(window.toggleNotifyMe) window.toggleNotifyMe(!!window.__PRODUCT_OUT__);
     markOutOfStockOptions();

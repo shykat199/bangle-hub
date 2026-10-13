@@ -73,7 +73,8 @@ class BkashController extends Controller
             'Authorization' => $token,
             'X-APP-Key'     => $config['app_key'],
         ])->post($config['base_url'] . '/checkout/payment/create', [
-            'amount'                => $order->final_amount,
+            // An advance pre-order pays its advance now; everything else the total.
+            'amount'                => number_format($order->payableNow(), 2, '.', ''),
             'currency'              => 'BDT',
             'intent'                => 'sale',
             'merchantInvoiceNumber' => $order->invoice_no,
@@ -103,7 +104,7 @@ class BkashController extends Controller
                 // Verify the charged amount against the order total before
                 // confirming — bKash "Completed" alone is not proof of full payment.
                 $paidAmount = (float) ($result['amount'] ?? 0);
-                if ($paidAmount + 1 < (float) $order->final_amount) {
+                if ($paidAmount + 1 < $order->gatewayMinimum()) {
                     Log::warning('bKash amount mismatch', ['order' => $order->id, 'paid' => $paidAmount, 'due' => $order->final_amount]);
                     OrderPayment::create([
                         'order_id'       => $order->id,
@@ -115,9 +116,14 @@ class BkashController extends Controller
                     return $result;
                 }
 
-                $order->payment_status = 'Paid';
-                $order->status = 'Confirmed';
-                $order->save();
+                if ($order->is_preorder) {
+                    // A pre-order keeps its "Pre-Order" status; only the money is booked.
+                    app(\App\Services\PreOrderService::class)->settleGatewayPayment($order, $paidAmount);
+                } else {
+                    $order->payment_status = 'Paid';
+                    $order->status = 'Confirmed';
+                    $order->save();
+                }
 
                 OrderPayment::create([
                     'order_id'       => $order->id,

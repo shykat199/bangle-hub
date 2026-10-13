@@ -17,6 +17,7 @@ use App\Models\ProductReview;
 class Product extends Model
 {
     use HasFactory;
+    use \App\Models\Concerns\HasPreOrder;
 
     protected $guarded = [];
 

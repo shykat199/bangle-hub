@@ -23,6 +23,14 @@
     // stock not managed or resolved stock 0 → out. Covers variable products too.
     $isOut = !productIsOrderable($product);
 
+    // Out of stock but open for pre-order: the card stays live, wears the
+    // PRE-ORDER badge and sends the customer to the product page (delivery
+    // date and payment options are chosen there). 'closed' = limit used up.
+    $preorderState = $isOut ? app(\App\Services\PreOrderService::class)->cardState($product) : null;
+    $isPreorder    = $preorderState === 'preorder';
+    $preorderEta   = ($isPreorder && !$isVariable) ? $product->deliveryLabel() : null;
+    if ($isPreorder) $isOut = false;
+
     // Discount calc
     $hasDiscount = ($product->after_discount ?? 0) > 0;
     $discountPercent = 0;
@@ -265,6 +273,15 @@ document.addEventListener('DOMContentLoaded', function() {
         })
         .then(r => r.json().catch(() => ({})))
         .then(res => {
+            // The server refused (out of stock, or the cart holds a pre-order) —
+            // say so instead of showing the tick.
+            if (res && res.success === false) {
+                btn.innerHTML = originalIcon;
+                btn.disabled = false;
+                if (window.toastr) toastr.error(res.msg || 'Could not add this product.');
+                return;
+            }
+
             btn.innerHTML = '<i class="fas fa-check" style="color:#16a34a;"></i>';
 
             if (res && typeof res.item !== 'undefined') {
@@ -327,13 +344,17 @@ document.addEventListener('DOMContentLoaded', function() {
 
         {{-- OUT OF STOCK ribbon across the image --}}
         @if($isOut)
-            <div class="stock-out-overlay" aria-label="Out of Stock">
-                <span class="stock-out-stamp">Out of Stock</span>
+            <div class="stock-out-overlay" aria-label="{{ $preorderState === 'closed' ? 'Pre-Order Closed' : 'Out of Stock' }}">
+                <span class="stock-out-stamp">{{ $preorderState === 'closed' ? 'Pre-Order Closed' : 'Out of Stock' }}</span>
             </div>
         @endif
 
-        {{-- LEFT badge: discount, otherwise "New" --}}
-        @if($hasDiscount && $discountPercent > 0 && !$isOut)
+        {{-- LEFT badge: pre-order, else discount, otherwise "New" --}}
+        @if($isPreorder)
+            <div class="label-block label-left">
+                <x-preorder-badge variant="card" />
+            </div>
+        @elseif($hasDiscount && $discountPercent > 0 && !$isOut)
             <div class="label-block label-left">
                 <div class="product-badget">{{ $discountPercent }}% Off</div>
             </div>
@@ -360,7 +381,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 {{ $product->name }}
             </a>
         </h5>
-        <span class="pc-sub">{{ $minQty > 1 ? 'Wholesale · Min '.$minQty.' pcs' : ($isVariable ? 'More options available' : (($product->relationLoaded('category') ? optional($product->category)->name : null) ?: 'Wholesale Price')) }}</span>
+        <span class="pc-sub">{{ $isPreorder ? ($preorderEta ?: 'Available for pre-order') : ($minQty > 1 ? 'Wholesale · Min '.$minQty.' pcs' : ($isVariable ? 'More options available' : (($product->relationLoaded('category') ? optional($product->category)->name : null) ?: 'Wholesale Price'))) }}</span>
 
         <div class="product-price-variant">
             <div class="price-wrap">
@@ -387,6 +408,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 <button type="button" class="add-to-cart-btn" disabled aria-disabled="true" title="Out of Stock" aria-label="Out of Stock">
                     {!! $cartIcon !!}
                 </button>
+            @elseif($isPreorder)
+                <a href="{{ route('front.products.show', ['product' => $productParam]) }}"
+                   class="add-to-cart-btn is-preorder" title="Pre-Order Now" aria-label="Pre-Order Now">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+                </a>
             @elseif($isVariable)
                 <a href="{{ route('front.products.show', ['product' => $productParam]) }}"
                    class="add-to-cart-btn is-variable" title="Select Options" aria-label="Select Options">

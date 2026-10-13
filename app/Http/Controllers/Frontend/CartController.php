@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use App\Models\Product;
 use App\Models\Variation;
 use App\Models\ProductStock; 
+use App\Services\PreOrderService;
 use App\Facades\FacebookConversion;
 use App\Facades\TikTokConversion;
 use App\Utils\Util;
@@ -107,6 +108,8 @@ class CartController extends Controller
             'variation_id' => 'nullable|integer',
             'quantity'     => 'nullable|integer|min:1',
             'action_type'  => 'nullable|string',
+            'payment_mode' => 'nullable|in:full,advance',
+            'replace_cart' => 'nullable|boolean',
             'event_id'     => 'nullable|string' // ✅ Event ID Accept korar jonno
         ]);
 
@@ -188,6 +191,37 @@ class CartController extends Controller
         // --- FIX: ইউনিক Cart Key তৈরি করা হলো যাতে Overwrite না হয় ---
         $cartKey = $product_id . '_' . $variation_id;
 
+        // Pre-order is not stock-out: it only applies when the item cannot be
+        // bought normally AND the admin switched pre-order on for it.
+        $preorders  = app(PreOrderService::class);
+        $stockQty   = $this->getAvailableStock($product, (int) $variation_id);
+        $preorderOn = $stockQty <= 0 && $preorders->isEnabled($product, $variation);
+        $isPreorder = $preorderOn && $preorders->isAvailable($product, $variation);
+
+        if ($preorderOn && !$isPreorder) {
+            return [
+                'ok' => false,
+                'payload' => $this->errorResponse($request, 'Pre-order is closed for this product.', 422, ['preorder_closed' => true])
+            ];
+        }
+
+        // Pre-order items ship later than in-stock items, so one cart (= one
+        // order, one payment) never holds both. The customer can swap the
+        // cart for the new item instead (replace_cart).
+        if (!empty($cart) && $preorders->cartIsPreorder($cart) !== $isPreorder) {
+            if ($request->boolean('replace_cart')) {
+                $cart = [];
+            } else {
+                return [
+                    'ok' => false,
+                    'payload' => $this->errorResponse($request, $isPreorder
+                        ? 'This is a pre-order item with a later delivery date, so it cannot be combined with the in-stock items in your cart. Please check out your cart first, or empty it to pre-order this item.'
+                        : 'Your cart holds a pre-order, which is delivered separately. Please complete the pre-order first, or empty your cart to add in-stock items.',
+                        422, ['mixed_cart' => true])
+                ];
+            }
+        }
+
         // Wholesale minimum is per cart line (so per variant). One-click
         // buttons always send quantity 1, so the line is topped up to the
         // minimum instead of being refused.
@@ -204,16 +238,23 @@ class CartController extends Controller
 
         // Manage Stock = No মানে প্রোডাক্ট বন্ধ। আগে এই পুরো শাখাটাই স্কিপ হয়ে যেত,
         // তাই থিমে বাটন লুকানো থাকলেও যে কেউ সরাসরি POST দিয়ে অর্ডার করতে পারত।
-        if (!productStockManaged($product)) {
+        if ($isPreorder) {
+            // No stock to check — the pre-order limit takes its place. The
+            // authoritative check (under a row lock) runs when the order is placed.
+            $remaining = $preorders->remaining($product, $variation);
+
+            if ($remaining !== null && $remaining < ($existingLineQty + $quantity)) {
+                return [
+                    'ok' => false,
+                    'payload' => $this->errorResponse($request, "Only {$remaining} pre-order slot(s) left for this product.", 422, ['in_cart' => $existingLineQty > 0])
+                ];
+            }
+        } elseif (!productStockManaged($product)) {
             return [
                 'ok' => false,
                 'payload' => $this->errorResponse($request, 'This product is currently unavailable.', 422)
             ];
-        }
-
-        if ($is_stock === 1) {
-            $stockQty = $this->getAvailableStock($product, (int)$variation_id);
-
+        } elseif ($is_stock === 1) {
             if ($stockQty < $quantity) {
                 return [
                     'ok' => false,
@@ -258,6 +299,16 @@ class CartController extends Controller
                 "is_stock"         => $is_stock,
                 "is_free_shipping" => $product->is_free_shipping
             ];
+        }
+
+        // Pre-order flag, chosen payment mode and what the product page promised.
+        $cart[$cartKey]['is_preorder'] = $isPreorder;
+        if ($isPreorder) {
+            $cart[$cartKey]['payment_mode']      = $preorders->resolvePaymentMode($product, $variation, $request->payment_mode, $finalPrice);
+            $cart[$cartKey]['preorder_advance']  = $preorders->advancePerUnit($product, $variation, $finalPrice);
+            $cart[$cartKey]['preorder_delivery'] = $preorders->deliveryLabel($product, $variation);
+        } else {
+            unset($cart[$cartKey]['payment_mode'], $cart[$cartKey]['preorder_advance'], $cart[$cartKey]['preorder_delivery']);
         }
 
         session()->put('cart', $cart);
@@ -333,7 +384,8 @@ class CartController extends Controller
                 'success' => true,
                 'msg'     => $raisedToMin
                     ? "Minimum order quantity is {$minQty} — {$minQty} added to cart."
-                    : 'Product added to cart successfully!',
+                    : ($isPreorder ? 'Pre-order added to cart successfully!' : 'Product added to cart successfully!'),
+                'is_preorder' => $isPreorder,
                 'html'    => $view,
                 'item'    => $total_item,
                 'amount'  => $total_amount,
@@ -412,7 +464,8 @@ class CartController extends Controller
 
             // Stock Check for Edit
             $is_stock = (int) ($product->is_stock ?? 0);
-            if (!productStockManaged($product)) {
+            $isPreorderLine = !empty($cart[$id]['is_preorder']);
+            if (!$isPreorderLine && !productStockManaged($product)) {
                 return response()->json(['success'=>false, 'msg'=>'This product is currently unavailable.']);
             }
             $minQty = $product->minOrderQty();
@@ -420,7 +473,22 @@ class CartController extends Controller
                 return response()->json(['success'=>false, 'msg'=>"Minimum order quantity for this product is {$minQty}."]);
             }
 
-            if ($is_stock === 1) {
+            if ($isPreorderLine) {
+                // A pre-order line is bounded by the pre-order limit, not by stock.
+                $preorders = app(PreOrderService::class);
+                $variation = $variation_id > 0
+                    ? Variation::where('id', $variation_id)->where('product_id', $product->id)->first()
+                    : null;
+
+                if (!$preorders->isAvailable($product, $variation)) {
+                    return response()->json(['success'=>false, 'msg'=>'Pre-order is closed for this product.']);
+                }
+
+                $remaining = $preorders->remaining($product, $variation);
+                if ($remaining !== null && $remaining < $qty) {
+                    return response()->json(['success'=>false, 'msg'=>"Only {$remaining} pre-order slot(s) left for this product."]);
+                }
+            } elseif ($is_stock === 1) {
                 $stockQty = $this->getAvailableStock($product, $variation_id);
                 if ($stockQty < $qty) {
                     return response()->json(['success'=>false, 'msg'=>'Stock Not Available!']);

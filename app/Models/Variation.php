@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 class Variation extends Model
 {
     use HasFactory;
+    use \App\Models\Concerns\HasPreOrder;
 
     // যেহেতু $guarded খালি রাখা হয়েছে, তাই 'image' সহ যেকোনো ফিল্ড অটোমেটিক সেভ হবে।
     protected $guarded = [];

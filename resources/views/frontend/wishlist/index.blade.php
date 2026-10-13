@@ -63,6 +63,8 @@
             @foreach($items as $product)
                 @php
                     $wlOut      = !productIsOrderable($product);
+                    // out of stock, but the product page takes pre-orders
+                    $wlPreorder = $wlOut && app(\App\Services\PreOrderService::class)->cardState($product) === 'preorder';
                     $wlVariable = $product->type === 'variable';
                     $wlUrl      = route('front.products.show', ['product' => $product->slug ?: $product->id]);
                     $wlVarId    = optional($product->variation)->id ?? optional($product->variations->first())->id;
@@ -71,7 +73,9 @@
                     @include('frontend.products.partials.product_section')
 
                     <div class="wl-actions">
-                        @if($wlOut)
+                        @if($wlPreorder)
+                            <a href="{{ $wlUrl }}" class="wl-act is-primary"><i class="far fa-clock"></i> Pre-Order Now</a>
+                        @elseif($wlOut)
                             <button type="button" class="wl-act is-primary" disabled>Out of Stock</button>
                         @elseif($wlVariable)
                             <a href="{{ $wlUrl }}" class="wl-act is-primary"><i class="far fa-eye"></i> Choose Options</a>

@@ -47,6 +47,8 @@
                         </b>
                     </p>
 
+                    @include('frontend.partials.preorder_summary', ['order' => $order])
+
                     <div class="d-flex justify-content-center flex-wrap gap-3">
                         <a href="{{ route('front.home') }}" class="btn ty-btn rounded-pill px-5 py-3 shadow-sm fs-3" style="font-family: 'Hind Siliguri', sans-serif">হোমে ফিরে যান</a>
                         <a target="_blank" href="{{ route('front.orders.show', ['order' => $order->id, 't' => $order->order_token]) }}" class="btn ty-btn rounded-pill px-5 py-3 shadow-sm fs-3" style="font-family: 'Hind Siliguri', sans-serif;">ইনভয়েস প্রিন্ট করুন</a>

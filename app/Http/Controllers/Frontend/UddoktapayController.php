@@ -32,7 +32,7 @@ class UddoktapayController extends Controller
         $fields = [
             'full_name'    => $order->first_name . ' ' . $order->last_name,
             'email'        => $order->user->email ?? 'customer@example.com',
-            'amount'       => number_format($order->final_amount, 2, '.', ''),
+            'amount'       => number_format($order->payableNow(), 2, '.', ''),
             'metadata'     => [
                 'order_id' => $order->invoice_no
             ],
@@ -111,7 +111,7 @@ class UddoktapayController extends Controller
                     // Never confirm on "COMPLETED" alone — make sure the amount
                     // actually paid matches what the order is worth.
                     $paidAmount = (float) ($responseObject['amount'] ?? 0);
-                    if ($paidAmount + 1 < (float) $order->final_amount) {
+                    if ($paidAmount + 1 < $order->gatewayMinimum()) {
                         \Log::warning('UddoktaPay amount mismatch', ['order' => $order->id, 'paid' => $paidAmount, 'due' => $order->final_amount]);
                         OrderPayment::create([
                             'order_id'       => $order->id,
@@ -123,10 +123,15 @@ class UddoktapayController extends Controller
                         return redirect()->route('front.home')->with('error', 'Paid amount does not match the order total. Please contact support.');
                     }
 
-                    $order->payment_status = 'Paid';
-                    $order->status = 'Confirmed';
                     $order->transaction_id = $request->invoice_id;
-                    $order->save();
+                    if ($order->is_preorder) {
+                        // A pre-order keeps its "Pre-Order" status; only the money is booked.
+                        app(\App\Services\PreOrderService::class)->settleGatewayPayment($order, $paidAmount);
+                    } else {
+                        $order->payment_status = 'Paid';
+                        $order->status = 'Confirmed';
+                        $order->save();
+                    }
 
                     OrderPayment::create([
                         'order_id'       => $order->id,

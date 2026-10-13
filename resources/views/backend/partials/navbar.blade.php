@@ -71,7 +71,7 @@
                 </a>
             </li>
 
-            @php $ordersOpen = (request()->is('admin/orders*') || request()->routeIs('admin.scan_return.*')) ? 'show' : ''; @endphp
+            @php $ordersOpen = (request()->is('admin/orders*') || request()->routeIs('admin.scan_return.*') || request()->routeIs('admin.pre_orders.*')) ? 'show' : ''; @endphp
             @if($isWorker || auth()->user()->can('order.view') || auth()->user()->can('permission.view'))
             <li class="menu-item">
                 <button class="menu-link has-dropdown {{ $ordersOpen ? 'active' : 'collapsed' }}" type="button" 
@@ -98,6 +98,16 @@
                                     </a>
                                 </li>
                             @endforeach
+                        @endif
+
+                        @if($isWorker || auth()->user()->can('order.view'))
+                        <li>
+                            <a href="{{ route('admin.pre_orders.index') }}"
+                               class="sub-link {{ request()->routeIs('admin.pre_orders.*') ? 'active' : '' }}">
+                                <i class="mdi mdi-clock-outline"></i>
+                                <span>Pre-Orders</span>
+                            </a>
+                        </li>
                         @endif
 
                         @unless($isWorker)

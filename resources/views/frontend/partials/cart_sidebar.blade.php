@@ -108,6 +108,14 @@
                         </div>
                         <div class="item-content">
                             <h3 class="item-title"><a href="{{ route('front.products.show',[$item['product_id']])}}">{{ $item['name']}}</a></h3>
+                            @if(!empty($item['is_preorder']))
+                                <div style="margin: 2px 0 4px;">
+                                    <x-preorder-badge />
+                                    @if(!empty($item['preorder_delivery']))
+                                        <small style="display:block; margin-top:3px; font-size:11.5px; color:#92400e; line-height:1.3;">{{ $item['preorder_delivery'] }}</small>
+                                    @endif
+                                </div>
+                            @endif
                             <div class="item-price"><span class="currency-symbol"></span> {{ priceFormate($item['price'])}}</div>
                             <div class="pro-qty item-quantity" data-segment="{{ $segm ?? '' }}" data-href="{{ route('front.carts.edit',[$key])}}">
                                 <span class="dec qtybtn">-</span>

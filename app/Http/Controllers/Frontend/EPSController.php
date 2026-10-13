@@ -103,7 +103,7 @@ class EPSController extends Controller
             'CustomerOrderId'       => (string) $order->invoice_no,
             'merchantTransactionId' => $merchantTransactionId,
             'TransactionTypeId'     => 1, // 1 = Web
-            'totalAmount'           => (float) $order->final_amount,
+            'totalAmount'           => $order->payableNow(),
             'successUrl'            => route('eps.success'),
             'failUrl'               => route('eps.fail'),
             'cancelUrl'             => route('eps.cancel'),
@@ -172,12 +172,17 @@ class EPSController extends Controller
                     foreach (['Amount', 'TransactionAmount', 'amount', 'MerchantAmount', 'PaidAmount'] as $k) {
                         if (isset($data[$k]) && is_numeric($data[$k])) { $paidAmount = (float) $data[$k]; break; }
                     }
-                    if ($paidAmount !== null && $paidAmount + 1 < (float) $order->final_amount) {
+                    if ($paidAmount !== null && $paidAmount + 1 < $order->gatewayMinimum()) {
                         \Log::warning('EPS amount mismatch', ['order' => $order->id, 'paid' => $paidAmount, 'due' => $order->final_amount]);
                         return redirect()->route('front.home')->with('error', 'Paid amount does not match the order total. Please contact support.');
                     }
 
-                    $order->update(['status' => 'confirmed', 'payment_status' => 'paid']);
+                    if ($order->is_preorder) {
+                        // A pre-order keeps its "Pre-Order" status; only the money is booked.
+                        app(\App\Services\PreOrderService::class)->settleGatewayPayment($order, (float) ($paidAmount ?? 0));
+                    } else {
+                        $order->update(['status' => 'confirmed', 'payment_status' => 'paid']);
+                    }
 
                     // Fires only now that EPS has confirmed the payment.
                     $this->firePurchaseEvents($order);

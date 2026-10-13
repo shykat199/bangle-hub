@@ -168,6 +168,12 @@
                 
                 <hr class="my-1">
                 <div class="d-flex justify-content-between bold"><h5>Total</h5><h5>{{ priceFormate($grandTotal) }}</h5></div>
+                @if($item->is_preorder)
+                {{-- Pre-order: paid so far and what is collected on delivery --}}
+                <div class="d-flex justify-content-between text-success"><span>Paid{{ $item->isAdvancePreorder() ? ' (Advance)' : '' }}</span><span>{{ priceFormate($item->advance_paid) }}</span></div>
+                <div class="d-flex justify-content-between bold text-danger"><h5>Due Amount</h5><h5>{{ priceFormate($item->due_amount) }}</h5></div>
+                <div style="font-size: 12px;"><strong>PRE-ORDER</strong>@if($item->preorderDeliveryLabel()) &middot; {{ $item->preorderDeliveryLabel() }}@endif</div>
+                @endif
               </div>
             </div>
           </div>

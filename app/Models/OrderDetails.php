@@ -20,6 +20,23 @@ class OrderDetails extends Model
     use SoftDeletes;
     protected $guarded=[];
 
+    protected $casts = [
+        'is_preorder'              => 'boolean',
+        'preorder_stock_allocated' => 'boolean',
+        'estimated_delivery_start' => 'date',
+        'estimated_delivery_end'   => 'date',
+    ];
+
+    /** "Estimated Delivery: 15–20 October" as promised on this line. */
+    public function deliveryLabel(): ?string
+    {
+        return \App\Services\PreOrderService::formatDelivery(
+            $this->estimated_delivery_text,
+            $this->estimated_delivery_start,
+            $this->estimated_delivery_end
+        );
+    }
+
     public function product(){
 
         return $this->belongsTo(Product::class);

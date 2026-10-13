@@ -50,13 +50,13 @@
   }
   .btn-verify:hover { transform: translateY(-2px); box-shadow: 0 12px 25px rgba(226, 19, 110, 0.4); }
 
-  input[type='text'], input[type='number'], #selectCourier {
+  input[type='text'], input[type='number'], input[type='email'], #selectCourier {
     border: 1px solid color-mix(in srgb, var(--primary) 35%, transparent) !important;
     border-radius: 14px !important;
     box-shadow: 0 6px 16px color-mix(in srgb, var(--primary) 6%, transparent);
     transition: box-shadow .2s ease, border-color .2s ease, transform .2s ease;
   }
-  input[type='text']:focus, input[type='number']:focus, #selectCourier:focus{
+  input[type='text']:focus, input[type='number']:focus, input[type='email']:focus, #selectCourier:focus{
     border-color: color-mix(in srgb, var(--primary) 80%, transparent) !important;
     box-shadow: 0 0 0 4px color-mix(in srgb, var(--primary) 14%, transparent), 0 10px 22px color-mix(in srgb, var(--primary) 12%, transparent) !important;
     outline: none !important; transform: translateY(-1px);
@@ -270,6 +270,12 @@ foreach($cart as $item){
 
 $globalSetting = DB::table('delivery_charges')->first();
 $isWeightBased = $globalSetting && $globalSetting->charge_type == 'weight_based';
+
+// Pre-order cart (never mixed with in-stock items): notice, email field,
+// and — for advance payment — no cash on delivery.
+$preorderCart     = app(\App\Services\PreOrderService::class)->cartSummary($cart);
+$isPreorderCart   = $preorderCart['is_preorder'];
+$isAdvancePreorder = $isPreorderCart && $preorderCart['payment_mode'] === 'advance';
 @endphp
 
 <main class="main-wrapper">
@@ -283,6 +289,25 @@ $isWeightBased = $globalSetting && $globalSetting->charge_type == 'weight_based'
 
             <div class="row justify-content-center g-4">
                 <div class="col-lg-8 col-md-10">
+
+                    @if($isPreorderCart)
+                    <div class="card border-0 shadow-sm rounded-4 p-3 mb-4" style="background:#fffaf0; border:1px solid #fcd9a8 !important;">
+                        <div class="d-flex align-items-start gap-2" style="font-family: 'Hind Siliguri', sans-serif;">
+                            <x-preorder-badge />
+                            <div style="font-size: 14px; line-height: 1.55; color:#4b5563;">
+                                <strong class="text-dark">This is a pre-order.</strong>
+                                The product is not in stock yet and will be shipped as soon as it arrives.
+                                @if(!empty($preorderCart['deliveries']))
+                                    <strong style="color:#92400e;">{{ implode(' / ', $preorderCart['deliveries']) }}</strong>.
+                                @endif
+                                Pre-order items are delivered separately from in-stock items, so they are ordered on their own.
+                                @if($isAdvancePreorder)
+                                    You pay the advance now and the remaining amount on delivery.
+                                @endif
+                            </div>
+                        </div>
+                    </div>
+                    @endif
 
                     <div class="card border-0 shadow-sm rounded-4 p-4 orderDetails bg-white mb-4">
                         @include('frontend.cart.details')
@@ -307,6 +332,14 @@ $isWeightBased = $globalSetting && $globalSetting->charge_type == 'weight_based'
                             <label class="form-label fs-2 text-dark hind">{{ $bangla_text->address_text }}</label>
                             <input type="text" name="shipping_address" id="address" class="form-control rounded-3" placeholder="জেলা, থানা, গ্রাম/মহল্লা" required>
                         </div>
+
+                        @if($isPreorderCart)
+                        <div class="mb-3">
+                            <label class="form-label fs-2 text-dark hind">Email <span class="text-danger">*</span></label>
+                            <input type="email" name="email" id="email" class="form-control rounded-3" required maxlength="200" placeholder="you@example.com" value="{{ auth()->user()->email ?? '' }}">
+                            <small class="text-muted">We email your pre-order confirmation and every delivery update to this address.</small>
+                        </div>
+                        @endif
 
                         <input type="hidden" name="ip_address" id="ip_address" value="">
 
@@ -348,7 +381,12 @@ $isWeightBased = $globalSetting && $globalSetting->charge_type == 'weight_based'
                         <div class="mb-3 mt-4">
                             <h6 class="fw-bold mb-2 text-dark" style="font-family: 'Hind Siliguri', sans-serif;">পেমেন্ট মেথড সিলেক্ট করুন:</h6>
 
-                            @if(isset($info->cod_active) && $info->cod_active == 1)
+                            @if($isAdvancePreorder)
+                                <div class="alert alert-warning py-2 px-3 mb-2" style="font-size: 13.5px; font-family: 'Hind Siliguri', sans-serif;">
+                                    Advance payment of <strong>{{ priceFormate($preorderCart['advance']) }}</strong> is paid now, so Cash on Delivery is not available for this pre-order.
+                                </div>
+                            @endif
+                            @if(isset($info->cod_active) && $info->cod_active == 1 && !$isAdvancePreorder)
                             <div class="card bg-white border shadow-sm rounded-3 mb-2 payment-card-label">
                                 <div class="card-body d-flex align-items-center gap-3 p-3">
                                     <input type="radio" value="Cash on Delivery" id="payment_cod"
@@ -459,6 +497,11 @@ $isWeightBased = $globalSetting && $globalSetting->charge_type == 'weight_based'
                         </div>
 
                         <div id="manual_payment_area" style="display: none;" class="mt-3 mb-3 p-4 rounded-4">
+                            @if($isAdvancePreorder)
+                                <div class="alert alert-warning py-2 px-3" style="font-size: 13.5px;">
+                                    Advance pre-order: send only the advance amount <strong class="preorder_pay_now">{{ priceFormate($preorderCart['advance']) }}</strong> now. The rest is paid on delivery.
+                                </div>
+                            @endif
                             <div class="manual-instruction-box d-flex align-items-center mb-4 p-3 rounded-3">
                                 <i class="fas fa-info-circle fa-2x me-3"></i>
                                 <div>
@@ -779,6 +822,15 @@ function addRecoToCart(productId, btn) {
     });
 }
 
+// Advance pre-order: "Pay now" is the advance, "Due on delivery" is whatever is left of the total.
+function updatePreorderDue(total) {
+    var advance = parseFloat($('#preorder_advance').val() || 0);
+    if (!(advance > 0)) return;
+    advance = Math.min(advance, total);
+    $('.preorder_pay_now').text('৳' + advance.toFixed(0));
+    $('.preorder_due').text('৳' + (total - advance).toFixed(0));
+}
+
 function calculate_total() {
     var subtotal = parseFloat($('#subtotal').val() || 0);
 
@@ -831,6 +883,7 @@ function calculate_total() {
                                 $('.total').text('৳' + total.toFixed(0));
                                 $('input[name="final_amount"]').val(total);
                                 $('#ssl_amount').val(total);
+                                updatePreorderDue(total);
                             }
                         }
                     }
@@ -856,6 +909,7 @@ function calculate_total() {
         $('.total').text('৳' + total.toFixed(0));
         $('input[name="final_amount"]').val(total);
         $('#ssl_amount').val(total);
+        updatePreorderDue(total);
     }
 }
 
@@ -883,6 +937,10 @@ $(document).ready(function(){
   calculate_total();
 
   var selectedPayment = $('input[name="payment_method"]:checked');
+  // An advance pre-order has no Cash on Delivery, so no method may be ticked yet.
+  if(selectedPayment.length === 0){
+      selectedPayment = $('input[name="payment_method"]').first().prop('checked', true);
+  }
   if(selectedPayment.length > 0){
       selectedPayment.trigger('change');
   }
@@ -1140,6 +1198,13 @@ function verifyOtpNow() {
       }
 
       if(!address){ alert('Please enter your address'); return; }
+
+      var emailInput = document.getElementById('email');
+      if(emailInput && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailInput.value.trim())){
+          alert('Please enter a valid email address. Pre-order updates are sent by email.');
+          emailInput.focus();
+          return;
+      }
 
       if(otpSystemEnabled == 1 && !isOtpVerified) {
           sendOtpBeforeSubmit();

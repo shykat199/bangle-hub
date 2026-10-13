@@ -24,6 +24,8 @@ use App\Models\LandingPagePackage;
 use App\Facades\FacebookConversion;
 use App\Facades\TikTokConversion;
 use App\Http\Traits\DetectsOrderSource;
+use App\Services\PreOrderService;
+use App\Exceptions\PreOrderException;
 use Illuminate\Support\Facades\Schema;
 
 class CheckoutController extends Controller
@@ -891,10 +893,16 @@ class CheckoutController extends Controller
             // index on it, but the value was never accepted or saved — so
             // every row held NULL and the duplicate-order guard did nothing.
             'order_token'        => 'nullable|string|max:64',
+            // Only asked for (and required) on pre-orders — see below.
+            'email'              => 'nullable|email|max:200',
         ]);
 
         if (isset($data['delivery_charge_id']) && !is_numeric($data['delivery_charge_id'])) {
             $data['delivery_charge_id'] = null;
+        }
+
+        if (empty($data['email'])) {
+            unset($data['email']);
         }
 
         $user = auth()->user(); 
@@ -945,6 +953,35 @@ class CheckoutController extends Controller
             $msg = 'Your cart is empty.';
             if ($request->ajax()) return response()->json(['success' => false, 'msg' => $msg]);
             return redirect()->route('home')->with('error', $msg);
+        }
+
+        // Pre-order carts: re-check every item against the database (the cart
+        // may be older than the admin closing the pre-order or stock arriving)
+        // and work out the payment mode and advance for this order.
+        $preorders    = app(PreOrderService::class);
+        $preorderPlan = null;
+
+        if ($preorders->cartIsPreorder($carts)) {
+            $fail = function ($msg) use ($request) {
+                if ($request->ajax()) return response()->json(['success' => false, 'msg' => $msg]);
+                return back()->with('error', $msg);
+            };
+
+            try {
+                $preorderPlan = $preorders->planForCart($carts);
+            } catch (PreOrderException $e) {
+                return $fail($e->getMessage());
+            }
+
+            // Pre-order updates (delivery date, ready to ship, due reminder)
+            // are sent by email only, so a pre-order needs an address.
+            if (empty($data['email'])) {
+                return $fail('Please enter your email address — we send your pre-order updates by email.');
+            }
+
+            if ($preorderPlan['payment_mode'] === PreOrderService::MODE_ADVANCE && $preorders->isCashOnDelivery($request->payment_method)) {
+                return $fail('Advance payment needs to be paid now. Please choose an online payment method instead of Cash on Delivery.');
+            }
         }
 
         // Wholesale minimum, re-checked here because the cart may predate the
@@ -1058,7 +1095,7 @@ class CheckoutController extends Controller
                         'purchase_price' => $item['purchase_price'] ?? 0,
                         'discount'       => $item['discount'] ?? 0,
                         'is_stock'       => $item['is_stock'] ?? 1,
-                    ];
+                    ] + ($preorderPlan ? $preorders->lineAttributes($preorderPlan['lines'][$uniqueKey]) : []);
                     $unique_check[$uniqueKey] = count($product_list) - 1;
                 }
             }
@@ -1076,6 +1113,16 @@ class CheckoutController extends Controller
             $data['coupon_code'] = $coupn_discount > 0 ? session('applied_coupon_code') : null;
         }
         $data['status']          = 'pending';
+
+        if ($preorderPlan) {
+            // The order waits in "Pre-Order" until the product arrives. The
+            // due amount is kept in step by the Order model as money comes in.
+            $data['status']         = PreOrderService::STATUS_PREORDER;
+            $data['is_preorder']    = 1;
+            $data['payment_mode']   = $preorderPlan['payment_mode'];
+            $data['advance_amount'] = min($preorderPlan['advance_amount'], max(0, (float) $data['final_amount']));
+            $data['advance_paid']   = 0;
+        }
 
         $isAutoAssignActive = $info->is_auto_assign ?? 0;
         $rules = !empty($info->auto_assign_rules) ? json_decode($info->auto_assign_rules, true) : [];
@@ -1154,6 +1201,12 @@ class CheckoutController extends Controller
                 }
                 if (!empty($product_list)) { 
                     foreach ($product_list as $item) {
+                        if (!empty($item['is_preorder'])) {
+                            // Nothing to take from stock — the line takes pre-order
+                            // slots, checked against the limit under a row lock.
+                            $preorders->reserve((int) $item['product_id'], $item['variation_id'] ?? null, (int) $item['quantity']);
+                            continue;
+                        }
                         $pro = Product::find($item['product_id']);
                         if($this->availableStockFor($pro, $item['variation_id'] ?? null) < $item['quantity']){
                             DB::rollback();
@@ -1171,6 +1224,10 @@ class CheckoutController extends Controller
                 $order->details()->createMany($product_list);
 
                 foreach ($product_list as $item) {
+                    if (!empty($item['is_preorder'])) {
+                        $preorders->reserve((int) $item['product_id'], $item['variation_id'] ?? null, (int) $item['quantity']);
+                        continue;
+                    }
                     $pro = Product::find($item['product_id']);
                     if($this->availableStockFor($pro, $item['variation_id'] ?? null) < $item['quantity']){
                         DB::rollback();
@@ -1207,6 +1264,15 @@ class CheckoutController extends Controller
             DB::commit();
 
             \App\Jobs\SendOrderConfirmationCall::maybeDispatch($order, '(Website Checkout)');
+
+            // Pre-order confirmation email. Gateway orders get it from the
+            // gateway's success callback instead, once the money has arrived.
+            // A manual transfer (it comes with a TrxID, and may be named
+            // "bKash" like the gateway) is confirmed right away.
+            $awaitsGateway = $this->isOnlinePayment($order->payment_method) && empty($request->transaction_id);
+            if ($preorderPlan && !$awaitsGateway) {
+                $preorders->notifyPlaced($order);
+            }
 
             // Same rule as the landing checkout: a gateway order has not been
             // paid for yet, so its Purchase fires from the gateway's success

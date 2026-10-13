@@ -928,6 +928,7 @@ class OrderController extends Controller
             // good, and a later delete skipped the restore because the order
             // already looked cancelled. Mirrors orderStatusUPdate's logic.
             $this->applyStatusStockSwing($order, $statusBeforeEdit, strtolower(trim((string) $order->status)));
+            app(\App\Services\PreOrderService::class)->syncAllocation($order);
 
             // Only touch order lines when the form actually posted product
             // rows. A submit without them (e.g. address-only edit or a broken
@@ -950,7 +951,7 @@ class OrderController extends Controller
 
                 foreach ($delete_line as $line) {
                     if ($orderHoldsStockNow) {
-                        $this->util->increaseProductStock($line->product_id, $line->variation_id, $line->quantity);
+                        $this->util->increaseProductStock($line->product_id, $line->variation_id, $line->quantity, $line);
                     }
                     $line->delete();
                 }
@@ -979,8 +980,18 @@ class OrderController extends Controller
                                 // Give the old variation its full quantity back, then
                                 // take the new quantity from the new one — a plain
                                 // quantity delta on one variation_id would be wrong here.
-                                $this->util->increaseProductStock($line->product_id, $line->variation_id, $line->quantity);
-                                $this->util->decreaseProductStock($line->product_id, $newVariationId, $qty);
+                                $this->util->increaseProductStock($line->product_id, $line->variation_id, $line->quantity, $line);
+                                $this->util->decreaseProductStock($line->product_id, $newVariationId, $qty, $line);
+                            } elseif (!empty($line->is_preorder)) {
+                                // A pre-order line holds slots (and stock only once
+                                // allocated), so the difference moves through the
+                                // line-aware helpers instead of the stock ledger alone.
+                                $qtyDelta = $qty - (int) $line->quantity;
+                                if ($qtyDelta > 0) {
+                                    $this->util->decreaseProductStock($line->product_id, $line->variation_id, $qtyDelta, $line);
+                                } elseif ($qtyDelta < 0) {
+                                    $this->util->increaseProductStock($line->product_id, $line->variation_id, -$qtyDelta, $line);
+                                }
                             } else {
                                 $this->util->updateProductStock($line->product_id, $line->variation_id, $qty, $line->quantity);
                             }
@@ -1075,10 +1086,10 @@ class OrderController extends Controller
 
         foreach ($order->details as $line) {
             if ($nowHolding) {
-                $this->util->decreaseProductStock($line->product_id, $line->variation_id, $line->quantity);
+                $this->util->decreaseProductStock($line->product_id, $line->variation_id, $line->quantity, $line);
                 $this->checkAndSendStockAlert($line->product_id);
             } else {
-                $this->util->increaseProductStock($line->product_id, $line->variation_id, $line->quantity);
+                $this->util->increaseProductStock($line->product_id, $line->variation_id, $line->quantity, $line);
             }
         }
     }
@@ -1100,7 +1111,7 @@ class OrderController extends Controller
             if ($item->details()->count()) {
                 if ($this->orderHoldsStock($item)) {
                     foreach ($item->details as $line) {
-                        $this->util->increaseProductStock($line->product_id, $line->variation_id, $line->quantity);
+                        $this->util->increaseProductStock($line->product_id, $line->variation_id, $line->quantity, $line);
                     }
                 }
                 $item->details()->delete();
@@ -1164,12 +1175,13 @@ class OrderController extends Controller
 
         foreach ($restore_order_details as $restore_details) {
             if ($adjustStock) {
-                $this->util->decreaseProductStock($restore_details->product_id, $restore_details->variation_id, $restore_details->quantity);
+                $this->util->decreaseProductStock($restore_details->product_id, $restore_details->variation_id, $restore_details->quantity, $restore_details);
             }
             $restore_details->restore();
         }
 
         $restore_order->restore();
+        app(\App\Services\PreOrderService::class)->syncAllocation($restore_order);
 
         logActivity('Restore Order', 'Order', "Order #{$request->id} restored.", $request->id);
 
@@ -1200,7 +1212,7 @@ class OrderController extends Controller
 
             foreach ($del_order_details as $del_details) {
                 if ($adjustStock) {
-                    $this->util->increaseProductStock($del_details->product_id, $del_details->variation_id, $del_details->quantity);
+                    $this->util->increaseProductStock($del_details->product_id, $del_details->variation_id, $del_details->quantity, $del_details);
                 }
                 $del_details->forceDelete();
             }
@@ -1271,15 +1283,15 @@ class OrderController extends Controller
         $change_status = strtolower(request('status'));
         
         $inactive_statuses = ['cancelled', 'returning', 'return received', 'return missing', 'cancell', 'return'];
-        $active_statuses = ['pending', 'incomplete', 'on hold', 'scheduled', 'confirmed', 'processing', 'courier complete', 'shipped', 'delivered'];
+        $active_statuses = ['pending', 'pre-order', 'incomplete', 'on hold', 'scheduled', 'confirmed', 'processing', 'ready to ship', 'courier complete', 'shipped', 'delivered'];
 
         foreach ($item->details as $line) {
             if (in_array($old_status, $inactive_statuses) && in_array($change_status, $active_statuses)) {
-                $this->util->decreaseProductStock($line->product_id, $line->variation_id, $line->quantity);
+                $this->util->decreaseProductStock($line->product_id, $line->variation_id, $line->quantity, $line);
                 $this->checkAndSendStockAlert($line->product_id);
             }
             if (in_array($old_status, $active_statuses) && in_array($change_status, $inactive_statuses)) {
-                $this->util->increaseProductStock($line->product_id, $line->variation_id, $line->quantity);
+                $this->util->increaseProductStock($line->product_id, $line->variation_id, $line->quantity, $line);
             }
         }
 
@@ -1298,6 +1310,7 @@ class OrderController extends Controller
         }
 
         $item->save();
+        app(\App\Services\PreOrderService::class)->syncAllocation($item);
 
         $new_data = [
             'status' => $item->status,
@@ -1414,7 +1427,15 @@ class OrderController extends Controller
                 $updateData['payment_status'] = 'Paid';
             }
             
-            Order::whereIn('id', $order_ids)->update($updateData);
+            // Pre-orders are saved one by one: a query-level update skips the
+            // model hooks that allocate stock and email the customer.
+            $preorderIds = Order::whereIn('id', $order_ids)->where('is_preorder', 1)->pluck('id')->all();
+
+            Order::whereIn('id', $order_ids)->whereNotIn('id', $preorderIds)->update($updateData);
+
+            foreach (Order::whereIn('id', $preorderIds)->get() as $preorder) {
+                $preorder->fill($updateData)->save();
+            }
             
             foreach ($oldOrders as $o) {
                 $old_status = $o->status;
@@ -1446,7 +1467,7 @@ class OrderController extends Controller
         $this->assertOrdersAccess(request('order_ids'));
 
         $inactive_statuses = ['cancelled', 'returning', 'return received', 'return missing', 'cancell', 'return'];
-        $active_statuses = ['pending', 'incomplete', 'on hold', 'scheduled', 'confirmed', 'processing', 'courier complete', 'shipped', 'delivered'];
+        $active_statuses = ['pending', 'pre-order', 'incomplete', 'on hold', 'scheduled', 'confirmed', 'processing', 'ready to ship', 'courier complete', 'shipped', 'delivered'];
         
         $change_status = strtolower(request('status'));
 
@@ -1458,11 +1479,11 @@ class OrderController extends Controller
 
             foreach ($item->details as $line) {
                 if (in_array($old_status, $inactive_statuses) && in_array($change_status, $active_statuses)) {
-                    $this->util->decreaseProductStock($line->product_id, $line->variation_id, $line->quantity);
+                    $this->util->decreaseProductStock($line->product_id, $line->variation_id, $line->quantity, $line);
                     $this->checkAndSendStockAlert($line->product_id);
                 }
                 if (in_array($old_status, $active_statuses) && in_array($change_status, $inactive_statuses)) {
-                    $this->util->increaseProductStock($line->product_id, $line->variation_id, $line->quantity);
+                    $this->util->increaseProductStock($line->product_id, $line->variation_id, $line->quantity, $line);
                 }
             }
 
@@ -1481,6 +1502,7 @@ class OrderController extends Controller
             }
 
             $item->save();
+            app(\App\Services\PreOrderService::class)->syncAllocation($item);
 
             $new_data = ['status' => $item->status, 'payment_status' => $item->payment_status, 'assign_user_id' => $item->assign_user_id];
 
@@ -1714,7 +1736,7 @@ class OrderController extends Controller
             if (in_array(strtolower($new_status), ['returning', 'cancelled', 'cancell']) && !in_array($old_status, ['returning', 'return received', 'cancelled', 'cancell', 'return missing'])) {
                 if ($order->details()->count()) {
                     foreach ($order->details as $line) {
-                        $this->util->increaseProductStock($line->product_id, $line->variation_id, $line->quantity);
+                        $this->util->increaseProductStock($line->product_id, $line->variation_id, $line->quantity, $line);
                     }
                 }
             }
@@ -1863,7 +1885,7 @@ class OrderController extends Controller
                 if ($item->details()->count()) {
                     if ($this->orderHoldsStock($item)) {
                         foreach ($item->details as $line) {
-                            $this->util->increaseProductStock($line->product_id, $line->variation_id, $line->quantity);
+                            $this->util->increaseProductStock($line->product_id, $line->variation_id, $line->quantity, $line);
                         }
                     }
                     $item->details()->delete();
@@ -2940,7 +2962,7 @@ class OrderController extends Controller
 
             if ($order->details()->count()) {
                 foreach ($order->details as $line) {
-                    $this->util->increaseProductStock($line->product_id, $line->variation_id, $line->quantity);
+                    $this->util->increaseProductStock($line->product_id, $line->variation_id, $line->quantity, $line);
                 }
             }
 

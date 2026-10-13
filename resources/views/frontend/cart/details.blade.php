@@ -3,6 +3,9 @@
     use App\Models\Information;
     use Illuminate\Support\Str;
     $info = Information::first();
+
+    // Pre-order cart: payment mode and the advance to pay now (a cart is never mixed).
+    $preorderCart = app(\App\Services\PreOrderService::class)->cartSummary($cart);
 @endphp
 
 <style>
@@ -159,6 +162,12 @@
                         {{ Str::words($item['name'], 2, '...') }}
                     </span>
                     
+                    @if(!empty($item['is_preorder']))
+                        <span class="mt-1"><x-preorder-badge /></span>
+                        @if(!empty($item['preorder_delivery']))
+                            <small class="text-muted" style="font-size: 11px; line-height: 1.3;">{{ $item['preorder_delivery'] }}</small>
+                        @endif
+                    @endif
                     @if(isset($item['is_free_shipping']) && $item['is_free_shipping'])
                         <span class="badge mt-1" style="width: fit-content; font-size: 10px; background: {{ themeAccent() }}; color: #fff;">Free Ship</span>
                     @endif
@@ -241,6 +250,18 @@
       </span>
     </div>
     
+    @if($preorderCart['is_preorder'] && $preorderCart['payment_mode'] === 'advance')
+        {{-- Advance pre-order: only the advance is paid now; calculate_total() keeps the due in step with delivery charge / coupon --}}
+        <div class="d-flex justify-content-between mt-2" style="font-family: 'Hind Siliguri', sans-serif;">
+          <span class="fs-4 fw-bold" style="color:#15803d;">Pay now (Advance):</span>
+          <span class="fs-4 fw-bold preorder_pay_now" style="color:#15803d;">{{ priceFormate($preorderCart['advance']) }}</span>
+        </div>
+        <div class="d-flex justify-content-between mt-1" style="font-family: 'Hind Siliguri', sans-serif;">
+          <span class="fs-4 fw-bold text-danger">Due on delivery:</span>
+          <span class="fs-4 fw-bold text-danger preorder_due">{{ priceFormate(max(0, $total - (session('coupon_discount') ?? 0) - $preorderCart['advance'])) }}</span>
+        </div>
+        <input type="hidden" id="preorder_advance" value="{{ $preorderCart['advance'] }}">
+    @endif
     <input type="hidden" value="{{ $total }}" id="subtotal">
     <input type="hidden" value="{{ $total }}" name="amount" id="amount">
   </article>

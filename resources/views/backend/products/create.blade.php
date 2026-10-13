@@ -223,6 +223,11 @@
             </div>
           </div>
 
+          <div class="soft-card mb-3">
+            <div class="section-title">Pre-Order</div>
+            @include('backend.products.partials.preorder_fields')
+          </div>
+
           <div id="variable_table_two" class="soft-card mb-3">
             <div class="section-title">Variations</div>
             <div class="table-responsive">
@@ -236,6 +241,7 @@
                     <th style="width:15%;">Price</th>
                     <th style="width:15%;">Discount Price</th>
                     <th class="stock-col" style="width:15%;">Stock Quantity</th>
+                    <th>Pre-Order</th>
                     <th style="width:10%;">Action</th>
                   </tr>
                 </thead>
@@ -267,6 +273,9 @@
                     <td data-label="Price"><input class="variable_sell_price form-control" type="number" step="any" name="price[]" placeholder="Price"></td>
                     <td data-label="Discount"><input class="variable_dis_price form-control" type="number" step="any" name="after_discount_price[]" placeholder="Discount Price"></td>
                     <td data-label="Qty" class="stock-col"><input class="variant_qty form-control" type="number" step="any" name="quantity[]" value="1" placeholder="Stock Quantity"></td>
+                    <td data-label="Pre-Order">
+                      @include('backend.products.partials.preorder_variation_cell', ['v' => null])
+                    </td>
                     <td data-label="Action">
                       <a class="btn btn-sm btn-primary add_row"><i class="mdi mdi-plus"></i></a>
                     </td>
@@ -488,6 +497,7 @@ $(function () {
         <td data-label="Price"><input class="variable_sell_price form-control" type="number" step="any" name="price[]" value="${s}" placeholder="Price"></td>
         <td data-label="Discount"><input class="variable_dis_price form-control" type="number" step="any" name="after_discount_price[]" value="${d}" placeholder="Discount Price"></td>
         <td data-label="Qty" class="stock-col"><input class="variant_qty form-control" type="number" step="any" name="quantity[]" value="${q || 1}" placeholder="Stock Quantity"></td>
+        <td data-label="Pre-Order">${window.preorderVariationCell()}</td>
         <td data-label="Action">
           <a class="btn btn-sm btn-primary add_row"><i class="mdi mdi-plus"></i></a>
           <a class="btn btn-sm btn-danger remove_row"><i class="mdi mdi-delete"></i></a>

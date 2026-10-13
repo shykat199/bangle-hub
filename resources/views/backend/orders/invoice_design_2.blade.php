@@ -175,6 +175,20 @@
                     <th>Grand Total:</th>
                     <td>{{ number_format($grand_total, 2) }} TK</td>
                 </tr>
+                @if($item->is_preorder)
+                {{-- Pre-order: paid so far and what is collected on delivery --}}
+                <tr>
+                    <th>Paid{{ $item->isAdvancePreorder() ? ' (Advance)' : '' }}:</th>
+                    <td style="color: #15803d;">{{ number_format($item->advance_paid, 2) }}</td>
+                </tr>
+                <tr>
+                    <th style="color: #dc2626;">Due Amount:</th>
+                    <td style="color: #dc2626; font-weight: 700;">{{ number_format($item->due_amount, 2) }} TK</td>
+                </tr>
+                <tr>
+                    <td colspan="2" style="font-size: 12px; text-align: right;"><strong>PRE-ORDER</strong>@if($item->preorderDeliveryLabel()) &middot; {{ $item->preorderDeliveryLabel() }}@endif</td>
+                </tr>
+                @endif
             </table>
         </div>
 

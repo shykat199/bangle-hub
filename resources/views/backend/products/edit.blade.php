@@ -471,6 +471,14 @@
 
           <hr class="my-3">
 
+          <div class="section-heading">
+            <h5>Pre-Order</h5>
+            <span class="badge-tag">Optional</span>
+          </div>
+          @include('backend.products.partials.preorder_fields', ['item' => $item])
+
+          <hr class="my-3">
+
           <div id="variable_table_two" class="{{ $item->type=='variable' ? '' : 'd-none' }}">
             <div class="section-heading mb-2">
               <h5>Variations (Size / Color / Image)</h5>
@@ -488,6 +496,7 @@
                     <th style="width:15%;">Price</th>
                     <th style="width:15%;">Discount Price</th>
                     <th class="stock-col" style="width:15%;">Stock Qty</th>
+                    <th>Pre-Order</th>
                     <th style="width:10%;">Action</th>
                   </tr>
                 </thead>
@@ -536,6 +545,9 @@
                            আগে variations.stock_quantity দেখাত বলে পুরনো সংখ্যা আসত। --}}
                       <input class="quantity form-control" type="number" step="any" value="{{ (int)($v->stocks->sum('quantity') ?: ($v->stock_quantity ?? 0)) }}" name="quantity[]" placeholder="Qty">
                     </td>
+                    <td data-label="Pre-Order">
+                      @include('backend.products.partials.preorder_variation_cell', ['v' => $v])
+                    </td>
                     <td data-label="Action">
                       <a class="action-icon btn btn-sm btn-primary add_moore"><i class="mdi mdi-plus"></i></a>
                       <a class="action-icon btn btn-sm btn-danger remove"><i class="mdi mdi-delete"></i></a>
@@ -576,6 +588,9 @@
                     </td>
                     <td data-label="Qty" class="stock-col">
                       <input class="quantity form-control" type="number" step="any" name="quantity[]" placeholder="Qty">
+                    </td>
+                    <td data-label="Pre-Order">
+                      @include('backend.products.partials.preorder_variation_cell', ['v' => null])
                     </td>
                     <td data-label="Action">
                       <a class="action-icon btn btn-sm btn-primary add_moore"><i class="mdi mdi-plus"></i></a>
@@ -933,6 +948,7 @@ $(function(){
       <td data-label="Price"><input class="variable_sell_price form-control" type="number" step="any" value="${s}" name="price[]" placeholder="Price"></td>
       <td data-label="After Discount"><input class="variable_dis_price form-control" type="number" step="any" value="${d}" name="after_discount_price[]" placeholder="After Discount"></td>
       <td data-label="Qty" class="stock-col"><input class="quantity form-control" type="number" step="any" value="${q}" name="quantity[]" placeholder="Qty"></td>
+      <td data-label="Pre-Order">${window.preorderVariationCell()}</td>
       <td data-label="Action">
         <a class="action-icon btn btn-sm btn-primary add_moore"><i class="mdi mdi-plus"></i></a>
         <a class="action-icon btn btn-sm btn-danger remove"><i class="mdi mdi-delete"></i></a>

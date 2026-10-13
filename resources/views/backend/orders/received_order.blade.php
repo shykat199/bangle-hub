@@ -45,6 +45,9 @@
                 <td class="px-1">
                     <div class="cell-stack lh-sm text-nowrap">
                         <span class="fw-bold text-primary">#{{ $item->invoice_no }}</span>
+                        @if($item->is_preorder)
+                            <span class="badge d-block mt-1" style="background:#f59e0b; color:#fff; font-size: 10px; letter-spacing: .5px;" title="{{ $item->preorderDeliveryLabel() }}"><i class="mdi mdi-clock-outline"></i> PRE-ORDER</span>
+                        @endif
                         <span class="text-muted d-block" style="font-size: 12px;">ID: {{ $item->id }}</span>
                         <span class="text-muted d-block" style="font-size: 11px;">{{ $item->created_at->format('d M y') }}</span>
                         <span class="text-muted d-block" style="font-size: 10px;"><i class="mdi mdi-clock-outline"></i> {{ $item->created_at->format('h:i A') }}</span>
@@ -128,6 +131,8 @@
                         @php
                             $sColor = 'bg-secondary'; $s = strtolower($item->status);
                             if($s == 'pending') $sColor = 'bg-warning text-dark';
+                            elseif($s == 'pre-order') $sColor = 'bg-warning text-dark';
+                            elseif($s == 'ready to ship') $sColor = 'bg-success text-white';
                             elseif($s == 'confirmed') $sColor = 'bg-primary text-white';
                             elseif($s == 'processing') $sColor = 'bg-info text-white';
                             elseif(in_array($s, ['shipped','courier'])) $sColor = 'bg-dark text-white';
@@ -218,6 +223,10 @@
                 <td class="px-1 text-end text-nowrap">
                     <div class="d-flex flex-column align-items-end gap-1">
                         <span class="fw-bold text-dark" style="font-size: 13px;">৳{{ (int) $item->final_amount }}</span>
+                        @if($item->is_preorder)
+                            <span class="text-success" style="font-size: 10px;">Paid: ৳{{ (int) $item->advance_paid }}</span>
+                            <span class="text-danger fw-bold" style="font-size: 10px;">Due: ৳{{ (int) $item->due_amount }}</span>
+                        @endif
                         @if(isset($item->shipping_charge) && $item->shipping_charge == 0)
                             <span class="badge bg-success text-center" style="font-size: 10px; padding: 3px 4px;"><i class="mdi mdi-truck-check"></i> Free Ship</span>
                         @else

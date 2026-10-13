@@ -123,6 +123,8 @@
         </div>
       </div>
 
+      @include('frontend.partials.preorder_summary', ['order' => $item])
+
       <div class="table-responsive border rounded">
         <table class="table table-striped table-borderless mb-0">
           <thead>
@@ -218,6 +220,17 @@
               <h5>Total</h5>
               <h5>{{ priceFormate($grandTotal) }}</h5>
             </div>
+
+            @if($item->is_preorder)
+            <div class="d-flex justify-content-between text-success">
+              <h6>Paid{{ $item->isAdvancePreorder() ? ' (Advance)' : '' }}</h6>
+              <h6>{{ priceFormate($item->advance_paid) }}</h6>
+            </div>
+            <div class="d-flex justify-content-between text-danger fw-bold">
+              <h5>Due Amount</h5>
+              <h5>{{ priceFormate($item->due_amount) }}</h5>
+            </div>
+            @endif
           </div>
         </div>
 

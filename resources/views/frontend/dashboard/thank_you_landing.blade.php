@@ -54,6 +54,8 @@
                         </b>
                     </p>
 
+                    @include('frontend.partials.preorder_summary', ['order' => $order])
+
                     <div class="d-flex justify-content-center flex-wrap gap-3">
                         <a href="{{ route('front.home') }}" 
                            class="btn rounded-pill px-5 py-3 shadow-sm fs-3"

@@ -326,6 +326,22 @@
             <div class="fs-4 fw-bold text-primary">৳ <span id="drawer_grand_total">{{ (int)$order->final_amount }}</span></div>
             <input type="hidden" name="final_amount" id="drawer_final_amount_input" value="{{ $order->final_amount }}">
         </div>
+
+        @if($order->is_preorder)
+        {{-- Pre-order: what was promised and what is still to collect (figures as last saved) --}}
+        <div class="mt-2 p-2 rounded" style="background:#fffaf0; border:1px solid #fcd9a8; font-size: 13px;">
+            <div class="d-flex justify-content-between align-items-center mb-1">
+                <span class="badge" style="background:#f59e0b; color:#fff; letter-spacing: .5px;"><i class="mdi mdi-clock-outline"></i> PRE-ORDER</span>
+                <span class="fw-bold" style="color:#92400e;">{{ $order->preorderDeliveryLabel() ?: 'No delivery estimate' }}</span>
+            </div>
+            <div class="d-flex justify-content-between"><span>Payment mode</span><span class="fw-bold">{{ $order->isAdvancePreorder() ? 'Advance' : 'Full' }}</span></div>
+            @if($order->isAdvancePreorder())
+                <div class="d-flex justify-content-between"><span>Advance required</span><span class="fw-bold">৳ {{ number_format($order->advance_amount, 2) }}</span></div>
+            @endif
+            <div class="d-flex justify-content-between text-success"><span>Paid</span><span class="fw-bold">৳ {{ number_format($order->advance_paid, 2) }}</span></div>
+            <div class="d-flex justify-content-between text-danger"><span class="fw-bold">Due</span><span class="fw-bold">৳ {{ number_format($order->due_amount, 2) }}</span></div>
+        </div>
+        @endif
     </div>
 
     <div class="mt-3">

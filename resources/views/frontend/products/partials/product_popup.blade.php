@@ -326,10 +326,18 @@
           </div>
         </div>
 
+        @php
+            // Quick view sells in-stock items only; a pre-order (delivery date,
+            // payment options) is placed from the product page.
+            $popupPreorder = app(\App\Services\PreOrderService::class)->cardState($singleProduct) === 'preorder';
+        @endphp
         <div class="pbadges">
           <span class="pbadge pmodal_stock_badge {{ $inStock ? 'green' : 'red' }}">
             {{ $inStock ? $stockQty : 0 }} Items left
           </span>
+          @if($popupPreorder)
+            <x-preorder-badge />
+          @endif
 
           @if($hasDiscount)
             <span class="pbadge blue pmodal_disc_badge">{{ $discPercent }}% Off</span>
@@ -426,6 +434,12 @@
                 @endif
               </button>
             </div>
+            @if($popupPreorder)
+              <a href="{{ route('front.products.show', ['product' => $singleProduct->slug ?: $singleProduct->id]) }}"
+                 class="btn order_now_btn" style="width:100%; margin-top:10px; display:flex; align-items:center; justify-content:center; text-decoration:none;">
+                <i class="far fa-clock"></i> &nbsp; Pre-Order Now
+              </a>
+            @endif
           </div>
 
           {{-- ✅ FIXED: Courier Card Free Shipping Logic same as show.blade.php --}}

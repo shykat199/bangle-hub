@@ -107,7 +107,7 @@ class NagadController extends Controller
                     'merchantId'   => $merchantId,
                     'orderId'      => $InvoiceNo,
                     'currencyCode' => '050',
-                    'amount'       => number_format($order->final_amount, 2, '.', ''),
+                    'amount'       => number_format($order->payableNow(), 2, '.', ''),
                     'challenge'    => $plainResponse['challenge']
                 ];
 
@@ -164,7 +164,7 @@ class NagadController extends Controller
                         // Verify the amount Nagad actually collected covers the
                         // order total before marking it paid.
                         $paidAmount = (float) ($vData['amount'] ?? 0);
-                        if ($paidAmount > 0 && $paidAmount + 1 < (float) $order->final_amount) {
+                        if ($paidAmount > 0 && $paidAmount + 1 < $order->gatewayMinimum()) {
                             Log::warning('Nagad amount mismatch', ['order' => $order->id, 'paid' => $paidAmount, 'due' => $order->final_amount]);
                             OrderPayment::create([
                                 'order_id'       => $order->id,
@@ -176,10 +176,15 @@ class NagadController extends Controller
                             return redirect()->route('front.home')->with('error', 'Paid amount does not match the order total. Please contact support.');
                         }
 
-                        $order->payment_status = 'Paid';
-                        $order->status = 'Confirmed';
                         $order->transaction_id = $vData['paymentRefId'] ?? $request->payment_ref_id;
-                        $order->save();
+                        if ($order->is_preorder) {
+                            // A pre-order keeps its "Pre-Order" status; only the money is booked.
+                            app(\App\Services\PreOrderService::class)->settleGatewayPayment($order, $paidAmount);
+                        } else {
+                            $order->payment_status = 'Paid';
+                            $order->status = 'Confirmed';
+                            $order->save();
+                        }
 
                         OrderPayment::create([
                             'order_id'       => $order->id,

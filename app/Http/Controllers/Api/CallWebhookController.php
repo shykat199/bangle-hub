@@ -19,7 +19,7 @@ class CallWebhookController extends Controller
     const ACTIONABLE_STATUSES = ['pending', 'incomplete', 'on hold', 'scheduled'];
 
     // Mirrors OrderController: leaving an active status returns the stock.
-    const ACTIVE_STATUSES = ['pending', 'incomplete', 'on hold', 'scheduled', 'confirmed', 'processing', 'courier complete', 'shipped', 'delivered'];
+    const ACTIVE_STATUSES = ['pending', 'pre-order', 'incomplete', 'on hold', 'scheduled', 'confirmed', 'processing', 'ready to ship', 'courier complete', 'shipped', 'delivered'];
 
     public function handleManyDialWebhook(Request $request)
     {
@@ -148,7 +148,7 @@ class CallWebhookController extends Controller
         try {
             $util = new Util();
             foreach ($order->details as $line) {
-                $util->increaseProductStock($line->product_id, $line->variation_id, $line->quantity);
+                $util->increaseProductStock($line->product_id, $line->variation_id, $line->quantity, $line);
             }
         } catch (\Exception $e) {
             Log::error('ManyDial auto-cancel stock restore failed for Order ID: ' . $order->id . ' — ' . $e->getMessage());

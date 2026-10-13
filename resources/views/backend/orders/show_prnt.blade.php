@@ -209,6 +209,21 @@
               <h5>Total</h5>
               <h5>{{ priceFormate($grandTotal) }}</h5>
             </div>
+
+            @if($item->is_preorder)
+            {{-- Pre-order: paid so far and what is collected on delivery --}}
+            <div class="d-flex justify-content-between text-success">
+              <h6>Paid{{ $item->isAdvancePreorder() ? ' (Advance)' : '' }}</h6>
+              <h6>{{ priceFormate($item->advance_paid) }}</h6>
+            </div>
+            <div class="d-flex justify-content-between fw-bold text-danger">
+              <h5>Due Amount</h5>
+              <h5>{{ priceFormate($item->due_amount) }}</h5>
+            </div>
+            <div style="font-size: 12px; margin-top: 4px;">
+              <strong>PRE-ORDER</strong>@if($item->preorderDeliveryLabel()) &middot; {{ $item->preorderDeliveryLabel() }}@endif
+            </div>
+            @endif
           </div>
         </div>
         {{-- ✅✅✅ BACKEND CALCULATION FIX END ✅✅✅ --}}

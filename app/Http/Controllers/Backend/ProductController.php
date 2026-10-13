@@ -372,7 +372,7 @@ class ProductController extends Controller
             ->delete();
     }
 
-    public function store(Request $request)
+    public function store(Request $request, \App\Http\Requests\Backend\ProductPreOrderRequest $preorder)
     {
         ini_set('memory_limit', '512M');
 
@@ -464,6 +464,7 @@ class ProductController extends Controller
             $product->stock_quantity = max(0, $mainQty); // FIX: 0 দিলে 0-ই থাকবে (আগে জোর করে 1 হতো)
             $product->is_stock = (int) ($request->is_stock ?? 0);
             $product->is_video_active = (int) ($request->is_video_active ?? 1);
+            $product->fill($preorder->productData()); // Pre-Order section
             $product->save();
 
             if (isset($request->images)) {
@@ -527,6 +528,7 @@ class ProductController extends Controller
                     $var->price = $prices[$i] ?? 0;
                     $var->after_discount_price = $after[$i] ?? null;
                     $var->stock_quantity = $qty; // Force save
+                    $var->fill($preorder->variationData($i)); // this row's Pre-Order settings
                     $var->save();
 
                     $this->setVariationStock($product->id, $var->id, $qty);
@@ -638,6 +640,7 @@ class ProductController extends Controller
             $new->image = $this->copyProductFile($product->image, ['products', 'thumb_products'], $copiedFiles);
             $new->optional_image = $this->copyProductFile($product->optional_image, ['products'], $copiedFiles);
             $new->user_id = auth()->id();
+            $new->preorder_sold_qty = 0; // the copy has no pre-orders of its own
             $new->save();
             $new->categories()->sync($product->categories()->pluck('categories.id')->all());
 
@@ -653,6 +656,7 @@ class ProductController extends Controller
             foreach ($product->variations as $variation) {
                 $newVariation = $variation->replicate();
                 $newVariation->product_id = $new->id;
+                $newVariation->preorder_sold_qty = 0;
                 $newVariation->image = $this->copyProductFile($variation->image, ['products'], $copiedFiles);
                 $newVariation->save();
 
@@ -789,7 +793,7 @@ class ProductController extends Controller
         return $newName;
     }
 
-    public function update(Request $request, $id)
+    public function update(Request $request, \App\Http\Requests\Backend\ProductPreOrderRequest $preorder, $id)
     {
         ini_set('memory_limit', '512M'); 
 
@@ -902,6 +906,7 @@ class ProductController extends Controller
             $product->is_video_active = (int) ($request->is_video_active ?? 1);
             $product->after_discount = $request->after_discount;
             $product->dicount_amount = $request->dicount_amount;
+            $product->fill($preorder->productData()); // Pre-Order section (the sold counter is never touched here)
             $product->save();
 
             if (isset($request->images)) {
@@ -1037,6 +1042,7 @@ class ProductController extends Controller
                     $variable->price = $prices[$i] ?? 0;
                     $variable->after_discount_price = $afterPrices[$i] ?? null;
                     $variable->stock_quantity = $qty; // Force save
+                    $variable->fill($preorder->variationData($i));
                     $variable->save();
 
                     $this->setVariationStock($product->id, $variable->id, $qty);
@@ -1051,6 +1057,7 @@ class ProductController extends Controller
                     $newVar->price = $prices[$i] ?? 0;
                     $newVar->after_discount_price = $afterPrices[$i] ?? null;
                     $newVar->stock_quantity = $qty; // Force save
+                    $newVar->fill($preorder->variationData($i));
                     $newVar->save();
 
                     $this->setVariationStock($product->id, $newVar->id, $qty);

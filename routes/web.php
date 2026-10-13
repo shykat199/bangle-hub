@@ -415,6 +415,15 @@ Route::group(['prefix' => 'admin','middleware' => ['auth','staff'],'as'=>'admin.
     Route::post('/category-sort',[CategoryController::class,'saveSort'])->name('categories.saveSort');
     Route::resource('categories',CategoryController::class);
     Route::resource('sliders',SliderController::class);
+    // Pre-Orders: list + filters, status moves, delivery date change, advance / due reminder.
+    Route::controller(\App\Http\Controllers\Backend\PreOrderController::class)->prefix('pre-orders')->name('pre_orders.')->group(function () {
+        Route::get('/', 'index')->name('index');
+        Route::post('/status', 'updateStatus')->name('status');
+        Route::post('/delivery-date', 'updateDeliveryDate')->name('delivery_date');
+        Route::post('/due-reminder', 'sendDueReminder')->name('due_reminder');
+        Route::post('/{id}/advance-received', 'markAdvanceReceived')->name('advance_received');
+    });
+
     Route::resource('orders',OrderController::class);
     Route::resource('users',UsersController::class)->middleware('deny.worker');
     Route::resource('roles',RoleController::class)->middleware('deny.worker');

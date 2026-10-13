@@ -486,6 +486,7 @@
                                                       elseif(str_contains($st, 'complete') || str_contains($st, 'delivered')) $statusClass .= ' status-completed';
                                                       elseif(str_contains($st, 'cancel')) $statusClass .= ' status-cancelled';
                                                       elseif(str_contains($st, 'pending')) $statusClass .= ' status-pending';
+                                                      elseif(str_contains($st, 'pre-order') || str_contains($st, 'ready')) $statusClass .= ' status-processing';
                                                     @endphp
 
                                                     <tr>
@@ -497,11 +498,26 @@
                                                             <span class="dot"></span>
                                                             {{ $item->status }}
                                                           </span>
+                                                          @if($item->is_preorder)
+                                                            <div style="margin-top:6px;">
+                                                              <x-preorder-badge />
+                                                              @if($item->preorderDeliveryLabel())
+                                                                <small style="display:block;margin-top:4px;color:#92400e;font-weight:600;">{{ $item->preorderDeliveryLabel() }}</small>
+                                                              @endif
+                                                            </div>
+                                                          @endif
                                                         </td>
 
                                                         <td data-label="Total">
                                                           {{ priceFormate($item->final_amount) }}
                                                           <span style="color:var(--muted);font-weight:700;">for {{ $item->details->count() }} items</span>
+                                                          @if($item->is_preorder)
+                                                            <small style="display:block;margin-top:4px;">
+                                                              {{ $item->isAdvancePreorder() ? 'Advance' : 'Full' }} payment ·
+                                                              Paid {{ priceFormate($item->advance_paid) }} ·
+                                                              <strong style="color:#b91c1c;">Due {{ priceFormate($item->due_amount) }}</strong>
+                                                            </small>
+                                                          @endif
                                                         </td>
 
                                                         <td data-label="Actions">

@@ -101,7 +101,34 @@ class Util {
 	}
 
 
-	public function increaseProductStock($product_id,$variation_id, $stock){
+	/**
+	 * A pre-order line holds a pre-order slot until its order leaves the
+	 * "Pre-Order" status; only after that (preorder_stock_allocated) does it
+	 * hold real stock as well. Callers that move stock for an order line pass
+	 * the line as the last argument so the right ledger moves — without it a
+	 * cancelled pre-order would hand back stock it never took.
+	 *
+	 * Returns true when the line held nothing but a slot, i.e. the stock
+	 * ledgers must be left alone.
+	 */
+	private function movePreorderSlot($line, $product_id, $variation_id, $qty, bool $take): bool
+	{
+		if (!$line || empty($line->is_preorder)) return false;
+
+		$preorders = app(\App\Services\PreOrderService::class);
+
+		if ($take) {
+			$preorders->reserve((int) $product_id, $variation_id, (int) $qty, false);
+		} else {
+			$preorders->release((int) $product_id, $variation_id, (int) $qty);
+		}
+
+		return empty($line->preorder_stock_allocated);
+	}
+
+	public function increaseProductStock($product_id,$variation_id, $stock, $line = null){
+
+		if ($this->movePreorderSlot($line, $product_id, $variation_id, $stock, false)) return true;
 
 		$this->adjustProductStockColumn($product_id, +$stock);
 
@@ -160,7 +187,9 @@ class Util {
 	}
 
 
-	public function decreaseProductStock($product_id, $variation_id, $stock){
+	public function decreaseProductStock($product_id, $variation_id, $stock, $line = null){
+
+		if ($this->movePreorderSlot($line, $product_id, $variation_id, $stock, true)) return true;
 
 		$this->adjustProductStockColumn($product_id, -$stock);
 

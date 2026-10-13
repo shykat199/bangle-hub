@@ -136,8 +136,29 @@ class SslCommerzPaymentController extends Controller
 
         $final_total_amount = ($product_total + $shipping_charge) - $coupon_discount;
 
+        // Pre-order cart: same re-check and rules as the main checkout. The
+        // customer is charged the advance now when that is the chosen mode.
+        $preorders = app(\App\Services\PreOrderService::class);
+        $preorderPlan = null;
+        if (empty($request->prd_id) && $preorders->cartIsPreorder($cartItems)) {
+            try {
+                $preorderPlan = $preorders->planForCart($cartItems);
+            } catch (\App\Exceptions\PreOrderException $e) {
+                return back()->with('error', $e->getMessage());
+            }
+
+            if (!filter_var((string) $request->email, FILTER_VALIDATE_EMAIL)) {
+                return back()->with('error', 'Please enter your email address — we send your pre-order updates by email.');
+            }
+        }
+
+        $advance_amount = $preorderPlan ? min($preorderPlan['advance_amount'], max(0, $final_total_amount)) : 0;
+        $charge_now = ($preorderPlan && $preorderPlan['payment_mode'] === 'advance' && $advance_amount > 0)
+            ? $advance_amount
+            : $final_total_amount;
+
         $post_data = array();
-        $post_data['total_amount'] = $final_total_amount;
+        $post_data['total_amount'] = $charge_now;
         $post_data['currency'] = "BDT";
         $post_data['tran_id'] = uniqid(); 
 
@@ -194,6 +215,16 @@ class SslCommerzPaymentController extends Controller
                 'updated_at'        => now(),
             ];
 
+            if ($preorderPlan) {
+                // Stays "Pending" until SSLCommerz confirms the payment, then
+                // becomes "Pre-Order" (see success()/ipn()).
+                $orderData['is_preorder']    = 1;
+                $orderData['payment_mode']   = $preorderPlan['payment_mode'];
+                $orderData['advance_amount'] = $advance_amount;
+                $orderData['advance_paid']   = 0;
+                $orderData['due_amount']     = $final_total_amount;
+            }
+
             $order_id = null;
 
             if ($existingOrder) {
@@ -248,7 +279,9 @@ class SslCommerzPaymentController extends Controller
                         'variation_id'   => $item['variation_id'] ?? null,
                         'created_at'     => now(),
                         'updated_at'     => now(),
-                    ];
+                    ] + ($preorderPlan
+                        ? $preorders->lineAttributes($preorderPlan['lines'][$item['product_id'] . '_' . ($item['variation_id'] ?? 0)])
+                        : []);
                 }
                 
                 if (!empty($orderDetailsData)) {
@@ -284,10 +317,31 @@ class SslCommerzPaymentController extends Controller
             $util = new \App\Utils\Util();
 
             foreach ($details as $line) {
-                $util->decreaseProductStock($line->product_id, $line->variation_id ?? null, $line->quantity);
+                // Passing the line lets a pre-order line take a pre-order slot instead of stock.
+                $util->decreaseProductStock($line->product_id, $line->variation_id ?? null, $line->quantity, $line);
             }
         } catch (\Exception $e) {
             \Log::error('SSL stock decrement failed for Order ID: ' . $orderId . ' — ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Payment confirmed. A normal order becomes Confirmed/Paid and takes its
+     * stock; a pre-order becomes "Pre-Order", takes its pre-order slots and
+     * books the amount received (advance or full).
+     */
+    private function markPaid($order_details, $tran_id, $paidAmount)
+    {
+        $isPreorder = !empty($order_details->is_preorder);
+
+        DB::table('orders')->where('transaction_id', $tran_id)->update($isPreorder
+            ? ['status' => \App\Services\PreOrderService::STATUS_PREORDER]
+            : ['status' => 'Confirmed', 'payment_status' => 'Paid']);
+
+        $this->decrementStockForOrder($order_details->id);
+
+        if ($isPreorder && ($order = Order::find($order_details->id))) {
+            app(\App\Services\PreOrderService::class)->settleGatewayPayment($order, (float) $paidAmount);
         }
     }
 
@@ -311,12 +365,7 @@ class SslCommerzPaymentController extends Controller
             $validation = $sslc->orderValidate($request, $tran_id, $amount, $currency);
 
             if ($validation) {
-                DB::table('orders')->where('transaction_id', $tran_id)->update([
-                    'status' => 'Confirmed', // ✅ Processing থেকে Confirmed করা হয়েছে
-                    'payment_status' => 'Paid'
-                ]);
-
-                $this->decrementStockForOrder($order_details->id);
+                $this->markPaid($order_details, $tran_id, $amount);
 
                 // Payment is confirmed here, so this is the first moment the
                 // sale is real — the Purchase conversion belongs here, not at
@@ -337,7 +386,7 @@ class SslCommerzPaymentController extends Controller
                 rememberPlacedOrder($order_details->id);
                 return redirect(confirmOrderUrl($order_details));
             }
-        } else if ($order_details->status == 'Confirmed' || $order_details->status == 'Processing' || $order_details->status == 'Complete') {
+        } else if ($order_details->status == 'Confirmed' || $order_details->status == 'Processing' || $order_details->status == 'Complete' || $order_details->status == 'Pre-Order') {
             
             // ✅ FIXED: Complete Session Clear Here (If already Processed)
             session()->forget(['cart', 'coupon_discount', 'discount_type', 'applied_coupon_code', 'otp_verified', 'order_token']);
@@ -382,12 +431,7 @@ class SslCommerzPaymentController extends Controller
             if ($order_details && $order_details->status == 'Pending') {
                 $sslc = new SslCommerzNotification();
                 if ($sslc->orderValidate($request, $tran_id, $order_details->amount, $order_details->currency)) {
-                    DB::table('orders')->where('transaction_id', $tran_id)->update([
-                        'status' => 'Confirmed', // ✅ Processing থেকে Confirmed করা হয়েছে
-                        'payment_status' => 'Paid'
-                    ]);
-
-                    $this->decrementStockForOrder($order_details->id);
+                    $this->markPaid($order_details, $tran_id, $request->input('amount'));
 
                     $this->firePurchaseEvents($order_details->id);
 

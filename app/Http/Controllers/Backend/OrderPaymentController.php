@@ -101,6 +101,11 @@ class OrderPaymentController extends Controller
         $data['order_id']=$id;
         OrderPayment::create($data);
         $this->modulutil->orderstatus($order);
+
+        // A pre-order tracks what has been received and what is still due.
+        if ($order->is_preorder) {
+            app(\App\Services\PreOrderService::class)->applyPayment($order, (float) $request->amount);
+        }
         return response()->json(['status'=>true ,'msg'=>'Order Payment is Successfully done!!']);
     }
 
