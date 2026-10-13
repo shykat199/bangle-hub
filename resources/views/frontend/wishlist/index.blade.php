@@ -29,6 +29,7 @@
         transition: background .18s ease, color .18s ease, border-color .18s ease;
     }
     .wl-act.is-primary{ background: {{ $wlAccent }}; color: #fff !important; border: 1.5px solid {{ $wlAccent }}; }
+    .wl-act.is-primary.is-preorder{ background: #f5a800; border-color: #f5a800; }
     .wl-act.is-primary:hover{ filter: brightness(.94); }
     .wl-act.is-primary[disabled]{ background: #e2e8f0; border-color: #e2e8f0; color: #64748b !important; cursor: not-allowed; filter: none; }
     .wl-act.is-remove{ width: 40px; padding: 0; background: #fff; color: #64748b; border: 1.5px solid #e2e8f0; }
@@ -74,7 +75,7 @@
 
                     <div class="wl-actions">
                         @if($wlPreorder)
-                            <a href="{{ $wlUrl }}" class="wl-act is-primary"><i class="far fa-clock"></i> Pre-Order Now</a>
+                            <a href="{{ $wlUrl }}" class="wl-act is-primary is-preorder"><i class="far fa-clock"></i> Pre-Order Now</a>
                         @elseif($wlOut)
                             <button type="button" class="wl-act is-primary" disabled>Out of Stock</button>
                         @elseif($wlVariable)

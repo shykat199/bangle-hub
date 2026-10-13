@@ -180,6 +180,9 @@
     }
     .axil-product.product-style-one .add-to-cart-btn::before, .axil-product.product-style-one .add-to-cart-btn::after{ display: none; }
     .axil-product.product-style-one .add-to-cart-btn:hover{ background: var(--pc-accent); color: #fff !important; }
+    /* pre-order: amber, so it reads differently from a normal add-to-cart */
+    .axil-product.product-style-one .add-to-cart-btn.is-preorder{ border-color: #f5a800; background: #f5a800; color: #fff !important; }
+    .axil-product.product-style-one .add-to-cart-btn.is-preorder:hover{ border-color: #dc9600; background: #dc9600; }
     .axil-product.product-style-one .add-to-cart-btn:active{ transform: scale(.94); }
     .axil-product.product-style-one .add-to-cart-btn svg{ width: 19px; height: 19px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
     .axil-product.product-style-one .add-to-cart-btn i{ font-size: 15px; color: inherit; }

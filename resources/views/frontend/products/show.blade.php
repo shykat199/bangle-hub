@@ -544,6 +544,10 @@
     .pdx-top.is-preorder .pdx-cart-btn{ display: none; }
     .pdx-top.is-preorder .pdx-order-btn{ grid-column: 1 / -1; }
     .pd-buy-bar.is-preorder .pd-buy-bar__btn.is-cart{ display: none; }
+    /* pre-order button: amber instead of the brand colour */
+    .pdx-top.is-preorder .pdx-order-btn{ background: #f5a800; border-color: #f5a800; }
+    .pdx-top.is-preorder .pdx-order-btn:hover{ background: #dc9600; border-color: #dc9600; box-shadow: 0 10px 22px -10px #f5a800; }
+    .pd-buy-bar.is-preorder .pd-buy-bar__btn.is-buy{ background: #f5a800; border-color: #f5a800; }
 
     /* --- kept: notify --- */
     /* ===== Notify Me When Available ===== */

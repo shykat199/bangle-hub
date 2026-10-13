@@ -253,6 +253,7 @@
       z-index: 1;
   }
   .order_now_btn:hover{ filter: brightness(1.1); }
+  .order_now_btn.is-preorder{ background: #f5a800 !important; animation: none !important; }
 
   @media(max-width:575px){ .btn-row{ flex-direction:column; } .add_cart_btn, .order_now_btn{ width:100%; height:52px; font-size:18px; } }
   button:disabled, .btn:disabled{ opacity:.55 !important; cursor:not-allowed !important; }
@@ -436,7 +437,7 @@
             </div>
             @if($popupPreorder)
               <a href="{{ route('front.products.show', ['product' => $singleProduct->slug ?: $singleProduct->id]) }}"
-                 class="btn order_now_btn" style="width:100%; margin-top:10px; display:flex; align-items:center; justify-content:center; text-decoration:none;">
+                 class="btn order_now_btn is-preorder" style="width:100%; margin-top:10px; display:flex; align-items:center; justify-content:center; text-decoration:none;">
                 <i class="far fa-clock"></i> &nbsp; Pre-Order Now
               </a>
             @endif
